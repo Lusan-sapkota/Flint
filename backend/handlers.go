@@ -403,16 +403,18 @@ func (s *Server) resolveCommandAndContinue(w http.ResponseWriter, r *http.Reques
 }
 
 func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, user *User, convo *ConversationWithMessages) {
-	history := buildHistory(convo.Messages)
+	history := buildOptimizedHistory(convo.Messages)
 
 	var tools []OllamaTool
+	var options map[string]any
 	if convo.AttachedFolder != nil && *convo.AttachedFolder != "" {
 		tools = []OllamaTool{runShellTool}
+		options = map[string]any{"num_ctx": boostedNumCtx}
 	}
 
 	flusher, canFlush := w.(http.Flusher)
 
-	result, err := s.ollama.StreamChat(r.Context(), s.ollamaURLFor(user), convo.Model, history, tools, func(token string) {
+	result, err := s.ollama.StreamChat(r.Context(), s.ollamaURLFor(user), convo.Model, history, tools, options, func(token string) {
 		w.Write([]byte(token))
 		if canFlush {
 			flusher.Flush()

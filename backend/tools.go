@@ -1,7 +1,5 @@
 package main
 
-import "encoding/json"
-
 var runShellTool = OllamaTool{
 	Type: "function",
 	Function: OllamaToolFunction{
@@ -18,19 +16,4 @@ var runShellTool = OllamaTool{
 			"required": []string{"command"},
 		},
 	},
-}
-
-func buildHistory(messages []Message) []OllamaMessage {
-	history := make([]OllamaMessage, 0, len(messages))
-	for _, m := range messages {
-		om := OllamaMessage{Role: m.Role, Content: m.Content}
-		if m.ToolCalls != nil {
-			_ = json.Unmarshal([]byte(*m.ToolCalls), &om.ToolCalls)
-		}
-		if m.ToolCallID != nil {
-			om.ToolCallID = *m.ToolCallID
-		}
-		history = append(history, om)
-	}
-	return history
 }

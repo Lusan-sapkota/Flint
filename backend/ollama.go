@@ -41,6 +41,7 @@ type ollamaChatRequest struct {
 	Messages []OllamaMessage `json:"messages"`
 	Stream   bool            `json:"stream"`
 	Tools    []OllamaTool    `json:"tools,omitempty"`
+	Options  map[string]any  `json:"options,omitempty"`
 }
 
 type ollamaChatChunk struct {
@@ -179,8 +180,8 @@ func (c *OllamaClient) doRaw(ctx context.Context, method, url string, body *byte
 	return json.RawMessage(data), nil
 }
 
-func (c *OllamaClient) StreamChat(ctx context.Context, baseURL, model string, messages []OllamaMessage, tools []OllamaTool, onToken func(string)) (ChatResult, error) {
-	body, err := json.Marshal(ollamaChatRequest{Model: model, Messages: messages, Stream: true, Tools: tools})
+func (c *OllamaClient) StreamChat(ctx context.Context, baseURL, model string, messages []OllamaMessage, tools []OllamaTool, options map[string]any, onToken func(string)) (ChatResult, error) {
+	body, err := json.Marshal(ollamaChatRequest{Model: model, Messages: messages, Stream: true, Tools: tools, Options: options})
 	if err != nil {
 		return ChatResult{}, err
 	}
