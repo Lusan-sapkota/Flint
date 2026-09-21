@@ -32,9 +32,6 @@ type ollamaTagsResponse struct {
 	} `json:"models"`
 }
 
-// OllamaClient is a thin, stateless wrapper around Ollama's HTTP API. The
-// base URL is passed per call rather than fixed at construction, since each
-// user can point Flint at their own Ollama instance.
 type OllamaClient struct {
 	http *http.Client
 }
@@ -70,8 +67,6 @@ func (c *OllamaClient) ListModels(ctx context.Context, baseURL string) ([]string
 	return names, nil
 }
 
-// StreamChat sends the conversation to Ollama and calls onToken for every
-// content chunk as it arrives. It returns the full assembled response.
 func (c *OllamaClient) StreamChat(ctx context.Context, baseURL, model string, messages []OllamaMessage, onToken func(string)) (string, error) {
 	body, err := json.Marshal(ollamaChatRequest{Model: model, Messages: messages, Stream: true})
 	if err != nil {

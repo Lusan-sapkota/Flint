@@ -55,8 +55,6 @@ func clearSessionCookie(w http.ResponseWriter) {
 	})
 }
 
-// requireAuth wraps a handler so it only runs for requests carrying a valid
-// session cookie. The logged-in user is stashed in the request context.
 func (s *Server) requireAuth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie(sessionCookieName)

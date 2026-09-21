@@ -101,8 +101,6 @@ func openDB(path string) (*sql.DB, error) {
 	return db, nil
 }
 
-// --- Users ---
-
 func createUser(db *sql.DB, id, fullName, email, passwordHash string) (User, error) {
 	now := time.Now().UnixMilli()
 	u := User{ID: id, FullName: fullName, Email: email, PasswordHash: passwordHash, CreatedAt: now, UpdatedAt: now}
@@ -149,8 +147,6 @@ func updateUserOllamaURL(db *sql.DB, userID string, baseURL *string) error {
 	return err
 }
 
-// --- Sessions ---
-
 func createSession(db *sql.DB, id, userID string, ttl time.Duration) (Session, error) {
 	now := time.Now()
 	s := Session{ID: id, UserID: userID, ExpiresAt: now.Add(ttl).UnixMilli()}
@@ -161,7 +157,6 @@ func createSession(db *sql.DB, id, userID string, ttl time.Duration) (Session, e
 	return s, err
 }
 
-// getSessionUser returns the user for a valid, unexpired session token.
 func getSessionUser(db *sql.DB, sessionID string) (*User, error) {
 	var u User
 	var expiresAt int64
@@ -186,8 +181,6 @@ func deleteSession(db *sql.DB, sessionID string) error {
 	_, err := db.Exec(`DELETE FROM sessions WHERE id = ?`, sessionID)
 	return err
 }
-
-// --- Conversations (all scoped to a user) ---
 
 func createConversation(db *sql.DB, id, userID, model string) (Conversation, error) {
 	now := time.Now().UnixMilli()
@@ -219,7 +212,6 @@ func listConversations(db *sql.DB, userID string) ([]Conversation, error) {
 	return out, rows.Err()
 }
 
-// getConversation returns nil if the conversation doesn't exist OR belongs to a different user.
 func getConversation(db *sql.DB, id, userID string) (*ConversationWithMessages, error) {
 	var c Conversation
 	err := db.QueryRow(

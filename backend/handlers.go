@@ -25,8 +25,6 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
 }
 
-// ollamaURLFor returns the user's own Ollama endpoint if they've set one,
-// otherwise the server-wide default.
 func (s *Server) ollamaURLFor(u *User) string {
 	if u.OllamaBaseURL != nil && *u.OllamaBaseURL != "" {
 		return *u.OllamaBaseURL

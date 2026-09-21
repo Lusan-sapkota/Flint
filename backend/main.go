@@ -32,12 +32,10 @@ func main() {
 		w.Write([]byte("ok"))
 	})
 
-	// Auth (unauthenticated)
 	mux.HandleFunc("POST /api/signup", srv.handleSignup)
 	mux.HandleFunc("POST /api/login", srv.handleLogin)
 	mux.HandleFunc("POST /api/logout", srv.handleLogout)
 
-	// Everything below requires a valid session, and is scoped to that user.
 	mux.HandleFunc("GET /api/me", srv.requireAuth(srv.handleMe))
 	mux.HandleFunc("PATCH /api/me/settings", srv.requireAuth(srv.handleUpdateSettings))
 
