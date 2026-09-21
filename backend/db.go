@@ -437,10 +437,10 @@ func getAttachmentOwned(db *sql.DB, attachmentID, userID string) (*Attachment, e
 	return &a, nil
 }
 
-func insertToolCallMessage(db *sql.DB, conversationID, toolCallsJSON string) error {
+func insertToolCallMessage(db *sql.DB, conversationID, content, toolCallsJSON string) error {
 	_, err := db.Exec(
-		`INSERT INTO messages (conversation_id, role, content, tool_calls, created_at) VALUES (?, 'assistant', '', ?, ?)`,
-		conversationID, toolCallsJSON, time.Now().UnixMilli(),
+		`INSERT INTO messages (conversation_id, role, content, tool_calls, created_at) VALUES (?, 'assistant', ?, ?, ?)`,
+		conversationID, content, toolCallsJSON, time.Now().UnixMilli(),
 	)
 	return err
 }

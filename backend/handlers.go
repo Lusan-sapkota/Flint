@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -448,6 +449,11 @@ func (s *Server) resolveCommandAndContinue(w http.ResponseWriter, r *http.Reques
 		if err := resolveCommand(s.db, cmd.ID, "denied", "", nil); err != nil {
 			log.Printf("warning: failed to resolve command: %v", err)
 		}
+	} else if blocked, reason := checkCommandShield(cmd.Command); blocked {
+		resultText = fmt.Sprintf("[BLOCKED by safety shield: %s]\nThis command was not executed.", reason)
+		if err := resolveCommand(s.db, cmd.ID, "blocked", resultText, nil); err != nil {
+			log.Printf("warning: failed to resolve command: %v", err)
+		}
 	} else {
 		ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
 		defer cancel()
@@ -508,6 +514,10 @@ func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, use
 		options = map[string]any{"num_ctx": boostedNumCtx}
 		if consecutiveToolCycles(convo.Messages) < maxToolAttemptsPerTurn {
 			tools = []OllamaTool{runShellTool}
+			if len(history) > 0 {
+				last := &history[len(history)-1]
+				last.Content = strings.TrimRight(last.Content, "\n") + "\n\n" + toolReasoningPrompt
+			}
 		}
 	}
 
@@ -531,7 +541,7 @@ func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, use
 	if len(result.ToolCalls) > 0 {
 		tc := result.ToolCalls[0]
 		toolCallsJSON, _ := json.Marshal(result.ToolCalls)
-		if err := insertToolCallMessage(s.db, convo.ID, string(toolCallsJSON)); err != nil {
+		if err := insertToolCallMessage(s.db, convo.ID, result.Content, string(toolCallsJSON)); err != nil {
 			log.Printf("warning: failed to save tool call message: %v", err)
 		}
 
@@ -539,6 +549,21 @@ func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, use
 			Command string `json:"command"`
 		}
 		_ = json.Unmarshal(tc.Function.Arguments, &args)
+
+		if blocked, reason := checkCommandShield(args.Command); blocked {
+			if err := insertToolResultMessage(s.db, convo.ID, tc.ID, fmt.Sprintf("[BLOCKED by safety shield: %s]\nThis command will not run, with or without approval. Suggest a different approach.", reason)); err != nil {
+				log.Printf("warning: failed to save blocked tool result: %v", err)
+			}
+			fmt.Fprintf(w, "\n[Blocked a proposed command: %s]\n\n", reason)
+
+			refreshed, err := getConversation(s.db, convo.ID, user.ID)
+			if err != nil {
+				log.Printf("warning: failed to refresh conversation after block: %v", err)
+				return
+			}
+			s.streamAssistantTurn(w, r, user, refreshed)
+			return
+		}
 
 		cmdID := tc.ID
 		if cmdID == "" {
