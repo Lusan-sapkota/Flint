@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,6 +22,31 @@ type Server struct {
 	ollama           *OllamaClient
 	defaultOllamaURL string
 	attachmentsDir   string
+
+	conversationQueueMu sync.Mutex
+	conversationQueue   map[string]*sync.Mutex
+}
+
+// lockConversation serializes every request that touches a given
+// conversation - a message, an approve, a deny - so overlapping requests
+// (a second message sent before the first finishes streaming, a double
+// click on approve) queue in arrival order instead of running concurrently
+// and interleaving writes into the same conversation's history. Different
+// conversations never block each other.
+func (s *Server) lockConversation(id string) func() {
+	s.conversationQueueMu.Lock()
+	if s.conversationQueue == nil {
+		s.conversationQueue = make(map[string]*sync.Mutex)
+	}
+	lock, ok := s.conversationQueue[id]
+	if !ok {
+		lock = &sync.Mutex{}
+		s.conversationQueue[id] = lock
+	}
+	s.conversationQueueMu.Unlock()
+
+	lock.Lock()
+	return lock.Unlock
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -344,6 +370,8 @@ func (s *Server) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	defer s.lockConversation(id)()
+
 	content := body.Content
 	webNotice := ""
 	if isWeb, query := stripWebFlag(content); isWeb {
@@ -433,6 +461,11 @@ func (s *Server) resolveCommandAndContinue(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	defer s.lockConversation(convoID)()
+
+	// Re-fetch inside the lock: a queued duplicate approve/deny (a double
+	// click, two tabs) must see this command as already resolved, not race
+	// the first request to execute it twice.
 	cmd, err := getCommand(s.db, cmdID, convoID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
@@ -450,7 +483,7 @@ func (s *Server) resolveCommandAndContinue(w http.ResponseWriter, r *http.Reques
 			log.Printf("warning: failed to resolve command: %v", err)
 		}
 	} else if blocked, reason := checkCommandShield(cmd.Command); blocked {
-		resultText = fmt.Sprintf("[BLOCKED by safety shield: %s]\nThis command was not executed.", reason)
+		resultText = shieldBlockedMessage(reason)
 		if err := resolveCommand(s.db, cmd.ID, "blocked", resultText, nil); err != nil {
 			log.Printf("warning: failed to resolve command: %v", err)
 		}
@@ -551,7 +584,7 @@ func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, use
 		_ = json.Unmarshal(tc.Function.Arguments, &args)
 
 		if blocked, reason := checkCommandShield(args.Command); blocked {
-			if err := insertToolResultMessage(s.db, convo.ID, tc.ID, fmt.Sprintf("[BLOCKED by safety shield: %s]\nThis command will not run, with or without approval. Suggest a different approach.", reason)); err != nil {
+			if err := insertToolResultMessage(s.db, convo.ID, tc.ID, shieldBlockedMessage(reason)); err != nil {
 				log.Printf("warning: failed to save blocked tool result: %v", err)
 			}
 			fmt.Fprintf(w, "\n[Blocked a proposed command: %s]\n\n", reason)

@@ -1,6 +1,9 @@
 package main
 
-import "regexp"
+import (
+	"fmt"
+	"regexp"
+)
 
 // dangerousCommandPatterns is a hard floor beneath human approval, not a
 // replacement for it: shell is Turing-complete, so this can be evaded and
@@ -28,4 +31,12 @@ func checkCommandShield(command string) (blocked bool, reason string) {
 		}
 	}
 	return false, ""
+}
+
+func shieldBlockedMessage(reason string) string {
+	return fmt.Sprintf(
+		"[BLOCKED by safety shield: %s]\nThis command will not run, with or without approval, and no automated workaround will be accepted either. "+
+			"If this action is genuinely necessary to complete the task, tell the user plainly what command they should run themselves in their own terminal, then continue once they confirm it's done. Do not attempt to route around the block.",
+		reason,
+	)
 }
