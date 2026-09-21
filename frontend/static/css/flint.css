@@ -325,6 +325,51 @@ button.flint-btn-icon {
   text-transform: uppercase;
 }
 
+/* Collapsed-rail controls that show one thing (the Flint logo, the user's
+   avatar initial) normally and swap to another (the expand icon, the
+   log-out icon) on hover - same slot, no layout shift, the way Gemini's
+   collapsed sidebar rail works. */
+.flint-sidebar-hover-toggle {
+  width: 1.75rem;
+  height: 1.75rem;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: var(--flint-text-dim);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.flint-sidebar-hover-toggle .flint-hover-show {
+  display: none;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+.flint-sidebar-hover-toggle .flint-hover-show svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.flint-sidebar-hover-toggle:hover .flint-hover-hide {
+  display: none;
+}
+
+.flint-sidebar-hover-toggle:hover .flint-hover-show {
+  display: flex;
+}
+
+.flint-sidebar-hover-toggle:hover {
+  color: var(--flint-accent);
+}
+
 .flint-main {
   display: flex;
   flex-direction: column;

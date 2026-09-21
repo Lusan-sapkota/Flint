@@ -9,10 +9,17 @@
         <img src="/static/image/flint-32.png" alt="Flint" class="flint-sidebar-logo">
         <span class="flint-sidebar-brand-text">Flint</span>
       </a>
-      <button type="button" class="flint-sidebar-toggle"
+      <button type="button" class="flint-sidebar-toggle" x-show="!collapsed"
               @click="collapsed = !collapsed; localStorage.setItem('flint-sidebar-collapsed', collapsed ? '1' : '0')"
-              :title="collapsed ? 'Expand sidebar' : 'Collapse sidebar'">
+              title="Collapse sidebar">
         {{template "icon-sidebar"}}
+      </button>
+
+      <button type="button" class="flint-sidebar-hover-toggle" x-show="collapsed"
+              @click="collapsed = !collapsed; localStorage.setItem('flint-sidebar-collapsed', collapsed ? '1' : '0')"
+              title="Expand sidebar">
+        <img src="/static/image/flint-32.png" alt="" class="flint-sidebar-logo flint-hover-hide">
+        <span class="flint-hover-show">{{template "icon-sidebar"}}</span>
       </button>
     </div>
 
@@ -46,9 +53,12 @@
 
     <div class="flint-sidebar-footer">
       <span x-show="!collapsed">{{.User.FullName}}</span>
-      <span class="flint-sidebar-avatar" x-show="collapsed" title="{{.User.FullName}}">{{.User.FullName | initial}}</span>
       <a href="#" onclick="flintLogout(); return false;" x-show="!collapsed">Log out</a>
-      <a href="#" onclick="flintLogout(); return false;" x-show="collapsed" title="Log out">{{template "icon-log-out"}}</a>
+
+      <a href="#" onclick="flintLogout(); return false;" x-show="collapsed" class="flint-sidebar-hover-toggle" title="Log out">
+        <span class="flint-sidebar-avatar flint-hover-hide">{{.User.FullName | initial}}</span>
+        <span class="flint-hover-show">{{template "icon-log-out"}}</span>
+      </a>
     </div>
   </nav>
 
