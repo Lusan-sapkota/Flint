@@ -1,10 +1,23 @@
 {{define "scripts"}}<script src="/static/js/chat.js" defer></script>{{end}}
 {{define "content"}}
-<div class="flint-shell">
+<div class="flint-shell"
+     x-data="{ collapsed: localStorage.getItem('flint-sidebar-collapsed') === '1' }"
+     :class="{ 'flint-shell-collapsed': collapsed }">
   <nav class="flint-sidebar" hx-boost="true">
     <div class="flint-sidebar-header">
-      <h2>Flint</h2>
-      <form action="/conversations" method="post">
+      <a href="/" class="flint-sidebar-brand" x-show="!collapsed">
+        <img src="/static/image/flint-32.png" alt="Flint" class="flint-sidebar-logo">
+        <span class="flint-sidebar-brand-text">Flint</span>
+      </a>
+      <button type="button" class="flint-sidebar-toggle"
+              @click="collapsed = !collapsed; localStorage.setItem('flint-sidebar-collapsed', collapsed ? '1' : '0')"
+              :title="collapsed ? 'Expand sidebar' : 'Collapse sidebar'">
+        {{template "icon-sidebar"}}
+      </button>
+    </div>
+
+    <div x-show="!collapsed">
+      <form action="/conversations" method="post" class="flint-new-chat-form">
         <select name="model" required {{if not .Models}}disabled{{end}}>
           {{if not .Models}}
             <option value="">No models available</option>
@@ -13,11 +26,15 @@
             <option value="{{.Name}}">{{.Name}}</option>
           {{end}}
         </select>
-        <button type="submit" class="flint-new-chat-btn" {{if not .Models}}disabled{{end}}>+ New chat</button>
+        <button type="submit" class="flint-new-chat-btn" {{if not .Models}}disabled{{end}}>{{template "icon-plus"}} New chat</button>
       </form>
       {{if .ModelsErr}}<p class="flint-error">Couldn't reach Ollama: {{.ModelsErr}}</p>{{end}}
     </div>
-    <div class="flint-conversations">
+    <button type="button" class="flint-new-chat-icon-btn" x-show="collapsed" @click="collapsed = false" title="New chat">
+      {{template "icon-plus"}}
+    </button>
+
+    <div class="flint-conversations" x-show="!collapsed">
       {{range .Conversations}}
         <a href="/c/{{.ID}}"
            class="flint-conversation-link{{if eq .ID $.CurrentID}} active{{end}}"
@@ -26,9 +43,12 @@
         <p class="flint-empty-state">No conversations yet.</p>
       {{end}}
     </div>
+
     <div class="flint-sidebar-footer">
-      <span>{{.User.FullName}}</span>
-      <a href="#" onclick="flintLogout(); return false;">Log out</a>
+      <span x-show="!collapsed">{{.User.FullName}}</span>
+      <span class="flint-sidebar-avatar" x-show="collapsed" title="{{.User.FullName}}">{{.User.FullName | initial}}</span>
+      <a href="#" onclick="flintLogout(); return false;" x-show="!collapsed">Log out</a>
+      <a href="#" onclick="flintLogout(); return false;" x-show="collapsed" title="Log out">{{template "icon-log-out"}}</a>
     </div>
   </nav>
 
@@ -45,7 +65,7 @@
         <template x-if="model"><span>Model: <strong x-text="model"></strong></span></template>
         <template x-if="!model"><span>No conversation selected</span></template>
       </div>
-      <a href="/settings" class="flint-settings-gear" title="Settings">&#9881;</a>
+      <a href="/settings" class="flint-settings-gear" title="Settings">{{template "icon-settings"}}</a>
     </header>
 
     <main class="flint-thread" x-ref="thread">
@@ -94,8 +114,9 @@
           <template x-if="item.kind === 'command'">
             <div class="flint-command-card">
               <header>
-                <span>&#9881; Shell command</span>
-                <span x-text="'— ' + statusLabel(item.commandStatus)"></span>
+                {{template "icon-terminal"}}
+                <span>Shell command</span>
+                <span class="flint-command-status" x-text="statusLabel(item.commandStatus)"></span>
               </header>
               <code class="flint-command-text" x-text="item.commandText"></code>
 
@@ -122,13 +143,14 @@
     <div class="flint-inputbar">
       <template x-if="attachedFolder">
         <div class="flint-folder-indicator">
-          <span>&#128193;</span>
+          {{template "icon-folder"}}
           <span x-text="attachedFolder"></span>
         </div>
       </template>
 
       <template x-if="conversationId && !attachedFolder">
         <form class="flint-folder-indicator" style="background:transparent;border-style:dashed;" @submit.prevent="attachFolder">
+          {{template "icon-folder"}}
           <input type="text" x-model="folderInput" placeholder="Attach a folder (absolute path)" style="all:unset;min-width:14rem;">
           <button type="submit" :disabled="folderBusy" style="all:unset;cursor:pointer;">Attach</button>
         </form>
@@ -140,14 +162,14 @@
           <template x-for="(img, i) in images" :key="i">
             <div class="flint-image-preview">
               <img :src="img.dataUrl" alt="pending attachment">
-              <button type="button" @click="removeImage(i)">&times;</button>
+              <button type="button" @click="removeImage(i)" aria-label="Remove image">{{template "icon-x"}}</button>
             </div>
           </template>
         </div>
       </template>
 
       <div class="flint-input-row">
-        <button type="button" class="flint-icon-btn secondary" title="Attach image" @click="$refs.imageInput.click()" :disabled="!conversationId || images.length >= 4">&#128247;</button>
+        <button type="button" class="flint-icon-btn secondary" title="Attach image" @click="$refs.imageInput.click()" :disabled="!conversationId || images.length >= 4">{{template "icon-image"}}</button>
         <input type="file" x-ref="imageInput" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden @change="onImageChange">
         <textarea rows="1" placeholder="Message Flint…" x-model="input" @keydown.enter="submitOnEnter($event)" :disabled="!conversationId || streaming || pendingCommand"></textarea>
         <button type="button" class="flint-send-btn" @click="send" :disabled="!conversationId || streaming || pendingCommand || !input.trim()" :aria-busy="streaming">Send</button>

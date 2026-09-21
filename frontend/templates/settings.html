@@ -1,7 +1,7 @@
 {{define "scripts"}}<script src="/static/js/settings.js" defer></script>{{end}}
 {{define "content"}}
 <div class="flint-settings-page">
-  <a href="/" class="flint-settings-back">&larr; Back to chat</a>
+  <a href="/" class="flint-settings-back">{{template "icon-arrow-left"}} Back to chat</a>
   <h1>Settings</h1>
 
   <div x-data="settingsForm({
@@ -46,9 +46,9 @@
 
     <section class="flint-settings-section">
       <h3>Security questions</h3>
-      <p>Used to recover your account without email. Answers are never shown back to you &mdash;
-        saving this form replaces <strong>all</strong> questions and requires re-entering every answer,
-        even ones you're keeping.</p>
+      <p>Used to recover your account without email. Answers are never shown back to you once
+        saved. Saving this form replaces <strong>all</strong> questions and requires re-entering
+        every answer, even ones you're keeping.</p>
 
       <template x-for="(q, i) in editQuestions" :key="i">
         <div class="flint-sq-row">

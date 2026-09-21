@@ -23,6 +23,12 @@ type pages struct {
 
 var templateFuncs = template.FuncMap{
 	"jsStr": template.JSEscapeString,
+	"initial": func(s string) string {
+		for _, r := range s {
+			return string(r)
+		}
+		return ""
+	},
 }
 
 func parsePage(page string) *template.Template {
