@@ -48,11 +48,21 @@ type Conversation struct {
 }
 
 type Message struct {
-	Role       string  `json:"role"`
-	Content    string  `json:"content"`
-	ToolCalls  *string `json:"tool_calls,omitempty"`
-	ToolCallID *string `json:"tool_call_id,omitempty"`
-	CreatedAt  int64   `json:"created_at,omitempty"`
+	ID          int64        `json:"id"`
+	Role        string       `json:"role"`
+	Content     string       `json:"content"`
+	ToolCalls   *string      `json:"tool_calls,omitempty"`
+	ToolCallID  *string      `json:"tool_call_id,omitempty"`
+	Attachments []Attachment `json:"attachments,omitempty"`
+	CreatedAt   int64        `json:"created_at,omitempty"`
+}
+
+type Attachment struct {
+	ID        string `json:"id"`
+	MessageID int64  `json:"-"`
+	MimeType  string `json:"mime_type"`
+	FilePath  string `json:"-"`
+	CreatedAt int64  `json:"created_at"`
 }
 
 type ConversationWithMessages struct {
@@ -127,11 +137,20 @@ CREATE TABLE IF NOT EXISTS commands (
 	decided_at      INTEGER
 );
 
+CREATE TABLE IF NOT EXISTS attachments (
+	id         TEXT PRIMARY KEY,
+	message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+	mime_type  TEXT NOT NULL,
+	file_path  TEXT NOT NULL,
+	created_at INTEGER NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
 CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_commands_conversation_id ON commands(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_attachments_message_id ON attachments(message_id);
 `
 
 func openDB(path string) (*sql.DB, error) {
@@ -290,7 +309,7 @@ func getConversation(db *sql.DB, id, userID string) (*ConversationWithMessages, 
 	}
 
 	rows, err := db.Query(
-		`SELECT role, content, tool_calls, tool_call_id, created_at FROM messages WHERE conversation_id = ? ORDER BY id ASC`, id,
+		`SELECT id, role, content, tool_calls, tool_call_id, created_at FROM messages WHERE conversation_id = ? ORDER BY id ASC`, id,
 	)
 	if err != nil {
 		return nil, err
@@ -300,13 +319,38 @@ func getConversation(db *sql.DB, id, userID string) (*ConversationWithMessages, 
 	messages := []Message{}
 	for rows.Next() {
 		var m Message
-		if err := rows.Scan(&m.Role, &m.Content, &m.ToolCalls, &m.ToolCallID, &m.CreatedAt); err != nil {
+		if err := rows.Scan(&m.ID, &m.Role, &m.Content, &m.ToolCalls, &m.ToolCallID, &m.CreatedAt); err != nil {
 			return nil, err
 		}
 		messages = append(messages, m)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
+	}
+
+	attachRows, err := db.Query(
+		`SELECT a.id, a.message_id, a.mime_type, a.file_path, a.created_at
+		 FROM attachments a JOIN messages m ON m.id = a.message_id
+		 WHERE m.conversation_id = ? ORDER BY a.created_at ASC`, id,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer attachRows.Close()
+
+	byMessage := map[int64][]Attachment{}
+	for attachRows.Next() {
+		var a Attachment
+		if err := attachRows.Scan(&a.ID, &a.MessageID, &a.MimeType, &a.FilePath, &a.CreatedAt); err != nil {
+			return nil, err
+		}
+		byMessage[a.MessageID] = append(byMessage[a.MessageID], a)
+	}
+	if err := attachRows.Err(); err != nil {
+		return nil, err
+	}
+	for i := range messages {
+		messages[i].Attachments = byMessage[messages[i].ID]
 	}
 
 	return &ConversationWithMessages{Conversation: c, Messages: messages}, nil
@@ -326,12 +370,61 @@ func deleteConversation(db *sql.DB, id, userID string) (bool, error) {
 	return n > 0, err
 }
 
-func insertMessage(db *sql.DB, conversationID, role, content string) error {
-	_, err := db.Exec(
+func insertMessage(db *sql.DB, conversationID, role, content string) (int64, error) {
+	res, err := db.Exec(
 		`INSERT INTO messages (conversation_id, role, content, created_at) VALUES (?, ?, ?, ?)`,
 		conversationID, role, content, time.Now().UnixMilli(),
 	)
+	if err != nil {
+		return 0, err
+	}
+	return res.LastInsertId()
+}
+
+func createAttachment(db *sql.DB, id string, messageID int64, mimeType, filePath string) error {
+	_, err := db.Exec(
+		`INSERT INTO attachments (id, message_id, mime_type, file_path, created_at) VALUES (?, ?, ?, ?, ?)`,
+		id, messageID, mimeType, filePath, time.Now().UnixMilli(),
+	)
 	return err
+}
+
+func getAttachmentPathsForConversation(db *sql.DB, conversationID string) ([]string, error) {
+	rows, err := db.Query(
+		`SELECT a.file_path FROM attachments a JOIN messages m ON m.id = a.message_id WHERE m.conversation_id = ?`, conversationID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	paths := []string{}
+	for rows.Next() {
+		var p string
+		if err := rows.Scan(&p); err != nil {
+			return nil, err
+		}
+		paths = append(paths, p)
+	}
+	return paths, rows.Err()
+}
+
+func getAttachmentOwned(db *sql.DB, attachmentID, userID string) (*Attachment, error) {
+	var a Attachment
+	err := db.QueryRow(
+		`SELECT a.id, a.message_id, a.mime_type, a.file_path, a.created_at
+		 FROM attachments a
+		 JOIN messages m ON m.id = a.message_id
+		 JOIN conversations c ON c.id = m.conversation_id
+		 WHERE a.id = ? AND c.user_id = ?`, attachmentID, userID,
+	).Scan(&a.ID, &a.MessageID, &a.MimeType, &a.FilePath, &a.CreatedAt)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &a, nil
 }
 
 func insertToolCallMessage(db *sql.DB, conversationID, toolCallsJSON string) error {

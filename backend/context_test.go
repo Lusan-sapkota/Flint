@@ -33,7 +33,7 @@ func TestBuildOptimizedHistory_ProtectsGoalAndRecentWindow(t *testing.T) {
 	}
 	messages = append(messages, Message{Role: "assistant", Content: "final answer"})
 
-	result := buildOptimizedHistory(messages)
+	result := buildOptimizedHistory(messages, "")
 
 	if result[0].Role != "system" {
 		t.Fatalf("expected system message preserved first, got role %q", result[0].Role)
@@ -79,7 +79,7 @@ func TestBuildOptimizedHistory_NeverSplitsToolCallPair(t *testing.T) {
 		{Role: "tool", Content: "output", ToolCallID: strPtr("call1")},
 	}
 
-	result := buildOptimizedHistory(messages)
+	result := buildOptimizedHistory(messages, "")
 
 	for i, m := range result {
 		if m.Role == "tool" {

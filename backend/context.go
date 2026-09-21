@@ -75,13 +75,20 @@ func decayTruncate(content string, weight float64) string {
 	return content[:keep] + "...[truncated]"
 }
 
-func toOllamaMessage(m Message) OllamaMessage {
+func toOllamaMessage(m Message, attachmentsDir string) OllamaMessage {
 	om := OllamaMessage{Role: m.Role, Content: m.Content}
 	if m.ToolCalls != nil {
 		_ = json.Unmarshal([]byte(*m.ToolCalls), &om.ToolCalls)
 	}
 	if m.ToolCallID != nil {
 		om.ToolCallID = *m.ToolCallID
+	}
+	for _, a := range m.Attachments {
+		encoded, err := loadAttachmentBase64(attachmentsDir, a)
+		if err != nil {
+			continue
+		}
+		om.Images = append(om.Images, encoded)
 	}
 	return om
 }
@@ -92,13 +99,13 @@ func toOllamaMessage(m Message) OllamaMessage {
 // decay proportional to its distance from the current turn, falling back to
 // collapsing whole tool-call/result pairs into a one-line note if that
 // still isn't enough to fit the token budget.
-func buildOptimizedHistory(messages []Message) []OllamaMessage {
+func buildOptimizedHistory(messages []Message, attachmentsDir string) []OllamaMessage {
 	n := len(messages)
 	protected := make([]bool, n)
 
 	firstUser := -1
 	for i, m := range messages {
-		if m.Role == "system" {
+		if m.Role == "system" || len(m.Attachments) > 0 {
 			protected[i] = true
 		}
 		if firstUser == -1 && m.Role == "user" {
@@ -146,7 +153,7 @@ func buildOptimizedHistory(messages []Message) []OllamaMessage {
 			i += 2
 			continue
 		}
-		result = append(result, toOllamaMessage(shrunk[i]))
+		result = append(result, toOllamaMessage(shrunk[i], attachmentsDir))
 		i++
 	}
 	return result

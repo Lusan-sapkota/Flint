@@ -8,6 +8,9 @@
 /backend/data/*.db-wal
 /backend/data/*.db-shm
 
+# Uploaded image attachments
+/backend/data/attachments/
+
 # Env
 .env
 

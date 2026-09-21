@@ -19,6 +19,7 @@ type Server struct {
 	db               *sql.DB
 	ollama           *OllamaClient
 	defaultOllamaURL string
+	attachmentsDir   string
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -214,6 +215,12 @@ func (s *Server) handleDeleteConversation(w http.ResponseWriter, r *http.Request
 	user := userFromContext(r)
 	id := r.PathValue("id")
 
+	paths, err := getAttachmentPathsForConversation(s.db, id)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	found, err := deleteConversation(s.db, id, user.ID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
@@ -223,7 +230,32 @@ func (s *Server) handleDeleteConversation(w http.ResponseWriter, r *http.Request
 		writeError(w, http.StatusNotFound, "conversation not found")
 		return
 	}
+
+	for _, p := range paths {
+		if err := os.Remove(filepath.Join(s.attachmentsDir, p)); err != nil && !os.IsNotExist(err) {
+			log.Printf("warning: failed to remove attachment file %s: %v", p, err)
+		}
+	}
+
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) handleGetAttachment(w http.ResponseWriter, r *http.Request) {
+	user := userFromContext(r)
+	id := r.PathValue("id")
+
+	a, err := getAttachmentOwned(s.db, id, user.ID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if a == nil {
+		writeError(w, http.StatusNotFound, "attachment not found")
+		return
+	}
+
+	w.Header().Set("Content-Type", a.MimeType)
+	http.ServeFile(w, r, filepath.Join(s.attachmentsDir, a.FilePath))
 }
 
 func (s *Server) handleAttachFolder(w http.ResponseWriter, r *http.Request) {
@@ -264,7 +296,7 @@ func (s *Server) handleAttachFolder(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if err := insertMessage(s.db, id, "system", manifest); err != nil {
+	if _, err := insertMessage(s.db, id, "system", manifest); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -281,7 +313,8 @@ func (s *Server) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
 	var body struct {
-		Content string `json:"content"`
+		Content string   `json:"content"`
+		Images  []string `json:"images,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Content == "" {
 		writeError(w, http.StatusBadRequest, "content is required")
@@ -298,9 +331,16 @@ func (s *Server) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := insertMessage(s.db, id, "user", body.Content); err != nil {
+	messageID, err := insertMessage(s.db, id, "user", body.Content)
+	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
+	}
+	if len(body.Images) > 0 {
+		if err := saveImageAttachments(s.attachmentsDir, s.db, messageID, body.Images); err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
 	}
 	if err := maybeSetTitle(s.db, id, body.Content); err != nil {
 		log.Printf("warning: failed to set title: %v", err)
@@ -403,7 +443,7 @@ func (s *Server) resolveCommandAndContinue(w http.ResponseWriter, r *http.Reques
 }
 
 func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, user *User, convo *ConversationWithMessages) {
-	history := buildOptimizedHistory(convo.Messages)
+	history := buildOptimizedHistory(convo.Messages, s.attachmentsDir)
 
 	var tools []OllamaTool
 	var options map[string]any
@@ -458,7 +498,7 @@ func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, use
 	}
 
 	if result.Content != "" {
-		if err := insertMessage(s.db, convo.ID, "assistant", result.Content); err != nil {
+		if _, err := insertMessage(s.db, convo.ID, "assistant", result.Content); err != nil {
 			log.Printf("warning: failed to save assistant message: %v", err)
 		}
 	}

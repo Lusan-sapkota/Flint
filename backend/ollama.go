@@ -32,6 +32,7 @@ type OllamaToolFunction struct {
 type OllamaMessage struct {
 	Role       string           `json:"role"`
 	Content    string           `json:"content"`
+	Images     []string         `json:"images,omitempty"`
 	ToolCalls  []OllamaToolCall `json:"tool_calls,omitempty"`
 	ToolCallID string           `json:"tool_call_id,omitempty"`
 }

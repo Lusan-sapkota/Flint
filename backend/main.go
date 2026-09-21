@@ -17,6 +17,11 @@ func main() {
 	port := getenv("PORT", "8080")
 	dbPath := getenv("DB_PATH", "data/chat.db")
 	ollamaBaseURL := getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+	attachmentsDir := getenv("ATTACHMENTS_DIR", "data/attachments")
+
+	if err := os.MkdirAll(attachmentsDir, 0o755); err != nil {
+		log.Fatalf("failed to create attachments directory: %v", err)
+	}
 
 	db, err := openDB(dbPath)
 	if err != nil {
@@ -24,7 +29,7 @@ func main() {
 	}
 	defer db.Close()
 
-	srv := &Server{db: db, ollama: NewOllamaClient(), defaultOllamaURL: ollamaBaseURL}
+	srv := &Server{db: db, ollama: NewOllamaClient(), defaultOllamaURL: ollamaBaseURL, attachmentsDir: attachmentsDir}
 
 	mux := http.NewServeMux()
 
@@ -48,6 +53,7 @@ func main() {
 	mux.HandleFunc("POST /api/conversations", srv.requireAuth(srv.handleCreateConversation))
 	mux.HandleFunc("GET /api/conversations/{id}", srv.requireAuth(srv.handleGetConversation))
 	mux.HandleFunc("DELETE /api/conversations/{id}", srv.requireAuth(srv.handleDeleteConversation))
+	mux.HandleFunc("GET /api/attachments/{id}", srv.requireAuth(srv.handleGetAttachment))
 	mux.HandleFunc("POST /api/conversations/{id}/attach", srv.requireAuth(srv.handleAttachFolder))
 	mux.HandleFunc("POST /api/conversations/{id}/messages", srv.requireAuth(srv.handlePostMessage))
 	mux.HandleFunc("POST /api/conversations/{id}/commands/{cmdId}/approve", srv.requireAuth(srv.handleApproveCommand))
