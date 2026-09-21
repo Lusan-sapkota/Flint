@@ -94,18 +94,26 @@ func toOllamaMessage(m Message, attachmentsDir string) OllamaMessage {
 }
 
 // buildOptimizedHistory assembles a bounded context: the original goal and
-// any system context are always kept verbatim, the most recent messages are
-// kept verbatim, and everything in between is shrunk by an exponential
-// decay proportional to its distance from the current turn, falling back to
-// collapsing whole tool-call/result pairs into a one-line note if that
-// still isn't enough to fit the token budget.
+// the first system message (the standing folder-attach context, if any) are
+// always kept verbatim, the most recent messages are kept verbatim, and
+// everything in between is shrunk by an exponential decay proportional to
+// its distance from the current turn, falling back to collapsing whole
+// tool-call/result pairs into a one-line note if that still isn't enough to
+// fit the token budget. Later system messages (e.g. web search injections)
+// are not blanket-protected - they decay like anything else, or they would
+// accumulate unboundedly over a long conversation.
 func buildOptimizedHistory(messages []Message, attachmentsDir string) []OllamaMessage {
 	n := len(messages)
 	protected := make([]bool, n)
 
+	firstSystem := -1
 	firstUser := -1
 	for i, m := range messages {
-		if m.Role == "system" || len(m.Attachments) > 0 {
+		if m.Role == "system" && firstSystem == -1 {
+			firstSystem = i
+			protected[i] = true
+		}
+		if len(m.Attachments) > 0 {
 			protected[i] = true
 		}
 		if firstUser == -1 && m.Role == "user" {

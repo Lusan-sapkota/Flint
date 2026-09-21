@@ -16,6 +16,7 @@ type User struct {
 	PasswordHash    string   `json:"-"`
 	OllamaBaseURL   *string  `json:"ollama_base_url,omitempty"`
 	PreferredModels []string `json:"preferred_models"`
+	BraveAPIKey     *string  `json:"brave_api_key,omitempty"`
 	CreatedAt       int64    `json:"created_at"`
 	UpdatedAt       int64    `json:"updated_at"`
 }
@@ -91,6 +92,7 @@ CREATE TABLE IF NOT EXISTS users (
 	password_hash    TEXT NOT NULL,
 	ollama_base_url  TEXT,
 	preferred_models TEXT,
+	brave_api_key    TEXT,
 	created_at       INTEGER NOT NULL,
 	updated_at       INTEGER NOT NULL
 );
@@ -181,8 +183,8 @@ func getUserByEmail(db *sql.DB, email string) (*User, error) {
 	var u User
 	var preferredModelsRaw *string
 	err := db.QueryRow(
-		`SELECT id, full_name, email, password_hash, ollama_base_url, preferred_models, created_at, updated_at FROM users WHERE email = ?`, email,
-	).Scan(&u.ID, &u.FullName, &u.Email, &u.PasswordHash, &u.OllamaBaseURL, &preferredModelsRaw, &u.CreatedAt, &u.UpdatedAt)
+		`SELECT id, full_name, email, password_hash, ollama_base_url, preferred_models, brave_api_key, created_at, updated_at FROM users WHERE email = ?`, email,
+	).Scan(&u.ID, &u.FullName, &u.Email, &u.PasswordHash, &u.OllamaBaseURL, &preferredModelsRaw, &u.BraveAPIKey, &u.CreatedAt, &u.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -197,8 +199,8 @@ func getUserByID(db *sql.DB, id string) (*User, error) {
 	var u User
 	var preferredModelsRaw *string
 	err := db.QueryRow(
-		`SELECT id, full_name, email, password_hash, ollama_base_url, preferred_models, created_at, updated_at FROM users WHERE id = ?`, id,
-	).Scan(&u.ID, &u.FullName, &u.Email, &u.PasswordHash, &u.OllamaBaseURL, &preferredModelsRaw, &u.CreatedAt, &u.UpdatedAt)
+		`SELECT id, full_name, email, password_hash, ollama_base_url, preferred_models, brave_api_key, created_at, updated_at FROM users WHERE id = ?`, id,
+	).Scan(&u.ID, &u.FullName, &u.Email, &u.PasswordHash, &u.OllamaBaseURL, &preferredModelsRaw, &u.BraveAPIKey, &u.CreatedAt, &u.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -229,6 +231,14 @@ func updateUserPreferredModels(db *sql.DB, userID string, models []string) error
 	return err
 }
 
+func updateUserBraveAPIKey(db *sql.DB, userID string, key *string) error {
+	_, err := db.Exec(
+		`UPDATE users SET brave_api_key = ?, updated_at = ? WHERE id = ?`,
+		key, time.Now().UnixMilli(), userID,
+	)
+	return err
+}
+
 func createSession(db *sql.DB, id, userID string, ttl time.Duration) (Session, error) {
 	now := time.Now()
 	s := Session{ID: id, UserID: userID, ExpiresAt: now.Add(ttl).UnixMilli()}
@@ -244,10 +254,10 @@ func getSessionUser(db *sql.DB, sessionID string) (*User, error) {
 	var preferredModelsRaw *string
 	var expiresAt int64
 	err := db.QueryRow(
-		`SELECT u.id, u.full_name, u.email, u.password_hash, u.ollama_base_url, u.preferred_models, u.created_at, u.updated_at, s.expires_at
+		`SELECT u.id, u.full_name, u.email, u.password_hash, u.ollama_base_url, u.preferred_models, u.brave_api_key, u.created_at, u.updated_at, s.expires_at
 		 FROM sessions s JOIN users u ON u.id = s.user_id
 		 WHERE s.id = ?`, sessionID,
-	).Scan(&u.ID, &u.FullName, &u.Email, &u.PasswordHash, &u.OllamaBaseURL, &preferredModelsRaw, &u.CreatedAt, &u.UpdatedAt, &expiresAt)
+	).Scan(&u.ID, &u.FullName, &u.Email, &u.PasswordHash, &u.OllamaBaseURL, &preferredModelsRaw, &u.BraveAPIKey, &u.CreatedAt, &u.UpdatedAt, &expiresAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}

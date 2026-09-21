@@ -90,6 +90,32 @@ func TestBuildOptimizedHistory_NeverSplitsToolCallPair(t *testing.T) {
 	}
 }
 
+func TestBuildOptimizedHistory_OnlyFirstSystemMessageProtected(t *testing.T) {
+	oldSearchResult := strings.Repeat("stale web search noise ", 100)
+
+	messages := []Message{
+		{Role: "system", Content: "Attached folder manifest..."},
+		{Role: "user", Content: "goal"},
+		{Role: "system", Content: oldSearchResult},
+	}
+	for i := 0; i < 6; i++ {
+		messages = append(messages, Message{Role: "user", Content: "filler"})
+		messages = append(messages, Message{Role: "assistant", Content: "filler reply"})
+	}
+
+	result := buildOptimizedHistory(messages, "")
+
+	if result[0].Content != "Attached folder manifest..." {
+		t.Fatalf("expected the first system message preserved verbatim, got %q", result[0].Content)
+	}
+
+	for _, m := range result {
+		if m.Role == "system" && strings.Contains(m.Content, "stale web search noise") && len(m.Content) >= len(oldSearchResult) {
+			t.Fatal("expected the second (non-first) system message to decay like ordinary content, but it was preserved verbatim")
+		}
+	}
+}
+
 func TestDecayWeight_MonotonicallyDecreasing(t *testing.T) {
 	prev := decayWeight(0)
 	for turnsAgo := 1; turnsAgo <= 20; turnsAgo++ {

@@ -2,9 +2,14 @@
 
 A small, fully offline chat UI for local Ollama models.
 
-No CDN calls, no telemetry, no cloud dependency of any kind. Every asset
-the frontend needs (htmx, Alpine.js, Pico.css) is vendored locally, and
-the backend only ever talks to your local Ollama daemon.
+No CDN calls, no telemetry, no cloud dependency of any kind by default.
+Every asset the frontend needs (htmx, Alpine.js, Pico.css) is vendored
+locally, and the backend only ever talks to your local Ollama daemon.
+
+The one deliberate exception: typing `@web <query>` triggers a real web
+search (via the Brave Search API, your own API key configured in Settings)
+— it only fires on explicit request, only sends the literal query text, and
+is a no-op if you haven't configured a key.
 
 ## Stack
 

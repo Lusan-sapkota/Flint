@@ -121,6 +121,29 @@ func (c *OllamaClient) DeleteModel(ctx context.Context, baseURL, name string) er
 	return err
 }
 
+func (c *OllamaClient) Embed(ctx context.Context, baseURL, model string, inputs []string) ([][]float64, error) {
+	data, err := c.doRaw(ctx, http.MethodPost, baseURL+"/api/embed", bytes.NewReader(mustMarshal(map[string]any{
+		"model": model,
+		"input": inputs,
+	})))
+	if err != nil {
+		return nil, err
+	}
+
+	var resp struct {
+		Embeddings [][]float64 `json:"embeddings"`
+	}
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return nil, err
+	}
+	return resp.Embeddings, nil
+}
+
+func mustMarshal(v any) []byte {
+	data, _ := json.Marshal(v)
+	return data
+}
+
 func (c *OllamaClient) PullModel(ctx context.Context, baseURL, name string, onProgress func(line []byte)) error {
 	reqBody, _ := json.Marshal(map[string]any{"name": name, "model": name, "stream": true})
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/api/pull", bytes.NewReader(reqBody))

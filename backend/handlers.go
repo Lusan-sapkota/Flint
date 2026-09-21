@@ -82,6 +82,18 @@ func (s *Server) handleUpdateSettings(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if v, ok := raw["brave_api_key"]; ok {
+		var key *string
+		if err := json.Unmarshal(v, &key); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid brave_api_key")
+			return
+		}
+		if err := updateUserBraveAPIKey(s.db, user.ID, key); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
 	updated, err := getUserByID(s.db, user.ID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
@@ -331,7 +343,22 @@ func (s *Server) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	messageID, err := insertMessage(s.db, id, "user", body.Content)
+	content := body.Content
+	webNotice := ""
+	if isWeb, query := stripWebFlag(content); isWeb {
+		content = query
+		switch {
+		case user.BraveAPIKey == nil || *user.BraveAPIKey == "":
+			webNotice = "[Web search isn't configured — add a Brave Search API key in Settings to enable it. Answering without web results.]\n\n"
+		default:
+			if err := s.injectWebSearchResults(r.Context(), id, user, query); err != nil {
+				log.Printf("web search error: %v", err)
+				webNotice = "[Web search failed, answering without web results.]\n\n"
+			}
+		}
+	}
+
+	messageID, err := insertMessage(s.db, id, "user", content)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -342,7 +369,7 @@ func (s *Server) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if err := maybeSetTitle(s.db, id, body.Content); err != nil {
+	if err := maybeSetTitle(s.db, id, content); err != nil {
 		log.Printf("warning: failed to set title: %v", err)
 	}
 
@@ -354,7 +381,32 @@ func (s *Server) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
+	if webNotice != "" {
+		w.Write([]byte(webNotice))
+	}
 	s.streamAssistantTurn(w, r, user, convo)
+}
+
+func (s *Server) injectWebSearchResults(ctx context.Context, conversationID string, user *User, query string) error {
+	results, err := braveSearch(ctx, *user.BraveAPIKey, query)
+	if err != nil {
+		return err
+	}
+	if len(results) == 0 {
+		return nil
+	}
+
+	ranked, err := rankByRelevance(ctx, s.ollama, s.ollamaURLFor(user), query, results, rankedResultCount)
+	if err != nil {
+		log.Printf("warning: embedding rank failed, using unranked results: %v", err)
+		ranked = results
+		if len(ranked) > rankedResultCount {
+			ranked = ranked[:rankedResultCount]
+		}
+	}
+
+	_, err = insertMessage(s.db, conversationID, "system", formatSearchResults(query, ranked))
+	return err
 }
 
 func (s *Server) handleApproveCommand(w http.ResponseWriter, r *http.Request) {
