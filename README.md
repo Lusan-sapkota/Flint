@@ -38,8 +38,9 @@ itself. Not the biggest, not the smallest: the best-guided.
 
 ## Status
 
-Early scaffold. Structure is in place; backend logic and frontend views
-are being built out.
+Functional: auth (signup/login/security-question recovery), chat with
+streaming responses, image and folder attachments, human-approved shell
+tool calls, and a settings page are all in place end to end.
 
 ## Project layout
 
@@ -56,12 +57,17 @@ flint/
 
 ## Running
 
+Make sure [Ollama](https://ollama.com) is running locally first
+(`ollama serve`), then:
+
 ```bash
 cd backend
 go run .
 ```
 
-More detailed setup instructions will land here as the backend takes shape.
+Open `http://localhost:8080`. Optional env vars: `PORT`, `DB_PATH`,
+`OLLAMA_BASE_URL` (defaults to `http://localhost:11434`),
+`ATTACHMENTS_DIR`.
 
 ## License
 
