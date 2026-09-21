@@ -59,6 +59,19 @@ body {
   max-width: 26rem;
 }
 
+.flint-auth-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.flint-auth-logo {
+  width: 3.5rem;
+  height: 3.5rem;
+  flex-shrink: 0;
+}
+
 .flint-auth-card h1 {
   font-size: 1.5rem;
   margin-bottom: 0.25rem;

@@ -2,8 +2,13 @@
 {{define "content"}}
 <main class="flint-auth-page">
   <article class="flint-auth-card" x-data="loginForm()">
-    <h1>Flint</h1>
-    <p class="flint-auth-subtitle">Log in to your account.</p>
+    <div class="flint-auth-header">
+      <div>
+        <h1>Flint</h1>
+        <p class="flint-auth-subtitle">Log in to your account.</p>
+      </div>
+      <img src="/static/image/flint-512.png" alt="" class="flint-auth-logo">
+    </div>
     <form @submit.prevent="submit">
       <label for="email">Email
         <input type="email" id="email" name="email" x-model="email" autocomplete="email" required autofocus>
