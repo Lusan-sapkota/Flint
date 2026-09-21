@@ -1,9 +1,13 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 func getenv(key, fallback string) string {
@@ -11,6 +15,40 @@ func getenv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func handleHealthz(srv *Server) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+
+		status := map[string]string{"db": "ok", "ollama": "ok"}
+		healthy := true
+
+		if err := srv.db.PingContext(ctx); err != nil {
+			status["db"] = "error: " + err.Error()
+			healthy = false
+		}
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, srv.defaultOllamaURL+"/api/version", nil)
+		if err != nil {
+			status["ollama"] = "error: " + err.Error()
+			healthy = false
+		} else {
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				status["ollama"] = "unreachable: " + err.Error()
+				healthy = false
+			} else {
+				resp.Body.Close()
+			}
+		}
+
+		if !healthy {
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}
+		writeJSON(w, http.StatusOK, status)
+	}
 }
 
 func main() {
@@ -30,15 +68,17 @@ func main() {
 	defer db.Close()
 
 	srv := &Server{db: db, ollama: NewOllamaClient(), defaultOllamaURL: ollamaBaseURL, attachmentsDir: attachmentsDir}
+	// Separate limiter instances, not shared: exhausting login attempts
+	// (e.g. a mistyped password) shouldn't also block signup from the same IP.
+	loginLimiter := newRateLimiter(5, 5*time.Minute)
+	signupLimiter := newRateLimiter(5, 5*time.Minute)
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("ok"))
-	})
+	mux.HandleFunc("GET /healthz", handleHealthz(srv))
 
-	mux.HandleFunc("POST /api/signup", srv.handleSignup)
-	mux.HandleFunc("POST /api/login", srv.handleLogin)
+	mux.HandleFunc("POST /api/signup", signupLimiter.middleware(srv.handleSignup))
+	mux.HandleFunc("POST /api/login", loginLimiter.middleware(srv.handleLogin))
 	mux.HandleFunc("POST /api/logout", srv.handleLogout)
 
 	mux.HandleFunc("GET /api/me", srv.requireAuth(srv.handleMe))
@@ -64,6 +104,23 @@ func main() {
 		w.Write([]byte("Flint backend is running"))
 	})
 
-	log.Printf("flint listening on :%s (ollama: %s, db: %s)", port, ollamaBaseURL, dbPath)
-	log.Fatal(http.ListenAndServe(":"+port, mux))
+	httpServer := &http.Server{Addr: ":" + port, Handler: mux}
+
+	go func() {
+		log.Printf("flint listening on :%s (ollama: %s, db: %s)", port, ollamaBaseURL, dbPath)
+		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("server error: %v", err)
+		}
+	}()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	<-stop
+
+	log.Println("shutting down, waiting for in-flight requests to finish...")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := httpServer.Shutdown(ctx); err != nil {
+		log.Printf("graceful shutdown timed out, forcing close: %v", err)
+	}
 }
