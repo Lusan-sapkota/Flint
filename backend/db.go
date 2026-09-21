@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -9,13 +10,25 @@ import (
 )
 
 type User struct {
-	ID            string  `json:"id"`
-	FullName      string  `json:"full_name"`
-	Email         string  `json:"email"`
-	PasswordHash  string  `json:"-"`
-	OllamaBaseURL *string `json:"ollama_base_url,omitempty"`
-	CreatedAt     int64   `json:"created_at"`
-	UpdatedAt     int64   `json:"updated_at"`
+	ID              string   `json:"id"`
+	FullName        string   `json:"full_name"`
+	Email           string   `json:"email"`
+	PasswordHash    string   `json:"-"`
+	OllamaBaseURL   *string  `json:"ollama_base_url,omitempty"`
+	PreferredModels []string `json:"preferred_models"`
+	CreatedAt       int64    `json:"created_at"`
+	UpdatedAt       int64    `json:"updated_at"`
+}
+
+func decodePreferredModels(raw *string) []string {
+	if raw == nil || *raw == "" {
+		return []string{}
+	}
+	var models []string
+	if err := json.Unmarshal([]byte(*raw), &models); err != nil {
+		return []string{}
+	}
+	return models
 }
 
 type Session struct {
@@ -62,13 +75,14 @@ type Command struct {
 
 const schema = `
 CREATE TABLE IF NOT EXISTS users (
-	id              TEXT PRIMARY KEY,
-	full_name       TEXT NOT NULL,
-	email           TEXT NOT NULL UNIQUE,
-	password_hash   TEXT NOT NULL,
-	ollama_base_url TEXT,
-	created_at      INTEGER NOT NULL,
-	updated_at      INTEGER NOT NULL
+	id               TEXT PRIMARY KEY,
+	full_name        TEXT NOT NULL,
+	email            TEXT NOT NULL UNIQUE,
+	password_hash    TEXT NOT NULL,
+	ollama_base_url  TEXT,
+	preferred_models TEXT,
+	created_at       INTEGER NOT NULL,
+	updated_at       INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
@@ -136,7 +150,7 @@ func openDB(path string) (*sql.DB, error) {
 
 func createUser(db *sql.DB, id, fullName, email, passwordHash string) (User, error) {
 	now := time.Now().UnixMilli()
-	u := User{ID: id, FullName: fullName, Email: email, PasswordHash: passwordHash, CreatedAt: now, UpdatedAt: now}
+	u := User{ID: id, FullName: fullName, Email: email, PasswordHash: passwordHash, PreferredModels: []string{}, CreatedAt: now, UpdatedAt: now}
 	_, err := db.Exec(
 		`INSERT INTO users (id, full_name, email, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`,
 		u.ID, u.FullName, u.Email, u.PasswordHash, u.CreatedAt, u.UpdatedAt,
@@ -146,29 +160,33 @@ func createUser(db *sql.DB, id, fullName, email, passwordHash string) (User, err
 
 func getUserByEmail(db *sql.DB, email string) (*User, error) {
 	var u User
+	var preferredModelsRaw *string
 	err := db.QueryRow(
-		`SELECT id, full_name, email, password_hash, ollama_base_url, created_at, updated_at FROM users WHERE email = ?`, email,
-	).Scan(&u.ID, &u.FullName, &u.Email, &u.PasswordHash, &u.OllamaBaseURL, &u.CreatedAt, &u.UpdatedAt)
+		`SELECT id, full_name, email, password_hash, ollama_base_url, preferred_models, created_at, updated_at FROM users WHERE email = ?`, email,
+	).Scan(&u.ID, &u.FullName, &u.Email, &u.PasswordHash, &u.OllamaBaseURL, &preferredModelsRaw, &u.CreatedAt, &u.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
+	u.PreferredModels = decodePreferredModels(preferredModelsRaw)
 	return &u, nil
 }
 
 func getUserByID(db *sql.DB, id string) (*User, error) {
 	var u User
+	var preferredModelsRaw *string
 	err := db.QueryRow(
-		`SELECT id, full_name, email, password_hash, ollama_base_url, created_at, updated_at FROM users WHERE id = ?`, id,
-	).Scan(&u.ID, &u.FullName, &u.Email, &u.PasswordHash, &u.OllamaBaseURL, &u.CreatedAt, &u.UpdatedAt)
+		`SELECT id, full_name, email, password_hash, ollama_base_url, preferred_models, created_at, updated_at FROM users WHERE id = ?`, id,
+	).Scan(&u.ID, &u.FullName, &u.Email, &u.PasswordHash, &u.OllamaBaseURL, &preferredModelsRaw, &u.CreatedAt, &u.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
+	u.PreferredModels = decodePreferredModels(preferredModelsRaw)
 	return &u, nil
 }
 
@@ -176,6 +194,18 @@ func updateUserOllamaURL(db *sql.DB, userID string, baseURL *string) error {
 	_, err := db.Exec(
 		`UPDATE users SET ollama_base_url = ?, updated_at = ? WHERE id = ?`,
 		baseURL, time.Now().UnixMilli(), userID,
+	)
+	return err
+}
+
+func updateUserPreferredModels(db *sql.DB, userID string, models []string) error {
+	data, err := json.Marshal(models)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(
+		`UPDATE users SET preferred_models = ?, updated_at = ? WHERE id = ?`,
+		string(data), time.Now().UnixMilli(), userID,
 	)
 	return err
 }
@@ -192,12 +222,13 @@ func createSession(db *sql.DB, id, userID string, ttl time.Duration) (Session, e
 
 func getSessionUser(db *sql.DB, sessionID string) (*User, error) {
 	var u User
+	var preferredModelsRaw *string
 	var expiresAt int64
 	err := db.QueryRow(
-		`SELECT u.id, u.full_name, u.email, u.password_hash, u.ollama_base_url, u.created_at, u.updated_at, s.expires_at
+		`SELECT u.id, u.full_name, u.email, u.password_hash, u.ollama_base_url, u.preferred_models, u.created_at, u.updated_at, s.expires_at
 		 FROM sessions s JOIN users u ON u.id = s.user_id
 		 WHERE s.id = ?`, sessionID,
-	).Scan(&u.ID, &u.FullName, &u.Email, &u.PasswordHash, &u.OllamaBaseURL, &u.CreatedAt, &u.UpdatedAt, &expiresAt)
+	).Scan(&u.ID, &u.FullName, &u.Email, &u.PasswordHash, &u.OllamaBaseURL, &preferredModelsRaw, &u.CreatedAt, &u.UpdatedAt, &expiresAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -207,6 +238,7 @@ func getSessionUser(db *sql.DB, sessionID string) (*User, error) {
 	if expiresAt < time.Now().UnixMilli() {
 		return nil, nil
 	}
+	u.PreferredModels = decodePreferredModels(preferredModelsRaw)
 	return &u, nil
 }
 

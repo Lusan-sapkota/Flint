@@ -13,3 +13,6 @@
 
 # OS
 .DS_Store
+
+# Local agent guidance, not project documentation
+CLAUDE.md

@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -53,10 +54,24 @@ type ChatResult struct {
 	ToolCalls []OllamaToolCall
 }
 
+type OllamaModelDetails struct {
+	Format            string `json:"format,omitempty"`
+	Family            string `json:"family,omitempty"`
+	ParameterSize     string `json:"parameter_size,omitempty"`
+	QuantizationLevel string `json:"quantization_level,omitempty"`
+}
+
+type OllamaModelInfo struct {
+	Name       string             `json:"name"`
+	Model      string             `json:"model,omitempty"`
+	ModifiedAt string             `json:"modified_at,omitempty"`
+	Size       int64              `json:"size,omitempty"`
+	Digest     string             `json:"digest,omitempty"`
+	Details    OllamaModelDetails `json:"details,omitempty"`
+}
+
 type ollamaTagsResponse struct {
-	Models []struct {
-		Name string `json:"name"`
-	} `json:"models"`
+	Models []OllamaModelInfo `json:"models"`
 }
 
 type OllamaClient struct {
@@ -67,7 +82,7 @@ func NewOllamaClient() *OllamaClient {
 	return &OllamaClient{http: &http.Client{}}
 }
 
-func (c *OllamaClient) ListModels(ctx context.Context, baseURL string) ([]string, error) {
+func (c *OllamaClient) ListModels(ctx context.Context, baseURL string) ([]OllamaModelInfo, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/api/tags", nil)
 	if err != nil {
 		return nil, err
@@ -86,12 +101,82 @@ func (c *OllamaClient) ListModels(ctx context.Context, baseURL string) ([]string
 	if err := json.NewDecoder(resp.Body).Decode(&tags); err != nil {
 		return nil, err
 	}
+	return tags.Models, nil
+}
 
-	names := make([]string, 0, len(tags.Models))
-	for _, m := range tags.Models {
-		names = append(names, m.Name)
+func (c *OllamaClient) RunningModels(ctx context.Context, baseURL string) (json.RawMessage, error) {
+	return c.doRaw(ctx, http.MethodGet, baseURL+"/api/ps", nil)
+}
+
+func (c *OllamaClient) ShowModel(ctx context.Context, baseURL, name string) (json.RawMessage, error) {
+	body, _ := json.Marshal(map[string]string{"name": name, "model": name})
+	return c.doRaw(ctx, http.MethodPost, baseURL+"/api/show", bytes.NewReader(body))
+}
+
+func (c *OllamaClient) DeleteModel(ctx context.Context, baseURL, name string) error {
+	body, _ := json.Marshal(map[string]string{"name": name, "model": name})
+	_, err := c.doRaw(ctx, http.MethodDelete, baseURL+"/api/delete", bytes.NewReader(body))
+	return err
+}
+
+func (c *OllamaClient) PullModel(ctx context.Context, baseURL, name string, onProgress func(line []byte)) error {
+	reqBody, _ := json.Marshal(map[string]any{"name": name, "model": name, "stream": true})
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/api/pull", bytes.NewReader(reqBody))
+	if err != nil {
+		return err
 	}
-	return names, nil
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return fmt.Errorf("contacting ollama: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		buf, _ := readAll(resp.Body, 4096)
+		return fmt.Errorf("ollama returned status %d: %s", resp.StatusCode, buf)
+	}
+
+	scanner := bufio.NewScanner(resp.Body)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		if len(bytes.TrimSpace(line)) == 0 {
+			continue
+		}
+		onProgress(append([]byte(nil), line...))
+	}
+	return scanner.Err()
+}
+
+func (c *OllamaClient) doRaw(ctx context.Context, method, url string, body *bytes.Reader) (json.RawMessage, error) {
+	var req *http.Request
+	var err error
+	if body == nil {
+		req, err = http.NewRequestWithContext(ctx, method, url, nil)
+	} else {
+		req, err = http.NewRequestWithContext(ctx, method, url, body)
+	}
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("contacting ollama: %w", err)
+	}
+	defer resp.Body.Close()
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("ollama returned status %d: %s", resp.StatusCode, data)
+	}
+	return json.RawMessage(data), nil
 }
 
 func (c *OllamaClient) StreamChat(ctx context.Context, baseURL, model string, messages []OllamaMessage, tools []OllamaTool, onToken func(string)) (ChatResult, error) {

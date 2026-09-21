@@ -51,17 +51,34 @@ func (s *Server) handleListModels(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleUpdateSettings(w http.ResponseWriter, r *http.Request) {
 	user := userFromContext(r)
 
-	var body struct {
-		OllamaBaseURL *string `json:"ollama_base_url"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	var raw map[string]json.RawMessage
+	if err := json.NewDecoder(r.Body).Decode(&raw); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
-	if err := updateUserOllamaURL(s.db, user.ID, body.OllamaBaseURL); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
-		return
+	if v, ok := raw["ollama_base_url"]; ok {
+		var baseURL *string
+		if err := json.Unmarshal(v, &baseURL); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid ollama_base_url")
+			return
+		}
+		if err := updateUserOllamaURL(s.db, user.ID, baseURL); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	if v, ok := raw["preferred_models"]; ok {
+		var models []string
+		if err := json.Unmarshal(v, &models); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid preferred_models")
+			return
+		}
+		if err := updateUserPreferredModels(s.db, user.ID, models); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 
 	updated, err := getUserByID(s.db, user.ID)
@@ -70,6 +87,82 @@ func (s *Server) handleUpdateSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, updated)
+}
+
+func (s *Server) handleRunningModels(w http.ResponseWriter, r *http.Request) {
+	user := userFromContext(r)
+	info, err := s.ollama.RunningModels(r.Context(), s.ollamaURLFor(user))
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(info)
+}
+
+func (s *Server) handleShowModel(w http.ResponseWriter, r *http.Request) {
+	user := userFromContext(r)
+
+	var body struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
+		writeError(w, http.StatusBadRequest, "name is required")
+		return
+	}
+
+	info, err := s.ollama.ShowModel(r.Context(), s.ollamaURLFor(user), body.Name)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(info)
+}
+
+func (s *Server) handleDeleteModel(w http.ResponseWriter, r *http.Request) {
+	user := userFromContext(r)
+
+	var body struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
+		writeError(w, http.StatusBadRequest, "name is required")
+		return
+	}
+
+	if err := s.ollama.DeleteModel(r.Context(), s.ollamaURLFor(user), body.Name); err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) handlePullModel(w http.ResponseWriter, r *http.Request) {
+	user := userFromContext(r)
+
+	var body struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
+		writeError(w, http.StatusBadRequest, "name is required")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/x-ndjson")
+	w.WriteHeader(http.StatusOK)
+	flusher, canFlush := w.(http.Flusher)
+
+	err := s.ollama.PullModel(r.Context(), s.ollamaURLFor(user), body.Name, func(line []byte) {
+		w.Write(line)
+		w.Write([]byte("\n"))
+		if canFlush {
+			flusher.Flush()
+		}
+	})
+	if err != nil {
+		log.Printf("pull model error: %v", err)
+	}
 }
 
 func (s *Server) handleListConversations(w http.ResponseWriter, r *http.Request) {
