@@ -39,7 +39,27 @@ func estimateTokens(s string) int {
 }
 
 func decayWeight(turnsAgo int) float64 {
-	return math.Exp(-float64(turnsAgo) / decayHalfLife)
+	return decayWeightWithHalfLife(turnsAgo, decayHalfLife)
+}
+
+func decayWeightWithHalfLife(turnsAgo int, halfLife float64) float64 {
+	return math.Exp(-float64(turnsAgo) / halfLife)
+}
+
+// effectiveHalfLife adjusts decay per-message based on directly observable
+// signals, instead of a hand-designed Bayesian belief filter over a
+// transition matrix we have no data to calibrate: a failed command's
+// output stays relevant until it's resolved, so it decays slower; a
+// successful exploratory read (ls/cat/grep/find) is rarely worth
+// remembering in detail once the model has moved on, so it decays faster.
+func effectiveHalfLife(m Message, precedingCommand string) float64 {
+	if strings.Contains(m.Content, "[FAILED") {
+		return decayHalfLife * 3
+	}
+	if m.Role == "tool" && classifyCommand(precedingCommand) == "exploring" {
+		return decayHalfLife * 0.5
+	}
+	return decayHalfLife
 }
 
 var phasePatterns = []struct {
@@ -157,7 +177,12 @@ func buildOptimizedHistory(messages []Message, attachmentsDir string) []OllamaMe
 			continue
 		}
 		turnsAgo := n - i
-		shrunk[i].Content = decayTruncate(shrunk[i].Content, decayWeight(turnsAgo))
+		precedingCommand := ""
+		if i > 0 && messages[i-1].Role == "assistant" && messages[i-1].ToolCalls != nil {
+			precedingCommand = extractToolCommand(*messages[i-1].ToolCalls)
+		}
+		halfLife := effectiveHalfLife(messages[i], precedingCommand)
+		shrunk[i].Content = decayTruncate(shrunk[i].Content, decayWeightWithHalfLife(turnsAgo, halfLife))
 	}
 
 	total := 0

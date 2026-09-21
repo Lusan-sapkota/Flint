@@ -109,6 +109,31 @@ func TestBuildOptimizedHistory_NeverSplitsToolCallPair(t *testing.T) {
 	}
 }
 
+func TestEffectiveHalfLife_FailedResultsDecaySlowerThanExploring(t *testing.T) {
+	failed := Message{Role: "tool", Content: "[FAILED, exit code: 1]\nsomething broke"}
+	exploring := Message{Role: "tool", Content: "a.go\nb.go"}
+	ordinary := Message{Role: "tool", Content: "some normal output"}
+
+	failedHL := effectiveHalfLife(failed, "go build ./...")
+	exploringHL := effectiveHalfLife(exploring, "ls -la")
+	ordinaryHL := effectiveHalfLife(ordinary, "go build ./...")
+
+	if failedHL <= ordinaryHL {
+		t.Fatalf("expected a failed result to have a longer half-life than an ordinary one: failed=%f ordinary=%f", failedHL, ordinaryHL)
+	}
+	if exploringHL >= ordinaryHL {
+		t.Fatalf("expected an exploring result to have a shorter half-life than an ordinary one: exploring=%f ordinary=%f", exploringHL, ordinaryHL)
+	}
+
+	turnsAgo := 6
+	if decayWeightWithHalfLife(turnsAgo, failedHL) <= decayWeightWithHalfLife(turnsAgo, ordinaryHL) {
+		t.Fatal("expected a failed result to retain more weight at the same distance than an ordinary one")
+	}
+	if decayWeightWithHalfLife(turnsAgo, exploringHL) >= decayWeightWithHalfLife(turnsAgo, ordinaryHL) {
+		t.Fatal("expected an exploring result to retain less weight at the same distance than an ordinary one")
+	}
+}
+
 func TestBuildOptimizedHistory_OnlyFirstSystemMessageProtected(t *testing.T) {
 	oldSearchResult := strings.Repeat("stale web search noise ", 100)
 
