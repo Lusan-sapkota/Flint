@@ -23,6 +23,14 @@ sits in between: a tiny Go service that proxies chat requests to Ollama
 and logs conversations to an indexed SQLite database, with a lightweight
 server-rendered frontend on top.
 
+The bet underneath that: a well-guided 3-4B local model is not an inferior
+model, it's an under-scaffolded one. The usual bottleneck isn't the model's
+own capability, it's naive unbounded context, no tool-calling discipline,
+and no real persistence around it. Flint's job is to be the best possible
+scaffolding for a small model — careful context management, structured
+tool-calling with human approval, durable history — without becoming heavy
+itself. Not the biggest, not the smallest: the best-guided.
+
 ## Status
 
 Early scaffold. Structure is in place; backend logic and frontend views
