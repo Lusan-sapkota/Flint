@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -70,6 +71,7 @@ type Attachment struct {
 	ID        string `json:"id"`
 	MessageID int64  `json:"-"`
 	MimeType  string `json:"mime_type"`
+	Filename  string `json:"filename"`
 	FilePath  string `json:"-"`
 	CreatedAt int64  `json:"created_at"`
 }
@@ -160,6 +162,7 @@ CREATE TABLE IF NOT EXISTS attachments (
 	id         TEXT PRIMARY KEY,
 	message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
 	mime_type  TEXT NOT NULL,
+	filename   TEXT NOT NULL DEFAULT '',
 	file_path  TEXT NOT NULL,
 	created_at INTEGER NOT NULL
 );
@@ -183,7 +186,24 @@ func openDB(path string) (*sql.DB, error) {
 		db.Close()
 		return nil, fmt.Errorf("applying schema: %w", err)
 	}
+	if err := migrate(db); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("running migrations: %w", err)
+	}
 	return db, nil
+}
+
+// migrate covers changes CREATE TABLE IF NOT EXISTS can't retrofit onto a
+// database that already existed before the change - new columns on an
+// existing table. Each statement is idempotent (ignores "duplicate column"
+// so re-running against an already-migrated database is a no-op.
+func migrate(db *sql.DB) error {
+	if _, err := db.Exec(`ALTER TABLE attachments ADD COLUMN filename TEXT NOT NULL DEFAULT ''`); err != nil {
+		if !strings.Contains(err.Error(), "duplicate column") {
+			return err
+		}
+	}
+	return nil
 }
 
 func createUser(db *sql.DB, id, fullName, email, passwordHash string) (User, error) {
@@ -425,7 +445,7 @@ func getConversation(db *sql.DB, id, userID string) (*ConversationWithMessages, 
 	}
 
 	attachRows, err := db.Query(
-		`SELECT a.id, a.message_id, a.mime_type, a.file_path, a.created_at
+		`SELECT a.id, a.message_id, a.mime_type, a.filename, a.file_path, a.created_at
 		 FROM attachments a JOIN messages m ON m.id = a.message_id
 		 WHERE m.conversation_id = ? ORDER BY a.created_at ASC`, id,
 	)
@@ -437,7 +457,7 @@ func getConversation(db *sql.DB, id, userID string) (*ConversationWithMessages, 
 	byMessage := map[int64][]Attachment{}
 	for attachRows.Next() {
 		var a Attachment
-		if err := attachRows.Scan(&a.ID, &a.MessageID, &a.MimeType, &a.FilePath, &a.CreatedAt); err != nil {
+		if err := attachRows.Scan(&a.ID, &a.MessageID, &a.MimeType, &a.Filename, &a.FilePath, &a.CreatedAt); err != nil {
 			return nil, err
 		}
 		byMessage[a.MessageID] = append(byMessage[a.MessageID], a)
@@ -477,10 +497,10 @@ func insertMessage(db *sql.DB, conversationID, role, content string) (int64, err
 	return res.LastInsertId()
 }
 
-func createAttachment(db *sql.DB, id string, messageID int64, mimeType, filePath string) error {
+func createAttachment(db *sql.DB, id string, messageID int64, mimeType, filename, filePath string) error {
 	_, err := db.Exec(
-		`INSERT INTO attachments (id, message_id, mime_type, file_path, created_at) VALUES (?, ?, ?, ?, ?)`,
-		id, messageID, mimeType, filePath, time.Now().UnixMilli(),
+		`INSERT INTO attachments (id, message_id, mime_type, filename, file_path, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+		id, messageID, mimeType, filename, filePath, time.Now().UnixMilli(),
 	)
 	return err
 }
@@ -508,12 +528,12 @@ func getAttachmentPathsForConversation(db *sql.DB, conversationID string) ([]str
 func getAttachmentOwned(db *sql.DB, attachmentID, userID string) (*Attachment, error) {
 	var a Attachment
 	err := db.QueryRow(
-		`SELECT a.id, a.message_id, a.mime_type, a.file_path, a.created_at
+		`SELECT a.id, a.message_id, a.mime_type, a.filename, a.file_path, a.created_at
 		 FROM attachments a
 		 JOIN messages m ON m.id = a.message_id
 		 JOIN conversations c ON c.id = m.conversation_id
 		 WHERE a.id = ? AND c.user_id = ?`, attachmentID, userID,
-	).Scan(&a.ID, &a.MessageID, &a.MimeType, &a.FilePath, &a.CreatedAt)
+	).Scan(&a.ID, &a.MessageID, &a.MimeType, &a.Filename, &a.FilePath, &a.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}

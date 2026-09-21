@@ -77,6 +77,8 @@ type timelineItem struct {
 type timelineAttach struct {
 	ID       string `json:"id"`
 	MimeType string `json:"mimeType"`
+	Filename string `json:"filename"`
+	IsImage  bool   `json:"isImage"`
 }
 
 func classifyCommandResult(result string) string {
@@ -110,7 +112,7 @@ func buildTimeline(messages []Message, pending *Command) []timelineItem {
 		case "user":
 			item := timelineItem{Kind: "user", Content: m.Content}
 			for _, a := range m.Attachments {
-				item.Attachments = append(item.Attachments, timelineAttach{ID: a.ID, MimeType: a.MimeType})
+				item.Attachments = append(item.Attachments, timelineAttach{ID: a.ID, MimeType: a.MimeType, Filename: a.Filename, IsImage: isImageMime(a.MimeType)})
 			}
 			out = append(out, item)
 		case "system":

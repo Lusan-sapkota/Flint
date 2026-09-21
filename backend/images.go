@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	maxImageBytes    = 8 * 1024 * 1024
-	maxImagesPerTurn = 4
+	maxAttachmentBytes    = 8 * 1024 * 1024
+	maxAttachmentsPerTurn = 4
 )
 
 var imageMimeExtensions = map[string]string{
@@ -24,6 +24,11 @@ var imageMimeExtensions = map[string]string{
 	"image/webp": "webp",
 }
 
+func isImageMime(mimeType string) bool {
+	_, ok := imageMimeExtensions[mimeType]
+	return ok
+}
+
 func stripDataURIPrefix(s string) string {
 	if idx := strings.Index(s, ","); idx != -1 && strings.HasPrefix(s, "data:") {
 		return s[idx+1:]
@@ -31,34 +36,54 @@ func stripDataURIPrefix(s string) string {
 	return s
 }
 
-func saveImageAttachments(attachmentsDir string, db *sql.DB, messageID int64, images []string) error {
-	if len(images) > maxImagesPerTurn {
-		images = images[:maxImagesPerTurn]
+// AttachmentUpload is one file from a message's attachments field: base64
+// (optionally data-URI-prefixed) content plus the original filename the
+// browser reported, kept only for display/download - never trusted for
+// anything else (the stored blob name is always a fresh UUID).
+type AttachmentUpload struct {
+	Data     string `json:"data"`
+	Filename string `json:"filename"`
+}
+
+// saveAttachments stores any file type, not just images - a message can
+// attach code, documents, archives, etc. Only image types (the fixed set
+// Ollama's vision API accepts) end up in the model's context, via
+// toOllamaMessage in context.go; anything else is retained purely for the
+// human to see and download, with a plain-text note so the model at least
+// knows a file was attached (see toOllamaMessage).
+func saveAttachments(attachmentsDir string, db *sql.DB, messageID int64, uploads []AttachmentUpload) error {
+	if len(uploads) > maxAttachmentsPerTurn {
+		uploads = uploads[:maxAttachmentsPerTurn]
 	}
 
-	for _, raw := range images {
-		data, err := base64.StdEncoding.DecodeString(stripDataURIPrefix(raw))
+	for _, u := range uploads {
+		data, err := base64.StdEncoding.DecodeString(stripDataURIPrefix(u.Data))
 		if err != nil {
-			return fmt.Errorf("invalid base64 image data: %w", err)
+			return fmt.Errorf("invalid base64 attachment data: %w", err)
 		}
-		if len(data) > maxImageBytes {
-			return fmt.Errorf("image exceeds the %d byte limit", maxImageBytes)
+		if len(data) > maxAttachmentBytes {
+			return fmt.Errorf("attachment exceeds the %d byte limit", maxAttachmentBytes)
 		}
 
 		mimeType := http.DetectContentType(data)
-		ext, ok := imageMimeExtensions[mimeType]
-		if !ok {
-			return fmt.Errorf("unsupported image type: %s", mimeType)
-		}
 
 		id := uuid.NewString()
-		filename := id + "." + ext
+		ext := filepath.Ext(filepath.Base(u.Filename))
+		filename := id + ext
 		fullPath := filepath.Join(attachmentsDir, filename)
 		if err := os.WriteFile(fullPath, data, 0o644); err != nil {
 			return fmt.Errorf("saving attachment: %w", err)
 		}
 
-		if err := createAttachment(db, id, messageID, mimeType, filename); err != nil {
+		displayName := strings.TrimSpace(u.Filename)
+		if displayName == "" {
+			displayName = filename
+		}
+		if len(displayName) > 200 {
+			displayName = displayName[:200]
+		}
+
+		if err := createAttachment(db, id, messageID, mimeType, displayName, filename); err != nil {
 			os.Remove(fullPath)
 			return err
 		}

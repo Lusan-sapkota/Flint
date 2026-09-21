@@ -456,11 +456,22 @@ button.flint-btn-icon {
   max-width: 90ch;
 }
 
+.flint-msg-attachment {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
 .flint-msg-attachment img {
   max-width: 20rem;
+  max-height: 16rem;
   border-radius: 0.4rem;
   display: block;
-  margin-top: 0.5rem;
+}
+
+.flint-msg-attachment .flint-file-chip {
+  margin: 0;
 }
 
 .flint-cursor {
@@ -581,20 +592,25 @@ button.flint-btn-icon {
   flex-shrink: 0;
 }
 
-.flint-image-preview-row {
+.flint-attachment-preview-row {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 0.5rem;
   flex-wrap: wrap;
 }
 
-.flint-image-preview {
+.flint-attachment-preview {
   position: relative;
   width: 3.5rem;
   height: 3.5rem;
 }
 
-.flint-image-preview img {
+.flint-attachment-preview-file {
+  width: auto;
+  max-width: 10rem;
+}
+
+.flint-attachment-preview img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -602,7 +618,32 @@ button.flint-btn-icon {
   border: 1px solid var(--flint-border);
 }
 
-.flint-image-preview button {
+.flint-attachment-preview-file-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 3.5rem;
+  padding: 0 1.5rem 0 0.6rem;
+  background: var(--flint-surface);
+  border: 1px solid var(--flint-border);
+  border-radius: 0.4rem;
+  font-size: 0.8rem;
+}
+
+.flint-attachment-preview-file-inner svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+  color: var(--flint-text-dim);
+}
+
+.flint-attachment-preview-file-inner span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flint-attachment-preview button {
   position: absolute;
   top: -0.4rem;
   right: -0.4rem;
@@ -620,10 +661,41 @@ button.flint-btn-icon {
   cursor: pointer;
 }
 
-.flint-image-preview button svg {
+.flint-attachment-preview button svg {
   width: 0.7rem;
   height: 0.7rem;
   stroke-width: 3;
+}
+
+.flint-file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.7rem;
+  background: var(--flint-surface);
+  border: 1px solid var(--flint-border);
+  border-radius: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--flint-text);
+  text-decoration: none;
+  max-width: 16rem;
+}
+
+.flint-file-chip:hover {
+  border-color: var(--flint-accent-dim);
+  color: var(--flint-accent);
+}
+
+.flint-file-chip svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.flint-file-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .flint-input-row {

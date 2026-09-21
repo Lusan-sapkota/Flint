@@ -112,6 +112,14 @@ func toOllamaMessage(m Message, attachmentsDir string) OllamaMessage {
 		om.ToolCallID = *m.ToolCallID
 	}
 	for _, a := range m.Attachments {
+		if !isImageMime(a.MimeType) {
+			// Ollama has no concept of a generic file attachment - only
+			// images go in the vision field. The model can't see the
+			// content, but it should at least know the file exists so it
+			// doesn't seem to ignore something the user just mentioned.
+			om.Content = strings.TrimRight(om.Content, "\n") + fmt.Sprintf("\n[Attached file: %s - not visible to you, only the user can see it]", a.Filename)
+			continue
+		}
 		encoded, err := loadAttachmentBase64(attachmentsDir, a)
 		if err != nil {
 			continue

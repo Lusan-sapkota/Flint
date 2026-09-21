@@ -295,6 +295,12 @@ func (s *Server) handleGetAttachment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	disposition := "attachment"
+	if isImageMime(a.MimeType) {
+		disposition = "inline" // so <img src> keeps rendering it, not offering a download
+	}
+	safeName := strings.NewReplacer("\r", "", "\n", "", `"`, `'`).Replace(a.Filename)
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`%s; filename="%s"`, disposition, safeName))
 	w.Header().Set("Content-Type", a.MimeType)
 	http.ServeFile(w, r, filepath.Join(s.attachmentsDir, a.FilePath))
 }
@@ -354,8 +360,8 @@ func (s *Server) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
 	var body struct {
-		Content string   `json:"content"`
-		Images  []string `json:"images,omitempty"`
+		Content     string             `json:"content"`
+		Attachments []AttachmentUpload `json:"attachments,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Content == "" {
 		writeError(w, http.StatusBadRequest, "content is required")
@@ -394,8 +400,8 @@ func (s *Server) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if len(body.Images) > 0 {
-		if err := saveImageAttachments(s.attachmentsDir, s.db, messageID, body.Images); err != nil {
+	if len(body.Attachments) > 0 {
+		if err := saveAttachments(s.attachmentsDir, s.db, messageID, body.Attachments); err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}

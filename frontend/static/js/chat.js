@@ -18,7 +18,8 @@ document.addEventListener('alpine:init', () => {
     attachedFolder: config.attachedFolder,
     timeline: config.timeline || [],
     input: '',
-    images: [],
+    attachments: [],
+    attachmentError: '',
     streaming: false,
     folderInput: '',
     folderBusy: false,
@@ -45,19 +46,57 @@ document.addEventListener('alpine:init', () => {
       });
     },
 
-    onImageChange(e) {
-      const room = 4 - this.images.length;
-      const files = Array.from(e.target.files || []).slice(0, Math.max(room, 0));
-      files.forEach((f) => {
-        const reader = new FileReader();
-        reader.onload = () => this.images.push({ dataUrl: reader.result });
-        reader.readAsDataURL(f);
-      });
+    onFileChange(e) {
+      this.addFiles(e.target.files);
       e.target.value = '';
     },
 
-    removeImage(i) {
-      this.images.splice(i, 1);
+    // Shared by the file picker and clipboard paste, so both go through the
+    // same 4-per-turn cap, size check, and preview construction.
+    addFiles(fileList) {
+      this.attachmentError = '';
+      const files = Array.from(fileList || []);
+      if (files.length === 0) return;
+
+      const room = 4 - this.attachments.length;
+      if (room <= 0) {
+        this.attachmentError = 'Up to 4 attachments per message.';
+        return;
+      }
+      const accepted = files.slice(0, room);
+      if (files.length > accepted.length) {
+        this.attachmentError = 'Up to 4 attachments per message - some files were skipped.';
+      }
+
+      for (const f of accepted) {
+        if (f.size > 8 * 1024 * 1024) {
+          this.attachmentError = `${f.name} is over the 8 MB attachment limit and was skipped.`;
+          continue;
+        }
+        const isImage = f.type.startsWith('image/');
+        const reader = new FileReader();
+        reader.onload = () => this.attachments.push({ dataUrl: reader.result, filename: f.name, isImage });
+        reader.readAsDataURL(f);
+      }
+    },
+
+    handlePaste(e) {
+      const items = e.clipboardData && e.clipboardData.items;
+      if (!items) return;
+      const files = [];
+      for (const item of items) {
+        if (item.kind === 'file') {
+          const f = item.getAsFile();
+          if (f) files.push(f);
+        }
+      }
+      if (files.length === 0) return; // no file data - let normal text paste happen
+      e.preventDefault();
+      this.addFiles(files);
+    },
+
+    removeAttachment(i) {
+      this.attachments.splice(i, 1);
     },
 
     async attachFolder() {
@@ -94,10 +133,11 @@ document.addEventListener('alpine:init', () => {
       const content = this.input.trim();
       if (!content || this.streaming || this.pendingCommand || !this.conversationId) return;
 
-      const images = this.images.map((i) => i.dataUrl);
-      this.timeline.push({ kind: 'user', content, imagePreviews: images });
+      const attachments = this.attachments.map((a) => ({ data: a.dataUrl, filename: a.filename }));
+      this.timeline.push({ kind: 'user', content, pendingAttachments: this.attachments });
       this.input = '';
-      this.images = [];
+      this.attachments = [];
+      this.attachmentError = '';
       this.scrollToBottom();
 
       this.streaming = true;
@@ -105,7 +145,7 @@ document.addEventListener('alpine:init', () => {
         const res = await fetch(`/api/conversations/${this.conversationId}/messages`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content, images }),
+          body: JSON.stringify({ content, attachments }),
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));

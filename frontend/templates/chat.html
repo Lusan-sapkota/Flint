@@ -90,17 +90,20 @@
           <template x-if="item.kind === 'user'">
             <div class="flint-msg flint-msg-user">
               <span x-text="item.content"></span>
-              <template x-if="item.imagePreviews && item.imagePreviews.length">
+              <template x-if="(item.pendingAttachments && item.pendingAttachments.length) || (item.attachments && item.attachments.length)">
                 <div class="flint-msg-attachment">
-                  <template x-for="(src, i) in item.imagePreviews" :key="i">
-                    <img :src="src" alt="attached image">
-                  </template>
-                </div>
-              </template>
-              <template x-if="item.attachments && item.attachments.length">
-                <div class="flint-msg-attachment">
-                  <template x-for="a in item.attachments" :key="a.id">
-                    <img :src="'/api/attachments/' + a.id" alt="attached image">
+                  <template x-for="a in (item.pendingAttachments || item.attachments)" :key="a.id || a.dataUrl">
+                    <span>
+                      <template x-if="a.isImage">
+                        <img :src="a.dataUrl || ('/api/attachments/' + a.id)" alt="attached image">
+                      </template>
+                      <template x-if="!a.isImage">
+                        <a class="flint-file-chip" :href="a.id ? ('/api/attachments/' + a.id) : a.dataUrl" :download="a.filename" target="_blank" rel="noopener">
+                          {{template "icon-file"}}
+                          <span x-text="a.filename"></span>
+                        </a>
+                      </template>
+                    </span>
                   </template>
                 </div>
               </template>
@@ -167,21 +170,30 @@
       </template>
       <template x-if="folderError"><p class="flint-error" x-text="folderError"></p></template>
 
-      <template x-if="images.length">
-        <div class="flint-image-preview-row">
-          <template x-for="(img, i) in images" :key="i">
-            <div class="flint-image-preview">
-              <img :src="img.dataUrl" alt="pending attachment">
-              <button type="button" @click="removeImage(i)" aria-label="Remove image">{{template "icon-x"}}</button>
+      <template x-if="attachments.length">
+        <div class="flint-attachment-preview-row">
+          <template x-for="(att, i) in attachments" :key="i">
+            <div class="flint-attachment-preview" :class="{ 'flint-attachment-preview-file': !att.isImage }">
+              <template x-if="att.isImage">
+                <img :src="att.dataUrl" alt="pending attachment">
+              </template>
+              <template x-if="!att.isImage">
+                <div class="flint-attachment-preview-file-inner" :title="att.filename">
+                  {{template "icon-file"}}
+                  <span x-text="att.filename"></span>
+                </div>
+              </template>
+              <button type="button" @click="removeAttachment(i)" aria-label="Remove attachment">{{template "icon-x"}}</button>
             </div>
           </template>
         </div>
       </template>
+      <template x-if="attachmentError"><p class="flint-error" x-text="attachmentError"></p></template>
 
       <div class="flint-input-row">
-        <button type="button" class="flint-icon-btn secondary" title="Attach image" @click="$refs.imageInput.click()" :disabled="!conversationId || images.length >= 4">{{template "icon-image"}}</button>
-        <input type="file" x-ref="imageInput" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden @change="onImageChange">
-        <textarea rows="1" placeholder="Message Flint…" x-model="input" @keydown.enter="submitOnEnter($event)" :disabled="!conversationId || streaming || pendingCommand"></textarea>
+        <button type="button" class="flint-icon-btn secondary" title="Attach a file" @click="$refs.fileInput.click()" :disabled="!conversationId || attachments.length >= 4">{{template "icon-paperclip"}}</button>
+        <input type="file" x-ref="fileInput" multiple hidden @change="onFileChange">
+        <textarea rows="1" placeholder="Message Flint…" x-model="input" @keydown.enter="submitOnEnter($event)" @paste="handlePaste($event)" :disabled="!conversationId || streaming || pendingCommand"></textarea>
         <button type="button" class="flint-send-btn" @click="send" :disabled="!conversationId || streaming || pendingCommand || !input.trim()" :aria-busy="streaming">Send</button>
       </div>
     </div>
