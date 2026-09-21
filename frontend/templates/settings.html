@@ -34,7 +34,10 @@
       {{end}}
 
       <label for="brave_api_key">Brave Search API key
-        <input type="password" id="brave_api_key" x-model="braveApiKey" placeholder="Required for @web search" autocomplete="off">
+        <div class="flint-password-wrap" x-data="{ show: false }">
+          <input :type="show ? 'text' : 'password'" id="brave_api_key" x-model="braveApiKey" placeholder="Required for @web search" autocomplete="off">
+          {{template "password-toggle"}}
+        </div>
       </label>
 
       <button type="button" @click="saveGeneral" :aria-busy="savingGeneral" :disabled="savingGeneral">Save</button>
@@ -43,7 +46,7 @@
 
     <section class="flint-settings-section">
       <h3>Security questions</h3>
-      <p>Used to recover your account without email. Answers are never shown back to you —
+      <p>Used to recover your account without email. Answers are never shown back to you &mdash;
         saving this form replaces <strong>all</strong> questions and requires re-entering every answer,
         even ones you're keeping.</p>
 

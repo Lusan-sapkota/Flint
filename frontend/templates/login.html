@@ -14,7 +14,10 @@
         <input type="email" id="email" name="email" x-model="email" autocomplete="email" required autofocus>
       </label>
       <label for="password">Password
-        <input type="password" id="password" name="password" x-model="password" autocomplete="current-password" required>
+        <div class="flint-password-wrap" x-data="{ show: false }">
+          <input :type="show ? 'text' : 'password'" id="password" name="password" x-model="password" autocomplete="current-password" required>
+          {{template "password-toggle"}}
+        </div>
       </label>
       <p class="flint-error" x-text="error"></p>
       <button type="submit" :aria-busy="loading" :disabled="loading">Log in</button>

@@ -89,6 +89,40 @@ body {
   margin: 0.5rem 0;
 }
 
+.flint-password-wrap {
+  position: relative;
+}
+
+.flint-password-wrap input {
+  padding-right: 2.75rem;
+}
+
+.flint-password-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 2.75rem;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--flint-text-dim);
+  cursor: pointer;
+}
+
+.flint-password-toggle:hover {
+  color: var(--flint-text);
+}
+
+.flint-password-toggle svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
 .flint-success-text {
   color: var(--flint-success);
   font-size: 0.9rem;
