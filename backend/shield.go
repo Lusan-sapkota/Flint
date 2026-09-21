@@ -5,12 +5,6 @@ import (
 	"regexp"
 )
 
-// dangerousCommandPatterns is a hard floor beneath human approval, not a
-// replacement for it: shell is Turing-complete, so this can be evaded and
-// makes no formal safety guarantee. It exists to catch the categorically
-// catastrophic cases - system-wide destruction, privilege escalation,
-// remote code execution, credential exposure - regardless of whether a
-// human approves without fully reading the command.
 var dangerousCommandPatterns = []struct {
 	re     *regexp.Regexp
 	reason string

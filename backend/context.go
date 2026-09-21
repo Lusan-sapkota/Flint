@@ -17,10 +17,6 @@ const (
 	maxToolAttemptsPerTurn = 3
 )
 
-// consecutiveToolCycles counts tool calls issued since the last user
-// message, bounding a self-correction loop (see maxToolAttemptsPerTurn):
-// a model that keeps failing shouldn't get unlimited attempts, each of
-// which still costs the user an approval decision.
 func consecutiveToolCycles(messages []Message) int {
 	count := 0
 	for i := len(messages) - 1; i >= 0; i-- {
@@ -46,12 +42,6 @@ func decayWeightWithHalfLife(turnsAgo int, halfLife float64) float64 {
 	return math.Exp(-float64(turnsAgo) / halfLife)
 }
 
-// effectiveHalfLife adjusts decay per-message based on directly observable
-// signals, instead of a hand-designed Bayesian belief filter over a
-// transition matrix we have no data to calibrate: a failed command's
-// output stays relevant until it's resolved, so it decays slower; a
-// successful exploratory read (ls/cat/grep/find) is rarely worth
-// remembering in detail once the model has moved on, so it decays faster.
 func effectiveHalfLife(m Message, precedingCommand string) float64 {
 	if strings.Contains(m.Content, "[FAILED") {
 		return decayHalfLife * 3
@@ -131,15 +121,6 @@ func toOllamaMessage(m Message, attachmentsDir string) OllamaMessage {
 	return om
 }
 
-// buildOptimizedHistory assembles a bounded context: the original goal and
-// the first system message (the standing folder-attach context, if any) are
-// always kept verbatim, the most recent messages are kept verbatim, and
-// everything in between is shrunk by an exponential decay proportional to
-// its distance from the current turn, falling back to collapsing whole
-// tool-call/result pairs into a one-line note if that still isn't enough to
-// fit the token budget. Later system messages (e.g. web search injections)
-// are not blanket-protected - they decay like anything else, or they would
-// accumulate unboundedly over a long conversation.
 func buildOptimizedHistory(messages []Message, attachmentsDir string) []OllamaMessage {
 	n := len(messages)
 	protected := make([]bool, n)

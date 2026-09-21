@@ -27,12 +27,6 @@ type Server struct {
 	conversationQueue   map[string]*sync.Mutex
 }
 
-// lockConversation serializes every request that touches a given
-// conversation - a message, an approve, a deny - so overlapping requests
-// (a second message sent before the first finishes streaming, a double
-// click on approve) queue in arrival order instead of running concurrently
-// and interleaving writes into the same conversation's history. Different
-// conversations never block each other.
 func (s *Server) lockConversation(id string) func() {
 	s.conversationQueueMu.Lock()
 	if s.conversationQueue == nil {
@@ -463,9 +457,6 @@ func (s *Server) resolveCommandAndContinue(w http.ResponseWriter, r *http.Reques
 
 	defer s.lockConversation(convoID)()
 
-	// Re-fetch inside the lock: a queued duplicate approve/deny (a double
-	// click, two tabs) must see this command as already resolved, not race
-	// the first request to execute it twice.
 	cmd, err := getCommand(s.db, cmdID, convoID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())

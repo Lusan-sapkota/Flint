@@ -38,6 +38,14 @@ type Session struct {
 	ExpiresAt int64
 }
 
+type SecurityQuestion struct {
+	ID         string `json:"id"`
+	UserID     string `json:"-"`
+	Question   string `json:"question"`
+	AnswerHash string `json:"-"`
+	CreatedAt  int64  `json:"created_at"`
+}
+
 type Conversation struct {
 	ID             string  `json:"id"`
 	UserID         string  `json:"-"`
@@ -104,7 +112,16 @@ CREATE TABLE IF NOT EXISTS sessions (
 	expires_at INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS security_questions (
+	id          TEXT PRIMARY KEY,
+	user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	question    TEXT NOT NULL,
+	answer_hash TEXT NOT NULL,
+	created_at  INTEGER NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_security_questions_user_id ON security_questions(user_id);
 
 CREATE TABLE IF NOT EXISTS conversations (
 	id              TEXT PRIMARY KEY,
@@ -239,6 +256,14 @@ func updateUserBraveAPIKey(db *sql.DB, userID string, key *string) error {
 	return err
 }
 
+func updateUserPassword(db *sql.DB, userID, passwordHash string) error {
+	_, err := db.Exec(
+		`UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?`,
+		passwordHash, time.Now().UnixMilli(), userID,
+	)
+	return err
+}
+
 func createSession(db *sql.DB, id, userID string, ttl time.Duration) (Session, error) {
 	now := time.Now()
 	s := Session{ID: id, UserID: userID, ExpiresAt: now.Add(ttl).UnixMilli()}
@@ -274,6 +299,67 @@ func getSessionUser(db *sql.DB, sessionID string) (*User, error) {
 func deleteSession(db *sql.DB, sessionID string) error {
 	_, err := db.Exec(`DELETE FROM sessions WHERE id = ?`, sessionID)
 	return err
+}
+
+func deleteAllSessionsForUser(db *sql.DB, userID string) error {
+	_, err := db.Exec(`DELETE FROM sessions WHERE user_id = ?`, userID)
+	return err
+}
+
+func setSecurityQuestions(db *sql.DB, userID string, questions []SecurityQuestion) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec(`DELETE FROM security_questions WHERE user_id = ?`, userID); err != nil {
+		return err
+	}
+	for _, q := range questions {
+		if _, err := tx.Exec(
+			`INSERT INTO security_questions (id, user_id, question, answer_hash, created_at) VALUES (?, ?, ?, ?, ?)`,
+			q.ID, userID, q.Question, q.AnswerHash, time.Now().UnixMilli(),
+		); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+func getSecurityQuestionsForUser(db *sql.DB, userID string) ([]SecurityQuestion, error) {
+	rows, err := db.Query(
+		`SELECT id, user_id, question, answer_hash, created_at FROM security_questions WHERE user_id = ? ORDER BY created_at ASC`, userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := []SecurityQuestion{}
+	for rows.Next() {
+		var q SecurityQuestion
+		if err := rows.Scan(&q.ID, &q.UserID, &q.Question, &q.AnswerHash, &q.CreatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, q)
+	}
+	return out, rows.Err()
+}
+
+func getSecurityQuestionsByEmail(db *sql.DB, email string) (userID string, questions []SecurityQuestion, err error) {
+	user, err := getUserByEmail(db, email)
+	if err != nil {
+		return "", nil, err
+	}
+	if user == nil {
+		return "", nil, nil
+	}
+	questions, err = getSecurityQuestionsForUser(db, user.ID)
+	if err != nil {
+		return "", nil, err
+	}
+	return user.ID, questions, nil
 }
 
 func createConversation(db *sql.DB, id, userID, model string) (Conversation, error) {

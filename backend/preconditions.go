@@ -19,10 +19,6 @@ var shellBuiltins = map[string]bool{
 	"return": true, "wait": true, "trap": true, "umask": true, "ulimit": true,
 }
 
-// pathCheckableCommands is deliberately small: commands where "the last
-// plain argument is a path that must already exist" is unambiguous. Trying
-// to infer this generically for arbitrary shell syntax is a much harder,
-// fragile problem not worth half-solving here.
 var pathCheckableCommands = map[string]bool{
 	"cat": true, "head": true, "tail": true, "less": true, "more": true,
 	"wc": true, "file": true, "stat": true, "readlink": true,
@@ -40,12 +36,6 @@ func looksLikePath(s string) bool {
 	return s != "" && !strings.HasPrefix(s, "-")
 }
 
-// checkCommandPreconditions is a Hoare-triple-style precondition gate: cheap,
-// deterministic, zero model cost, run before a command is ever offered for
-// human approval. It catches commands that would fail immediately for
-// reasons the model could have checked itself - a missing binary or a
-// nonexistent target file - so the user doesn't burn an approval cycle on
-// something guaranteed to fail.
 func checkCommandPreconditions(command, cwd string) (ok bool, reason string) {
 	trimmed := strings.TrimSpace(command)
 	fields := strings.Fields(trimmed)

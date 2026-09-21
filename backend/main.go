@@ -68,10 +68,9 @@ func main() {
 	defer db.Close()
 
 	srv := &Server{db: db, ollama: NewOllamaClient(), defaultOllamaURL: ollamaBaseURL, attachmentsDir: attachmentsDir}
-	// Separate limiter instances, not shared: exhausting login attempts
-	// (e.g. a mistyped password) shouldn't also block signup from the same IP.
 	loginLimiter := newRateLimiter(5, 5*time.Minute)
 	signupLimiter := newRateLimiter(5, 5*time.Minute)
+	recoveryLimiter := newRateLimiter(5, 30*time.Minute)
 
 	mux := http.NewServeMux()
 
@@ -80,9 +79,13 @@ func main() {
 	mux.HandleFunc("POST /api/signup", signupLimiter.middleware(srv.handleSignup))
 	mux.HandleFunc("POST /api/login", loginLimiter.middleware(srv.handleLogin))
 	mux.HandleFunc("POST /api/logout", srv.handleLogout)
+	mux.HandleFunc("POST /api/recovery/questions", recoveryLimiter.middleware(srv.handleRecoveryQuestions))
+	mux.HandleFunc("POST /api/recovery/reset", recoveryLimiter.middleware(srv.handleRecoveryReset))
 
 	mux.HandleFunc("GET /api/me", srv.requireAuth(srv.handleMe))
 	mux.HandleFunc("PATCH /api/me/settings", srv.requireAuth(srv.handleUpdateSettings))
+	mux.HandleFunc("GET /api/me/security-questions", srv.requireAuth(srv.handleGetSecurityQuestions))
+	mux.HandleFunc("PUT /api/me/security-questions", srv.requireAuth(srv.handleSetSecurityQuestions))
 
 	mux.HandleFunc("GET /api/models", srv.requireAuth(srv.handleListModels))
 	mux.HandleFunc("GET /api/models/running", srv.requireAuth(srv.handleRunningModels))

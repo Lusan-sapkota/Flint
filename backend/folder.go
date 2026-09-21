@@ -80,13 +80,6 @@ func readFolderManifest(path string) (manifest string, included []string, err er
 	return header.String(), included, nil
 }
 
-// buildAnchorHeader is re-derived fresh on every turn (a cheap directory
-// listing, not re-reading file contents) rather than cached from attach
-// time, so it stays accurate as files change during a session. It exists
-// to be appended next to the final user turn: a model's own pretrained
-// prior dominates facts placed far from the generation boundary, so a
-// short reminder placed immediately before generation counters that
-// exactly where it matters, without resending the whole manifest.
 func buildAnchorHeader(path string) string {
 	entries, err := os.ReadDir(path)
 	if err != nil {
