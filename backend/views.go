@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/dustin/go-humanize"
 	"github.com/google/uuid"
 )
 
@@ -28,6 +29,9 @@ var templateFuncs = template.FuncMap{
 			return string(r)
 		}
 		return ""
+	},
+	"humanSize": func(bytes int64) string {
+		return humanize.Bytes(uint64(bytes))
 	},
 }
 

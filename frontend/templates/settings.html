@@ -45,6 +45,80 @@
     </section>
 
     <section class="flint-settings-section">
+      <h3>Manage models</h3>
+
+      <div class="flint-models-subsection">
+        <div class="flint-models-subheader">
+          <h4>Currently running</h4>
+          <button type="button" class="secondary flint-icon-btn" @click="refreshRunning" :aria-busy="runningLoading" title="Refresh">{{template "icon-refresh"}}</button>
+        </div>
+        <p class="flint-error" x-text="runningError"></p>
+        <template x-if="!runningLoading && runningModels.length === 0 && !runningError">
+          <p class="flint-empty-state">No models are currently loaded.</p>
+        </template>
+        <ul class="flint-running-models">
+          <template x-for="m in runningModels" :key="m.name">
+            <li>
+              <span x-text="m.name"></span>
+              <span class="flint-model-meta" x-text="m.sizeLabel"></span>
+            </li>
+          </template>
+        </ul>
+      </div>
+
+      <div class="flint-models-subsection">
+        <h4>Installed</h4>
+        {{if .ModelsErr}}
+          <p class="flint-error">Couldn't reach Ollama: {{.ModelsErr}}</p>
+        {{else if not .Models}}
+          <p class="flint-empty-state">No models found on this Ollama server.</p>
+        {{else}}
+          <ul class="flint-installed-models">
+            {{range .Models}}
+            <li x-data="{ detailsOpen: false, detailsText: '', detailsLoading: false }">
+              <div class="flint-installed-model-row">
+                <div class="flint-installed-model-info">
+                  <strong>{{.Name}}</strong>
+                  <span class="flint-model-meta">{{.Size | humanSize}}{{if .Details.ParameterSize}} &middot; {{.Details.ParameterSize}}{{end}}{{if .Details.QuantizationLevel}} &middot; {{.Details.QuantizationLevel}}{{end}}</span>
+                </div>
+                <button type="button" class="secondary flint-icon-btn"
+                        @click="detailsOpen = !detailsOpen; if (detailsOpen && !detailsText) { detailsLoading = true; showModel('{{.Name | jsStr}}').then(t => detailsText = t).finally(() => detailsLoading = false) }"
+                        :aria-busy="detailsLoading" title="Details">{{template "icon-info"}}</button>
+                <button type="button" class="flint-icon-btn flint-danger-btn"
+                        @click="deleteModel('{{.Name | jsStr}}')"
+                        :disabled="deletingModel === '{{.Name | jsStr}}'" :aria-busy="deletingModel === '{{.Name | jsStr}}'" title="Delete">{{template "icon-trash"}}</button>
+              </div>
+              <pre class="flint-model-details" x-show="detailsOpen" x-text="detailsText"></pre>
+            </li>
+            {{end}}
+          </ul>
+        {{end}}
+        <p class="flint-error" x-text="deleteError"></p>
+      </div>
+
+      <div class="flint-models-subsection">
+        <h4>Pull a new model</h4>
+        <form @submit.prevent="pullModel" class="flint-pull-form">
+          <input type="text" x-model="pullName" placeholder="e.g. llama3.2:1b" :disabled="pulling" required>
+          <button type="submit" class="flint-btn-icon" :disabled="pulling || !pullName.trim()">
+            <span x-show="!pulling">{{template "icon-download"}}</span>
+            <span x-show="pulling">{{template "icon-loader"}}</span>
+            <span x-text="pulling ? 'Pulling…' : 'Pull'"></span>
+          </button>
+        </form>
+        <template x-if="pullStatus">
+          <div class="flint-pull-progress">
+            <p x-text="pullStatus"></p>
+            <template x-if="pullPercent !== null">
+              <progress :value="pullPercent" max="100"></progress>
+            </template>
+          </div>
+        </template>
+        <p class="flint-error" x-text="pullError"></p>
+      </div>
+    </section>
+
+    <section class="flint-settings-section">
       <h3>Security questions</h3>
       <p>Used to recover your account without email. Answers are never shown back to you once
         saved. Saving this form replaces <strong>all</strong> questions and requires re-entering

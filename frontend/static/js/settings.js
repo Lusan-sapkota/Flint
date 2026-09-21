@@ -1,3 +1,14 @@
+function formatBytes(n) {
+  if (!n || n <= 0) return '';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let i = 0;
+  while (n >= 1024 && i < units.length - 1) {
+    n /= 1024;
+    i += 1;
+  }
+  return `${n.toFixed(n >= 10 || i === 0 ? 0 : 1)} ${units[i]}`;
+}
+
 document.addEventListener('alpine:init', () => {
   Alpine.data('settingsForm', (config) => ({
     ollamaBaseURL: config.ollamaBaseURL || '',
@@ -10,6 +21,140 @@ document.addEventListener('alpine:init', () => {
     savingQuestions: false,
     questionsStatus: '',
     questionsError: '',
+
+    runningModels: [],
+    runningLoading: false,
+    runningError: '',
+    deletingModel: null,
+    deleteError: '',
+    pullName: '',
+    pulling: false,
+    pullStatus: '',
+    pullPercent: null,
+    pullError: '',
+
+    init() {
+      this.refreshRunning();
+    },
+
+    async refreshRunning() {
+      this.runningLoading = true;
+      this.runningError = '';
+      try {
+        const res = await fetch('/api/models/running');
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          this.runningError = data.error || 'Could not reach Ollama.';
+          return;
+        }
+        const data = await res.json();
+        this.runningModels = (data.models || []).map((m) => ({
+          name: m.name || m.model,
+          sizeLabel: formatBytes(m.size_vram || m.size),
+        }));
+      } catch (e) {
+        this.runningError = 'Could not reach the server.';
+      } finally {
+        this.runningLoading = false;
+      }
+    },
+
+    async showModel(name) {
+      const res = await fetch('/api/models/show', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return `Error: ${data.error || res.statusText}`;
+      return JSON.stringify(data, null, 2);
+    },
+
+    async deleteModel(name) {
+      if (!window.confirm(`Delete ${name} from this Ollama server? This can't be undone.`)) return;
+      this.deleteError = '';
+      this.deletingModel = name;
+      try {
+        const res = await fetch('/api/models', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          this.deleteError = data.error || 'Could not delete that model.';
+          return;
+        }
+        window.location.reload();
+      } catch (e) {
+        this.deleteError = 'Could not reach the server.';
+      } finally {
+        this.deletingModel = null;
+      }
+    },
+
+    async pullModel() {
+      const name = this.pullName.trim();
+      if (!name || this.pulling) return;
+      this.pulling = true;
+      this.pullError = '';
+      this.pullStatus = 'Starting…';
+      this.pullPercent = null;
+      try {
+        const res = await fetch('/api/models/pull', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          this.pullError = data.error || 'Could not reach Ollama.';
+          return;
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+        let sawSuccess = false;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (value) buf += decoder.decode(value, { stream: true });
+          let nl;
+          while ((nl = buf.indexOf('\n')) !== -1) {
+            const line = buf.slice(0, nl).trim();
+            buf = buf.slice(nl + 1);
+            if (!line) continue;
+            let obj;
+            try {
+              obj = JSON.parse(line);
+            } catch (e) {
+              continue;
+            }
+            if (obj.error) {
+              this.pullError = obj.error;
+              continue;
+            }
+            this.pullStatus = obj.status || this.pullStatus;
+            if (obj.total) {
+              this.pullPercent = Math.round(((obj.completed || 0) / obj.total) * 100);
+            }
+            if (obj.status === 'success') sawSuccess = true;
+          }
+          if (done) break;
+        }
+        if (sawSuccess && !this.pullError) {
+          this.pullStatus = 'Done.';
+          window.location.reload();
+        } else if (!this.pullError) {
+          this.pullError = 'The pull did not complete. Check the model name and try again.';
+          this.pullStatus = '';
+        }
+      } catch (e) {
+        this.pullError = 'Could not reach the server.';
+      } finally {
+        this.pulling = false;
+      }
+    },
 
     isPreferred(name) {
       return this.preferredModels.includes(name);
