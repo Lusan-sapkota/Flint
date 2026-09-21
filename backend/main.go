@@ -116,7 +116,7 @@ func main() {
 	httpServer := &http.Server{Addr: ":" + port, Handler: mux}
 
 	go func() {
-		log.Printf("flint listening on :%s (ollama: %s, db: %s)", port, ollamaBaseURL, dbPath)
+		log.Printf("flint listening on http://localhost:%s (ollama: %s, db: %s)", port, ollamaBaseURL, dbPath)
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("server error: %v", err)
 		}
