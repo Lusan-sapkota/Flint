@@ -476,7 +476,12 @@ func (s *Server) resolveCommandAndContinue(w http.ResponseWriter, r *http.Reques
 		if err := resolveCommand(s.db, cmd.ID, status, output, &exitCode); err != nil {
 			log.Printf("warning: failed to resolve command: %v", err)
 		}
-		resultText = output
+
+		if exitCode == 0 {
+			resultText = fmt.Sprintf("[exit code: 0]\n%s", output)
+		} else {
+			resultText = fmt.Sprintf("[FAILED, exit code: %d]\n%s", exitCode, output)
+		}
 	}
 
 	if err := insertToolResultMessage(s.db, convoID, cmd.ToolCallID, resultText); err != nil {
@@ -500,8 +505,10 @@ func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, use
 	var tools []OllamaTool
 	var options map[string]any
 	if convo.AttachedFolder != nil && *convo.AttachedFolder != "" {
-		tools = []OllamaTool{runShellTool}
 		options = map[string]any{"num_ctx": boostedNumCtx}
+		if consecutiveToolCycles(convo.Messages) < maxToolAttemptsPerTurn {
+			tools = []OllamaTool{runShellTool}
+		}
 	}
 
 	flusher, canFlush := w.(http.Flusher)

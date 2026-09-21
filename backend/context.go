@@ -9,12 +9,30 @@ import (
 )
 
 const (
-	charsPerToken      = 4.0
-	contextTokenBudget = 3000
-	protectedWindow    = 6
-	decayHalfLife      = 4.0
-	boostedNumCtx      = 8192
+	charsPerToken          = 4.0
+	contextTokenBudget     = 3000
+	protectedWindow        = 6
+	decayHalfLife          = 4.0
+	boostedNumCtx          = 8192
+	maxToolAttemptsPerTurn = 3
 )
+
+// consecutiveToolCycles counts tool calls issued since the last user
+// message, bounding a self-correction loop (see maxToolAttemptsPerTurn):
+// a model that keeps failing shouldn't get unlimited attempts, each of
+// which still costs the user an approval decision.
+func consecutiveToolCycles(messages []Message) int {
+	count := 0
+	for i := len(messages) - 1; i >= 0; i-- {
+		if messages[i].Role == "user" {
+			break
+		}
+		if messages[i].Role == "assistant" && messages[i].ToolCalls != nil {
+			count++
+		}
+	}
+	return count
+}
 
 func estimateTokens(s string) int {
 	return int(math.Ceil(float64(len(s)) / charsPerToken))

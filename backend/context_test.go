@@ -20,6 +20,25 @@ func makeToolCallMessage(t *testing.T, command string) Message {
 	return Message{Role: "assistant", Content: "", ToolCalls: &s}
 }
 
+func TestConsecutiveToolCycles(t *testing.T) {
+	messages := []Message{
+		{Role: "user", Content: "fix the failing test"},
+		makeToolCallMessage(t, "go test ./..."),
+		{Role: "tool", Content: "[FAILED, exit code: 1]\nsome error", ToolCallID: strPtr("call1")},
+		makeToolCallMessage(t, "go test -run TestFoo ./..."),
+		{Role: "tool", Content: "[FAILED, exit code: 1]\nanother error", ToolCallID: strPtr("call1")},
+	}
+
+	if got := consecutiveToolCycles(messages); got != 2 {
+		t.Fatalf("expected 2 consecutive tool cycles, got %d", got)
+	}
+
+	messages = append(messages, Message{Role: "user", Content: "try a different approach"})
+	if got := consecutiveToolCycles(messages); got != 0 {
+		t.Fatalf("expected count to reset to 0 after a new user message, got %d", got)
+	}
+}
+
 func TestBuildOptimizedHistory_ProtectsGoalAndRecentWindow(t *testing.T) {
 	longOutput := strings.Repeat("line of output\n", 400) // ~6000 chars, well over the token budget alone
 
