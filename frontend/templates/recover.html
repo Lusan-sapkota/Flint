@@ -1,0 +1,47 @@
+{{define "scripts"}}<script src="/static/js/app.js" defer></script>{{end}}
+{{define "content"}}
+<main class="flint-auth-page">
+  <article class="flint-auth-card" x-data="recoverForm()">
+    <h1>Flint</h1>
+    <p class="flint-auth-subtitle">Recover your account with your security questions.</p>
+
+    <template x-if="done">
+      <div>
+        <p class="flint-success-text">Your password has been reset. You've been signed out everywhere, so log in with your new password.</p>
+        <p><a href="/login">Go to login</a></p>
+      </div>
+    </template>
+
+    <template x-if="!done && step === 1">
+      <form @submit.prevent="lookup">
+        <label for="email">Email
+          <input type="email" id="email" name="email" x-model="email" autocomplete="email" required autofocus>
+        </label>
+        <p class="flint-error" x-text="error"></p>
+        <button type="submit" :aria-busy="loading" :disabled="loading">Continue</button>
+      </form>
+    </template>
+
+    <template x-if="!done && step === 2">
+      <form @submit.prevent="reset">
+        <template x-for="(q, i) in questions" :key="i">
+          <label :for="'answer-' + i">
+            <span x-text="q"></span>
+            <input type="text" :id="'answer-' + i" x-model="answers[i]" required>
+          </label>
+        </template>
+        <label for="new_password">New password
+          <input type="password" id="new_password" x-model="newPassword" autocomplete="new-password" minlength="8" required>
+        </label>
+        <label for="confirm_password">Confirm new password
+          <input type="password" id="confirm_password" x-model="confirmPassword" autocomplete="new-password" minlength="8" required>
+        </label>
+        <p class="flint-error" x-text="error"></p>
+        <button type="submit" :aria-busy="loading" :disabled="loading">Reset password</button>
+      </form>
+    </template>
+
+    <p><a href="/login">Back to login</a></p>
+  </article>
+</main>
+{{end}}

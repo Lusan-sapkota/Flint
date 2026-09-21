@@ -1,0 +1,158 @@
+{{define "scripts"}}<script src="/static/js/chat.js" defer></script>{{end}}
+{{define "content"}}
+<div class="flint-shell">
+  <nav class="flint-sidebar" hx-boost="true">
+    <div class="flint-sidebar-header">
+      <h2>Flint</h2>
+      <form action="/conversations" method="post">
+        <select name="model" required {{if not .Models}}disabled{{end}}>
+          {{if not .Models}}
+            <option value="">No models available</option>
+          {{end}}
+          {{range .Models}}
+            <option value="{{.Name}}">{{.Name}}</option>
+          {{end}}
+        </select>
+        <button type="submit" class="flint-new-chat-btn" {{if not .Models}}disabled{{end}}>+ New chat</button>
+      </form>
+      {{if .ModelsErr}}<p class="flint-error">Couldn't reach Ollama: {{.ModelsErr}}</p>{{end}}
+    </div>
+    <div class="flint-conversations">
+      {{range .Conversations}}
+        <a href="/c/{{.ID}}"
+           class="flint-conversation-link{{if eq .ID $.CurrentID}} active{{end}}"
+           data-conversation-link="{{.ID}}">{{.Title}}</a>
+      {{else}}
+        <p class="flint-empty-state">No conversations yet.</p>
+      {{end}}
+    </div>
+    <div class="flint-sidebar-footer">
+      <span>{{.User.FullName}}</span>
+      <a href="#" onclick="flintLogout(); return false;">Log out</a>
+    </div>
+  </nav>
+
+  <div class="flint-main"
+       x-data="chatApp({
+         conversationId: {{if .HasCurrent}}'{{.CurrentID | jsStr}}'{{else}}null{{end}},
+         model: '{{.CurrentModel | jsStr}}',
+         attachedFolder: {{if .CurrentFolder}}'{{.CurrentFolder | jsStr}}'{{else}}null{{end}},
+         timeline: {{.TimelineJSON}}
+       })"
+       x-cloak>
+    <header class="flint-topbar">
+      <div class="flint-topbar-model">
+        <template x-if="model"><span>Model: <strong x-text="model"></strong></span></template>
+        <template x-if="!model"><span>No conversation selected</span></template>
+      </div>
+      <a href="/settings" class="flint-settings-gear" title="Settings">&#9881;</a>
+    </header>
+
+    <main class="flint-thread" x-ref="thread">
+      <template x-if="!conversationId">
+        <div class="flint-empty-state">
+          <p>Pick a conversation from the sidebar, or start a new chat with a model.</p>
+        </div>
+      </template>
+
+      <template x-for="(item, index) in timeline" :key="index">
+        <div>
+          <template x-if="item.kind === 'user'">
+            <div class="flint-msg flint-msg-user">
+              <span x-text="item.content"></span>
+              <template x-if="item.imagePreviews && item.imagePreviews.length">
+                <div class="flint-msg-attachment">
+                  <template x-for="(src, i) in item.imagePreviews" :key="i">
+                    <img :src="src" alt="attached image">
+                  </template>
+                </div>
+              </template>
+              <template x-if="item.attachments && item.attachments.length">
+                <div class="flint-msg-attachment">
+                  <template x-for="a in item.attachments" :key="a.id">
+                    <img :src="'/api/attachments/' + a.id" alt="attached image">
+                  </template>
+                </div>
+              </template>
+            </div>
+          </template>
+
+          <template x-if="item.kind === 'assistant'">
+            <div class="flint-msg flint-msg-assistant">
+              <span x-text="item.content"></span>
+              <span class="flint-cursor" x-show="isStreamingBubble(item)"></span>
+            </div>
+          </template>
+
+          <template x-if="item.kind === 'system'">
+            <details class="flint-msg flint-msg-system">
+              <summary x-text="item.content.split('\n')[0]"></summary>
+              <pre x-text="item.content"></pre>
+            </details>
+          </template>
+
+          <template x-if="item.kind === 'command'">
+            <div class="flint-command-card">
+              <header>
+                <span>&#9881; Shell command</span>
+                <span x-text="'— ' + statusLabel(item.commandStatus)"></span>
+              </header>
+              <code class="flint-command-text" x-text="item.commandText"></code>
+
+              <template x-if="item.commandStatus === 'pending'">
+                <div class="flint-command-actions">
+                  <button type="button" @click="approve(item)" :disabled="streaming">Approve &amp; run</button>
+                  <button type="button" class="secondary" @click="deny(item)" :disabled="streaming">Deny</button>
+                </div>
+              </template>
+
+              <template x-if="item.commandStatus === 'resolving'">
+                <p class="flint-command-result">Running…</p>
+              </template>
+
+              <template x-if="item.commandResult">
+                <pre class="flint-command-result" :class="{ 'flint-failed': item.commandStatus === 'failed' || item.commandStatus === 'blocked' }" x-text="item.commandResult"></pre>
+              </template>
+            </div>
+          </template>
+        </div>
+      </template>
+    </main>
+
+    <div class="flint-inputbar">
+      <template x-if="attachedFolder">
+        <div class="flint-folder-indicator">
+          <span>&#128193;</span>
+          <span x-text="attachedFolder"></span>
+        </div>
+      </template>
+
+      <template x-if="conversationId && !attachedFolder">
+        <form class="flint-folder-indicator" style="background:transparent;border-style:dashed;" @submit.prevent="attachFolder">
+          <input type="text" x-model="folderInput" placeholder="Attach a folder (absolute path)" style="all:unset;min-width:14rem;">
+          <button type="submit" :disabled="folderBusy" style="all:unset;cursor:pointer;">Attach</button>
+        </form>
+      </template>
+      <template x-if="folderError"><p class="flint-error" x-text="folderError"></p></template>
+
+      <template x-if="images.length">
+        <div class="flint-image-preview-row">
+          <template x-for="(img, i) in images" :key="i">
+            <div class="flint-image-preview">
+              <img :src="img.dataUrl" alt="pending attachment">
+              <button type="button" @click="removeImage(i)">&times;</button>
+            </div>
+          </template>
+        </div>
+      </template>
+
+      <div class="flint-input-row">
+        <button type="button" class="flint-icon-btn secondary" title="Attach image" @click="$refs.imageInput.click()" :disabled="!conversationId || images.length >= 4">&#128247;</button>
+        <input type="file" x-ref="imageInput" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden @change="onImageChange">
+        <textarea rows="1" placeholder="Message Flint…" x-model="input" @keydown.enter="submitOnEnter($event)" :disabled="!conversationId || streaming || pendingCommand"></textarea>
+        <button type="button" class="flint-send-btn" @click="send" :disabled="!conversationId || streaming || pendingCommand || !input.trim()" :aria-busy="streaming">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+{{end}}

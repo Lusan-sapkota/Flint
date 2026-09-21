@@ -1,0 +1,65 @@
+{{define "scripts"}}<script src="/static/js/settings.js" defer></script>{{end}}
+{{define "content"}}
+<div class="flint-settings-page">
+  <a href="/" class="flint-settings-back">&larr; Back to chat</a>
+  <h1>Settings</h1>
+
+  <div x-data="settingsForm({
+    ollamaBaseURL: '{{.OllamaBaseURL | jsStr}}',
+    braveApiKey: '{{.BraveAPIKey | jsStr}}',
+    preferredModels: {{.PreferredModelsJSON}},
+    questions: {{.QuestionsJSON}}
+  })" x-cloak>
+
+    <section class="flint-settings-section">
+      <h3>Ollama connection</h3>
+      <label for="ollama_base_url">Base URL override
+        <input type="text" id="ollama_base_url" x-model="ollamaBaseURL" placeholder="http://localhost:11434 (leave blank for server default)">
+      </label>
+
+      <label>Preferred models</label>
+      {{if .ModelsErr}}
+        <p class="flint-error">Couldn't reach Ollama: {{.ModelsErr}}</p>
+      {{else if not .Models}}
+        <p class="flint-error">No models found on this Ollama server.</p>
+      {{else}}
+        <div class="flint-model-checkbox-list">
+          {{range .Models}}
+          <label>
+            <input type="checkbox" :checked="isPreferred('{{.Name | jsStr}}')" @change="toggleModel('{{.Name | jsStr}}')">
+            {{.Name}}
+          </label>
+          {{end}}
+        </div>
+      {{end}}
+
+      <label for="brave_api_key">Brave Search API key
+        <input type="password" id="brave_api_key" x-model="braveApiKey" placeholder="Required for @web search" autocomplete="off">
+      </label>
+
+      <button type="button" @click="saveGeneral" :aria-busy="savingGeneral" :disabled="savingGeneral">Save</button>
+      <p class="flint-save-status" x-text="generalStatus"></p>
+    </section>
+
+    <section class="flint-settings-section">
+      <h3>Security questions</h3>
+      <p>Used to recover your account without email. Answers are never shown back to you —
+        saving this form replaces <strong>all</strong> questions and requires re-entering every answer,
+        even ones you're keeping.</p>
+
+      <template x-for="(q, i) in editQuestions" :key="i">
+        <div class="flint-sq-row">
+          <input type="text" x-model="q.question" placeholder="Question" required>
+          <input type="text" x-model="q.answer" placeholder="Answer" required>
+          <button type="button" class="secondary flint-sq-remove" @click="removeQuestionRow(i)" :disabled="editQuestions.length <= 1">Remove</button>
+        </div>
+      </template>
+
+      <button type="button" class="secondary" @click="addQuestionRow" :disabled="editQuestions.length >= 5">+ Add question</button>
+      <p class="flint-error" x-text="questionsError"></p>
+      <button type="button" @click="saveQuestions" :aria-busy="savingQuestions" :disabled="savingQuestions">Save questions</button>
+      <p class="flint-save-status" x-text="questionsStatus"></p>
+    </section>
+  </div>
+</div>
+{{end}}

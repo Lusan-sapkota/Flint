@@ -1,0 +1,21 @@
+{{define "base"}}
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{if .Title}}{{.Title}} · {{end}}Flint</title>
+  <link rel="icon" href="/static/favicon.ico" sizes="any">
+  <link rel="icon" href="/static/image/flint-32.png" type="image/png">
+  <link rel="apple-touch-icon" href="/static/image/flint-180.png">
+  <link rel="stylesheet" href="/static/css/pico.min.css">
+  <link rel="stylesheet" href="/static/css/flint.css">
+  <script src="/static/js/htmx.min.js" defer></script>
+  {{block "scripts" .}}{{end}}
+  <script src="/static/js/alpine.min.js" defer></script>
+</head>
+<body>
+{{template "content" .}}
+</body>
+</html>
+{{end}}

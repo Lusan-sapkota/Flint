@@ -1,0 +1,21 @@
+{{define "scripts"}}<script src="/static/js/app.js" defer></script>{{end}}
+{{define "content"}}
+<main class="flint-auth-page">
+  <article class="flint-auth-card" x-data="loginForm()">
+    <h1>Flint</h1>
+    <p class="flint-auth-subtitle">Log in to your account.</p>
+    <form @submit.prevent="submit">
+      <label for="email">Email
+        <input type="email" id="email" name="email" x-model="email" autocomplete="email" required autofocus>
+      </label>
+      <label for="password">Password
+        <input type="password" id="password" name="password" x-model="password" autocomplete="current-password" required>
+      </label>
+      <p class="flint-error" x-text="error"></p>
+      <button type="submit" :aria-busy="loading" :disabled="loading">Log in</button>
+    </form>
+    <p><a href="/recover">Forgot your password?</a></p>
+    <p>No account? <a href="/signup">Sign up</a></p>
+  </article>
+</main>
+{{end}}

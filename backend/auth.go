@@ -55,27 +55,45 @@ func clearSessionCookie(w http.ResponseWriter) {
 	})
 }
 
+func (s *Server) sessionUser(r *http.Request) (*User, error) {
+	cookie, err := r.Cookie(sessionCookieName)
+	if err != nil {
+		return nil, nil
+	}
+	return getSessionUser(s.db, cookie.Value)
+}
+
 func (s *Server) requireAuth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie(sessionCookieName)
-		if err != nil {
-			writeError(w, http.StatusUnauthorized, "not signed in")
-			return
-		}
-
-		user, err := getSessionUser(s.db, cookie.Value)
+		user, err := s.sessionUser(r)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		if user == nil {
 			clearSessionCookie(w)
-			writeError(w, http.StatusUnauthorized, "session expired")
+			writeError(w, http.StatusUnauthorized, "not signed in")
 			return
 		}
 
 		ctx := context.WithValue(r.Context(), userCtxKey, user)
 		next(w, r.WithContext(ctx))
+	}
+}
+
+func (s *Server) requireAuthPage(next func(w http.ResponseWriter, r *http.Request, user *User)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, err := s.sessionUser(r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if user == nil {
+			clearSessionCookie(w)
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
+		}
+		next(w, r, user)
 	}
 }
 

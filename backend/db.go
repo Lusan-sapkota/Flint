@@ -578,6 +578,21 @@ func getCommand(db *sql.DB, id, conversationID string) (*Command, error) {
 	return &c, nil
 }
 
+func getPendingCommand(db *sql.DB, conversationID string) (*Command, error) {
+	var c Command
+	err := db.QueryRow(
+		`SELECT id, conversation_id, tool_call_id, command, cwd, status, output, exit_code, created_at, decided_at
+		 FROM commands WHERE conversation_id = ? AND status = 'pending' ORDER BY created_at DESC LIMIT 1`, conversationID,
+	).Scan(&c.ID, &c.ConversationID, &c.ToolCallID, &c.Command, &c.Cwd, &c.Status, &c.Output, &c.ExitCode, &c.CreatedAt, &c.DecidedAt)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
 func resolveCommand(db *sql.DB, id, status, output string, exitCode *int) error {
 	_, err := db.Exec(
 		`UPDATE commands SET status = ?, output = ?, exit_code = ?, decided_at = ? WHERE id = ?`,

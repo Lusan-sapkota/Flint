@@ -22,6 +22,7 @@ type Server struct {
 	ollama           *OllamaClient
 	defaultOllamaURL string
 	attachmentsDir   string
+	pages            *pages
 
 	conversationQueueMu sync.Mutex
 	conversationQueue   map[string]*sync.Mutex
@@ -244,17 +245,30 @@ func (s *Server) handleGetConversation(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, convo)
 }
 
+func (s *Server) deleteConversationAndFiles(id, userID string) (found bool, err error) {
+	paths, err := getAttachmentPathsForConversation(s.db, id)
+	if err != nil {
+		return false, err
+	}
+
+	found, err = deleteConversation(s.db, id, userID)
+	if err != nil || !found {
+		return found, err
+	}
+
+	for _, p := range paths {
+		if err := os.Remove(filepath.Join(s.attachmentsDir, p)); err != nil && !os.IsNotExist(err) {
+			log.Printf("warning: failed to remove attachment file %s: %v", p, err)
+		}
+	}
+	return true, nil
+}
+
 func (s *Server) handleDeleteConversation(w http.ResponseWriter, r *http.Request) {
 	user := userFromContext(r)
 	id := r.PathValue("id")
 
-	paths, err := getAttachmentPathsForConversation(s.db, id)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	found, err := deleteConversation(s.db, id, user.ID)
+	found, err := s.deleteConversationAndFiles(id, user.ID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -262,12 +276,6 @@ func (s *Server) handleDeleteConversation(w http.ResponseWriter, r *http.Request
 	if !found {
 		writeError(w, http.StatusNotFound, "conversation not found")
 		return
-	}
-
-	for _, p := range paths {
-		if err := os.Remove(filepath.Join(s.attachmentsDir, p)); err != nil && !os.IsNotExist(err) {
-			log.Printf("warning: failed to remove attachment file %s: %v", p, err)
-		}
 	}
 
 	w.WriteHeader(http.StatusNoContent)
@@ -467,14 +475,16 @@ func (s *Server) resolveCommandAndContinue(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	var resultText string
+	var resultText, displayStatus string
 	if !approve {
 		resultText = "User denied permission to run this command."
+		displayStatus = "denied"
 		if err := resolveCommand(s.db, cmd.ID, "denied", "", nil); err != nil {
 			log.Printf("warning: failed to resolve command: %v", err)
 		}
 	} else if blocked, reason := checkCommandShield(cmd.Command); blocked {
 		resultText = shieldBlockedMessage(reason)
+		displayStatus = "blocked"
 		if err := resolveCommand(s.db, cmd.ID, "blocked", resultText, nil); err != nil {
 			log.Printf("warning: failed to resolve command: %v", err)
 		}
@@ -509,8 +519,10 @@ func (s *Server) resolveCommandAndContinue(w http.ResponseWriter, r *http.Reques
 
 		if exitCode == 0 {
 			resultText = fmt.Sprintf("[exit code: 0]\n%s", output)
+			displayStatus = "success"
 		} else {
 			resultText = fmt.Sprintf("[FAILED, exit code: %d]\n%s", exitCode, output)
+			displayStatus = "failed"
 		}
 	}
 
@@ -526,6 +538,19 @@ func (s *Server) resolveCommandAndContinue(w http.ResponseWriter, r *http.Reques
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
+
+	// The plain-text stream below carries only the assistant's own tokens
+	// (and a possible <<<TOOL_CALL>>> marker) for the model's next turn -
+	// the command's actual output never otherwise reaches the browser, since
+	// it's persisted straight to the tool-result DB row. The UI needs to
+	// show the human what really happened, so a matching <<<TOOL_RESULT>>>
+	// marker is emitted first, display-only, before the assistant continues.
+	resultMarker, _ := json.Marshal(map[string]string{"status": displayStatus, "output": resultText})
+	fmt.Fprintf(w, "<<<TOOL_RESULT>>>%s\n", resultMarker)
+	if flusher, ok := w.(http.Flusher); ok {
+		flusher.Flush()
+	}
+
 	s.streamAssistantTurn(w, r, user, convo)
 }
 

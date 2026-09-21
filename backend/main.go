@@ -67,7 +67,7 @@ func main() {
 	}
 	defer db.Close()
 
-	srv := &Server{db: db, ollama: NewOllamaClient(), defaultOllamaURL: ollamaBaseURL, attachmentsDir: attachmentsDir}
+	srv := &Server{db: db, ollama: NewOllamaClient(), defaultOllamaURL: ollamaBaseURL, attachmentsDir: attachmentsDir, pages: loadPages()}
 	loginLimiter := newRateLimiter(5, 5*time.Minute)
 	signupLimiter := newRateLimiter(5, 5*time.Minute)
 	recoveryLimiter := newRateLimiter(5, 30*time.Minute)
@@ -103,9 +103,15 @@ func main() {
 	mux.HandleFunc("POST /api/conversations/{id}/commands/{cmdId}/deny", srv.requireAuth(srv.handleDenyCommand))
 
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("../frontend/static"))))
-	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Flint backend is running"))
-	})
+
+	mux.HandleFunc("GET /login", srv.handleLoginPage)
+	mux.HandleFunc("GET /signup", srv.handleSignupPage)
+	mux.HandleFunc("GET /recover", srv.handleRecoverPage)
+	mux.HandleFunc("GET /settings", srv.requireAuthPage(srv.handleSettingsPage))
+	mux.HandleFunc("GET /{$}", srv.requireAuthPage(srv.handleChatPage))
+	mux.HandleFunc("GET /c/{id}", srv.requireAuthPage(srv.handleChatPage))
+	mux.HandleFunc("POST /conversations", srv.requireAuthPage(srv.handleCreateConversationPage))
+	mux.HandleFunc("POST /conversations/{id}/delete", srv.requireAuthPage(srv.handleDeleteConversationPage))
 
 	httpServer := &http.Server{Addr: ":" + port, Handler: mux}
 
