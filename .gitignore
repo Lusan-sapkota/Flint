@@ -1,0 +1,15 @@
+# Go
+/backend/flint
+/backend/*.exe
+
+# SQLite runtime data
+/backend/data/*.db
+/backend/data/*.db-journal
+/backend/data/*.db-wal
+/backend/data/*.db-shm
+
+# Env
+.env
+
+# OS
+.DS_Store
