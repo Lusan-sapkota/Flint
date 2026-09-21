@@ -5,28 +5,53 @@
     <div class="flint-auth-header">
       <div>
         <h1>Flint</h1>
-        <p class="flint-auth-subtitle">Create an account.</p>
+        <p class="flint-auth-subtitle" x-text="step === 1 ? 'Create an account.' : 'Set up account recovery.'"></p>
       </div>
       <img src="/static/image/flint-512.png" alt="" class="flint-auth-logo">
     </div>
-    <form @submit.prevent="submit">
-      <label for="full_name">Full name
-        <input type="text" id="full_name" name="full_name" x-model="fullName" autocomplete="name" required autofocus>
-      </label>
-      <label for="email">Email
-        <input type="email" id="email" name="email" x-model="email" autocomplete="email" required>
-      </label>
-      <label for="password">Password
-        <div class="flint-password-wrap" x-data="{ show: false }">
-          <input :type="show ? 'text' : 'password'" id="password" name="password" x-model="password" autocomplete="new-password" minlength="8" required>
-          {{template "password-toggle"}}
-        </div>
-        <small>At least 8 characters.</small>
-      </label>
-      <p class="flint-error" x-text="error"></p>
-      <button type="submit" :aria-busy="loading" :disabled="loading">Sign up</button>
-    </form>
-    <p>Already have an account? <a href="/login">Log in</a></p>
+
+    <template x-if="step === 1">
+      <div>
+        <form @submit.prevent="submit">
+          <label for="full_name">Full name
+            <input type="text" id="full_name" name="full_name" x-model="fullName" autocomplete="name" required autofocus>
+          </label>
+          <label for="email">Email
+            <input type="email" id="email" name="email" x-model="email" autocomplete="email" required>
+          </label>
+          <label for="password">Password
+            <div class="flint-password-wrap" x-data="{ show: false }">
+              <input :type="show ? 'text' : 'password'" id="password" name="password" x-model="password" autocomplete="new-password" minlength="8" required>
+              {{template "password-toggle"}}
+            </div>
+            <small>At least 8 characters.</small>
+          </label>
+          <p class="flint-error" x-text="error"></p>
+          <button type="submit" :aria-busy="loading" :disabled="loading">Continue</button>
+        </form>
+        <p>Already have an account? <a href="/login">Log in</a></p>
+      </div>
+    </template>
+
+    <template x-if="step === 2">
+      <div>
+        <p>Pick 2-5 questions and answers only you'd know, in case you ever need to reset your
+          password without email access. You can change these later in Settings.</p>
+        <form @submit.prevent="saveQuestions">
+          <template x-for="(q, i) in questions" :key="i">
+            <div class="flint-sq-row">
+              <input type="text" x-model="q.question" placeholder="Question" required>
+              <input type="text" x-model="q.answer" placeholder="Answer" required>
+              <button type="button" class="secondary flint-sq-remove" @click="removeQuestionRow(i)" :disabled="questions.length <= 2">{{template "icon-x"}}</button>
+            </div>
+          </template>
+          <button type="button" class="secondary flint-btn-icon" @click="addQuestionRow" :disabled="questions.length >= 5">{{template "icon-plus"}} Add question</button>
+          <p class="flint-error" x-text="questionsError"></p>
+          <button type="submit" :aria-busy="loading" :disabled="loading">Save and continue</button>
+        </form>
+        <p><a href="#" @click.prevent="skipQuestions">Skip for now</a></p>
+      </div>
+    </template>
   </article>
 </main>
 {{end}}

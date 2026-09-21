@@ -54,11 +54,11 @@
         <div class="flint-sq-row">
           <input type="text" x-model="q.question" placeholder="Question" required>
           <input type="text" x-model="q.answer" placeholder="Answer" required>
-          <button type="button" class="secondary flint-sq-remove" @click="removeQuestionRow(i)" :disabled="editQuestions.length <= 1">Remove</button>
+          <button type="button" class="secondary flint-sq-remove" @click="removeQuestionRow(i)" :disabled="editQuestions.length <= 2" aria-label="Remove question">{{template "icon-x"}}</button>
         </div>
       </template>
 
-      <button type="button" class="secondary" @click="addQuestionRow" :disabled="editQuestions.length >= 5">+ Add question</button>
+      <button type="button" class="secondary flint-btn-icon" @click="addQuestionRow" :disabled="editQuestions.length >= 5">{{template "icon-plus"}} Add question</button>
       <p class="flint-error" x-text="questionsError"></p>
       <button type="button" @click="saveQuestions" :aria-busy="savingQuestions" :disabled="savingQuestions">Save questions</button>
       <p class="flint-save-status" x-text="questionsStatus"></p>
