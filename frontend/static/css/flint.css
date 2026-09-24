@@ -461,6 +461,13 @@ button.flint-btn-icon {
   cursor: pointer;
 }
 
+.flint-shell-collapsed .flint-sidebar-hover-toggle,
+.flint-shell-collapsed .flint-sidebar-hover-toggle .flint-sidebar-logo,
+.flint-shell-collapsed .flint-sidebar-avatar {
+  width: var(--flint-side-control-h);
+  height: var(--flint-side-control-h);
+}
+
 .flint-sidebar-hover-toggle .flint-hover-show {
   display: none;
   width: 100%;
