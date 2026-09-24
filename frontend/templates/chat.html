@@ -53,8 +53,11 @@
     </div>
 
     <div class="flint-sidebar-footer">
-      <span x-show="!collapsed">{{.User.FullName}}</span>
-      <a href="#" onclick="flintLogout(); return false;" x-show="!collapsed">Log out</a>
+      <div class="flint-sidebar-user" x-show="!collapsed">
+        <span class="flint-sidebar-avatar">{{.User.FullName | initial}}</span>
+        <span class="flint-sidebar-user-name">{{.User.FullName}}</span>
+        <a href="#" onclick="flintLogout(); return false;" class="flint-sidebar-logout" title="Log out" aria-label="Log out">{{template "icon-log-out"}}</a>
+      </div>
 
       <a href="#" onclick="flintLogout(); return false;" x-show="collapsed" class="flint-sidebar-hover-toggle" title="Log out">
         <span class="flint-sidebar-avatar flint-hover-hide">{{.User.FullName | initial}}</span>

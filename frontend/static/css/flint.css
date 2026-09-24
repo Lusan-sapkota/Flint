@@ -14,6 +14,8 @@
   --flint-success: #7cb381;
   --flint-bar-h: 3.75rem;
   --flint-control-h: 2.75rem;
+  --flint-side-control-h: 2.25rem;
+  --flint-side-gutter: 0.75rem;
 
   --pico-background-color: var(--flint-bg);
   --pico-color: var(--flint-text);
@@ -227,12 +229,28 @@ body {
 }
 
 .flint-new-chat-form {
-  padding: 0.75rem 1rem 0;
+  padding: var(--flint-side-gutter) var(--flint-side-gutter) 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.flint-new-chat-form select {
+  height: var(--flint-side-control-h);
+  margin: 0;
+  padding: 0 2rem 0 0.75rem;
+  font-size: 0.9rem;
+  background-position: center right 0.6rem;
 }
 
 .flint-new-chat-btn {
   width: 100%;
+  height: var(--flint-side-control-h);
   margin: 0;
+  padding: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -259,15 +277,24 @@ button.flint-btn-icon {
 }
 
 .flint-new-chat-icon-btn {
-  width: 2.25rem;
-  height: 2.25rem;
-  margin: 0.75rem auto 0;
+  width: var(--flint-side-control-h);
+  height: var(--flint-side-control-h);
+  margin: var(--flint-side-gutter) auto 0;
   padding: 0;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 0.4rem;
+  background: var(--flint-surface-raised);
+  border: 1px solid var(--flint-border);
+  color: var(--flint-accent);
+}
+
+.flint-new-chat-icon-btn:hover {
+  background: var(--flint-accent);
+  border-color: var(--flint-accent);
+  color: var(--flint-bg);
 }
 
 .flint-new-chat-icon-btn svg {
@@ -278,7 +305,7 @@ button.flint-btn-icon {
 .flint-conversations {
   flex: 1;
   overflow-y: auto;
-  padding: 0.5rem;
+  padding: 0.25rem var(--flint-side-gutter) var(--flint-side-gutter);
 }
 
 .flint-conversation-row {
@@ -299,8 +326,8 @@ button.flint-btn-icon {
 
 .flint-conversation-delete {
   flex-shrink: 0;
-  width: 2rem;
-  height: 2rem;
+  width: 1.75rem;
+  height: 1.75rem;
   margin: 0 0.25rem 0 0;
   padding: 0;
   display: inline-flex;
@@ -331,7 +358,8 @@ button.flint-btn-icon {
   flex: 1;
   min-width: 0;
   display: block;
-  padding: 0.6rem 0.75rem;
+  padding: 0 0.75rem;
+  line-height: var(--flint-side-control-h);
   color: var(--flint-text);
   text-decoration: none;
   font-size: 0.9rem;
@@ -342,7 +370,7 @@ button.flint-btn-icon {
 
 .flint-sidebar-footer {
   margin-top: auto;
-  padding: 0.75rem 1rem;
+  padding: 0.75rem var(--flint-side-gutter);
   border-top: 1px solid var(--flint-border);
   display: flex;
   align-items: center;
@@ -359,6 +387,38 @@ button.flint-btn-icon {
 .flint-sidebar-footer a {
   color: var(--flint-text-dim);
   display: inline-flex;
+}
+
+.flint-sidebar-user {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-left: 0.25rem;
+}
+
+.flint-sidebar-user-name {
+  flex: 1;
+  min-width: 0;
+  color: var(--flint-text);
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.flint-sidebar-logout {
+  width: 1.75rem;
+  height: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.4rem;
+}
+
+.flint-sidebar-logout:hover {
+  color: var(--flint-accent);
+  background: var(--flint-surface-raised);
 }
 
 .flint-sidebar-footer a svg {
