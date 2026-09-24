@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"os/exec"
@@ -767,8 +768,12 @@ func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, use
 	}
 
 	if result.Content != "" {
-		if _, err := insertMessage(s.db, convo.ID, "assistant", result.Content); err != nil {
+		if err := insertAssistantMessage(s.db, convo.ID, result.Content, result.TokensPerSec); err != nil {
 			log.Printf("warning: failed to save assistant message: %v", err)
+		}
+		if result.TokensPerSec > 0 {
+			stats, _ := json.Marshal(map[string]float64{"tokensPerSec": math.Round(result.TokensPerSec*10) / 10})
+			fmt.Fprintf(w, "\n<<<STATS>>>%s\n", stats)
 		}
 	}
 	if err := touchConversation(s.db, convo.ID); err != nil {

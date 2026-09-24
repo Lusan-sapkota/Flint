@@ -122,6 +122,11 @@ function flintRenameConversation(id, button) {
 document.addEventListener('alpine:init', () => {
   const TOOL_CALL_MARKER = '<<<TOOL_CALL>>>';
   const TOOL_RESULT_MARKER = '<<<TOOL_RESULT>>>';
+  const STATS_MARKER = '<<<STATS>>>';
+  const firstMarker = (s) => {
+    const found = [s.indexOf(TOOL_CALL_MARKER), s.indexOf(STATS_MARKER)].filter((i) => i !== -1);
+    return found.length ? Math.min(...found) : -1;
+  };
   const HOLDBACK = TOOL_CALL_MARKER.length + 8;
 
   Alpine.data('chatApp', (config) => ({
@@ -436,7 +441,7 @@ document.addEventListener('alpine:init', () => {
 
       while (true) {
         if (!markerFound) {
-          const idx = pending.indexOf(TOOL_CALL_MARKER);
+          const idx = firstMarker(pending);
           if (idx !== -1) {
             markerFound = true;
             appendVisible(pending.slice(0, idx));
@@ -454,7 +459,7 @@ document.addEventListener('alpine:init', () => {
       }
 
       if (!markerFound) {
-        const idx = pending.indexOf(TOOL_CALL_MARKER);
+        const idx = firstMarker(pending);
         if (idx !== -1) {
           markerFound = true;
           appendVisible(pending.slice(0, idx));
@@ -464,7 +469,14 @@ document.addEventListener('alpine:init', () => {
 
       this.streamingBubble = null;
 
-      if (markerFound) {
+      if (markerFound && pending.startsWith(STATS_MARKER)) {
+        try {
+          const obj = JSON.parse(pending.slice(STATS_MARKER.length).trim());
+          if (bubble) bubble.tokensPerSec = obj.tokensPerSec;
+        } catch (e) {
+          // stats are cosmetic - a malformed line just means none are shown
+        }
+      } else if (markerFound) {
         const jsonPart = pending.slice(TOOL_CALL_MARKER.length).trim();
         try {
           const obj = JSON.parse(jsonPart);

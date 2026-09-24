@@ -149,6 +149,9 @@
               <button type="button" @click="copyText(item.content, $el)" title="Copy message" aria-label="Copy message">
                 <span class="flint-copy-idle">{{template "icon-copy"}}</span><span class="flint-copy-done">{{template "icon-check"}}</span>
               </button>
+              <template x-if="item.tokensPerSec">
+                <span class="flint-msg-stat" title="Generation speed" x-text="item.tokensPerSec.toFixed(1) + ' tok/s'"></span>
+              </template>
             </div>
           </template>
 

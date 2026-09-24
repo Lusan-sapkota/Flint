@@ -58,13 +58,14 @@ type Conversation struct {
 }
 
 type Message struct {
-	ID          int64        `json:"id"`
-	Role        string       `json:"role"`
-	Content     string       `json:"content"`
-	ToolCalls   *string      `json:"tool_calls,omitempty"`
-	ToolCallID  *string      `json:"tool_call_id,omitempty"`
-	Attachments []Attachment `json:"attachments,omitempty"`
-	CreatedAt   int64        `json:"created_at,omitempty"`
+	ID           int64        `json:"id"`
+	Role         string       `json:"role"`
+	Content      string       `json:"content"`
+	ToolCalls    *string      `json:"tool_calls,omitempty"`
+	ToolCallID   *string      `json:"tool_call_id,omitempty"`
+	TokensPerSec *float64     `json:"tokens_per_sec,omitempty"`
+	Attachments  []Attachment `json:"attachments,omitempty"`
+	CreatedAt    int64        `json:"created_at,omitempty"`
 }
 
 type Attachment struct {
@@ -142,6 +143,7 @@ CREATE TABLE IF NOT EXISTS messages (
 	content         TEXT NOT NULL,
 	tool_calls      TEXT,
 	tool_call_id    TEXT,
+	tokens_per_sec  REAL,
 	created_at      INTEGER NOT NULL
 );
 
@@ -198,8 +200,11 @@ func openDB(path string) (*sql.DB, error) {
 // existing table. Each statement is idempotent (ignores "duplicate column"
 // so re-running against an already-migrated database is a no-op.
 func migrate(db *sql.DB) error {
-	if _, err := db.Exec(`ALTER TABLE attachments ADD COLUMN filename TEXT NOT NULL DEFAULT ''`); err != nil {
-		if !strings.Contains(err.Error(), "duplicate column") {
+	for _, stmt := range []string{
+		`ALTER TABLE attachments ADD COLUMN filename TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE messages ADD COLUMN tokens_per_sec REAL`,
+	} {
+		if _, err := db.Exec(stmt); err != nil && !strings.Contains(err.Error(), "duplicate column") {
 			return err
 		}
 	}
@@ -425,7 +430,7 @@ func getConversation(db *sql.DB, id, userID string) (*ConversationWithMessages, 
 	}
 
 	rows, err := db.Query(
-		`SELECT id, role, content, tool_calls, tool_call_id, created_at FROM messages WHERE conversation_id = ? ORDER BY id ASC`, id,
+		`SELECT id, role, content, tool_calls, tool_call_id, tokens_per_sec, created_at FROM messages WHERE conversation_id = ? ORDER BY id ASC`, id,
 	)
 	if err != nil {
 		return nil, err
@@ -435,7 +440,7 @@ func getConversation(db *sql.DB, id, userID string) (*ConversationWithMessages, 
 	messages := []Message{}
 	for rows.Next() {
 		var m Message
-		if err := rows.Scan(&m.ID, &m.Role, &m.Content, &m.ToolCalls, &m.ToolCallID, &m.CreatedAt); err != nil {
+		if err := rows.Scan(&m.ID, &m.Role, &m.Content, &m.ToolCalls, &m.ToolCallID, &m.TokensPerSec, &m.CreatedAt); err != nil {
 			return nil, err
 		}
 		messages = append(messages, m)
@@ -495,6 +500,18 @@ func insertMessage(db *sql.DB, conversationID, role, content string) (int64, err
 		return 0, err
 	}
 	return res.LastInsertId()
+}
+
+func insertAssistantMessage(db *sql.DB, conversationID, content string, tokensPerSec float64) error {
+	var tps *float64
+	if tokensPerSec > 0 {
+		tps = &tokensPerSec
+	}
+	_, err := db.Exec(
+		`INSERT INTO messages (conversation_id, role, content, tokens_per_sec, created_at) VALUES (?, 'assistant', ?, ?, ?)`,
+		conversationID, content, tps, time.Now().UnixMilli(),
+	)
+	return err
 }
 
 func createAttachment(db *sql.DB, id string, messageID int64, mimeType, filename, filePath string) error {

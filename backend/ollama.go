@@ -49,14 +49,17 @@ type ollamaChatRequest struct {
 }
 
 type ollamaChatChunk struct {
-	Message OllamaMessage `json:"message"`
-	Done    bool          `json:"done"`
-	Error   string        `json:"error"`
+	Message      OllamaMessage `json:"message"`
+	Done         bool          `json:"done"`
+	Error        string        `json:"error"`
+	EvalCount    int           `json:"eval_count"`
+	EvalDuration int64         `json:"eval_duration"`
 }
 
 type ChatResult struct {
-	Content   string
-	ToolCalls []OllamaToolCall
+	Content      string
+	ToolCalls    []OllamaToolCall
+	TokensPerSec float64
 }
 
 type OllamaModelDetails struct {
@@ -301,6 +304,7 @@ func (c *OllamaClient) StreamChat(ctx context.Context, baseURL, model string, me
 
 	var full bytes.Buffer
 	var toolCalls []OllamaToolCall
+	var tokensPerSec float64
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		if len(bytes.TrimSpace(line)) == 0 {
@@ -322,6 +326,9 @@ func (c *OllamaClient) StreamChat(ctx context.Context, baseURL, model string, me
 			onToken(chunk.Message.Content)
 		}
 		if chunk.Done {
+			if chunk.EvalDuration > 0 {
+				tokensPerSec = float64(chunk.EvalCount) / (float64(chunk.EvalDuration) / 1e9)
+			}
 			break
 		}
 	}
@@ -329,7 +336,7 @@ func (c *OllamaClient) StreamChat(ctx context.Context, baseURL, model string, me
 		return ChatResult{Content: full.String(), ToolCalls: toolCalls}, err
 	}
 
-	return ChatResult{Content: full.String(), ToolCalls: toolCalls}, nil
+	return ChatResult{Content: full.String(), ToolCalls: toolCalls, TokensPerSec: tokensPerSec}, nil
 }
 
 func readAll(r interface{ Read([]byte) (int, error) }, max int) ([]byte, error) {

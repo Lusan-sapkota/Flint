@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"html/template"
 	"log"
+	"math"
 	"net/http"
 	"path/filepath"
 	"slices"
@@ -73,6 +74,7 @@ type timelineItem struct {
 	CommandText   string           `json:"commandText,omitempty"`
 	CommandStatus string           `json:"commandStatus,omitempty"`
 	CommandResult string           `json:"commandResult,omitempty"`
+	TokensPerSec  float64          `json:"tokensPerSec,omitempty"`
 }
 
 type timelineAttach struct {
@@ -122,7 +124,11 @@ func buildTimeline(messages []Message, pending *Command) []timelineItem {
 			continue // rendered as part of its paired "command" item, not standalone
 		case "assistant":
 			if m.Content != "" {
-				out = append(out, timelineItem{Kind: "assistant", Content: m.Content})
+				item := timelineItem{Kind: "assistant", Content: m.Content}
+				if m.TokensPerSec != nil {
+					item.TokensPerSec = math.Round(*m.TokensPerSec*10) / 10
+				}
+				out = append(out, item)
 			}
 			if m.ToolCalls == nil || *m.ToolCalls == "" {
 				continue

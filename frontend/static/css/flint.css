@@ -583,9 +583,6 @@ button.flint-btn-icon {
 }
 
 .flint-timeline-item {
-  width: 100%;
-  max-width: 52rem;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
 }
@@ -733,7 +730,15 @@ button.flint-btn-icon {
 
 .flint-msg-actions {
   display: flex;
+  align-items: center;
+  gap: 0.5rem;
   margin-top: 0.15rem;
+}
+
+.flint-msg-stat {
+  font-size: 0.75rem;
+  color: var(--flint-text-dim);
+  font-variant-numeric: tabular-nums;
 }
 
 .flint-msg-actions-user {
