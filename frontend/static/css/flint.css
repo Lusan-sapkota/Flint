@@ -191,13 +191,14 @@ body {
 }
 
 .flint-sidebar-logo {
-  width: 1.75rem;
-  height: 1.75rem;
+  width: var(--flint-side-control-h);
+  height: var(--flint-side-control-h);
   flex-shrink: 0;
 }
 
 .flint-sidebar-brand-text {
-  font-size: 1.1rem;
+  font-size: 1.25rem;
+  line-height: 1;
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
@@ -706,8 +707,8 @@ button.flint-btn-icon {
   color: var(--flint-accent);
   background: rgba(242, 166, 90, 0.1);
   border: 1px solid var(--flint-accent-dim);
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  border-radius: 0.4rem;
   margin-bottom: 0.5rem;
 }
 
