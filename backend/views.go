@@ -189,6 +189,7 @@ type chatViewData struct {
 	CurrentModelMissing bool
 	SelectedModel       string
 	CanThink            bool
+	CanSee              bool
 	CurrentUpdatedAt    int64
 	CurrentFolder       string
 	TimelineJSON        string
@@ -250,9 +251,14 @@ func (s *Server) handleChatPage(w http.ResponseWriter, r *http.Request, user *Us
 	for i := 0; !hasModel(data.Models, data.SelectedModel) && i < len(convos); i++ {
 		data.SelectedModel = convos[i].Model
 	}
+	// Unknown capabilities (an older Ollama) never trigger the "can't see
+	// images" warning, only a positive report of no vision does.
+	data.CanSee = true
 	for _, m := range models {
 		if m.Name == data.CurrentModel {
-			data.CanThink = slices.Contains(s.ollama.Capabilities(r.Context(), s.ollamaURLFor(user), m), "thinking")
+			caps := s.ollama.Capabilities(r.Context(), s.ollamaURLFor(user), m)
+			data.CanThink = slices.Contains(caps, "thinking")
+			data.CanSee = caps == nil || slices.Contains(caps, "vision")
 		}
 	}
 

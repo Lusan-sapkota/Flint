@@ -104,6 +104,12 @@ body {
   margin: 0.5rem 0;
 }
 
+.flint-warning {
+  color: var(--flint-accent);
+  font-size: 0.85rem;
+  margin: 0 0 0.5rem;
+}
+
 .flint-password-wrap {
   position: relative;
   margin-bottom: var(--pico-spacing);

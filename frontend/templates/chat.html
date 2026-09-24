@@ -88,6 +88,7 @@
          model: '{{.CurrentModel | jsStr}}',
          attachedFolder: {{if .CurrentFolder}}'{{.CurrentFolder | jsStr}}'{{else}}null{{end}},
          canThink: {{.CanThink}},
+         canSee: {{.CanSee}},
          lastActive: {{.CurrentUpdatedAt}},
          timeline: {{.TimelineJSON}}
        })"
@@ -258,6 +259,7 @@
         </div>
       </template>
       <template x-if="attachmentError"><p class="flint-error" x-text="attachmentError"></p></template>
+      <template x-if="attachmentWarning"><p class="flint-warning" x-text="attachmentWarning"></p></template>
 
       <div class="flint-input-row">
         <button type="button" class="flint-icon-btn secondary" title="Attach a file" @click="$refs.fileInput.click()" :disabled="!conversationId || attachments.length >= 4">{{template "icon-paperclip"}}</button>

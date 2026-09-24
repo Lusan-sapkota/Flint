@@ -125,6 +125,8 @@ document.addEventListener('alpine:init', () => {
   const STATS_MARKER = '<<<STATS>>>';
   const THINK_MARKER = '<<<THINK>>>';
   const MARKERS = [TOOL_CALL_MARKER, STATS_MARKER, THINK_MARKER];
+  // Mirrors imageMimeExtensions in images.go.
+  const SUPPORTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/bmp'];
   const firstMarker = (s) => {
     const found = MARKERS.map((m) => s.indexOf(m)).filter((i) => i !== -1);
     return found.length ? Math.min(...found) : -1;
@@ -152,6 +154,7 @@ document.addEventListener('alpine:init', () => {
     folderSuggestions: [],
     abortController: null,
     canThink: config.canThink,
+    canSee: config.canSee,
     lastActive: config.lastActive,
     thinkOn: localStorage.getItem('flint-think') !== '0',
     editingIndex: null,
@@ -214,16 +217,29 @@ document.addEventListener('alpine:init', () => {
         this.attachmentError = 'Up to 4 attachments per message - some files were skipped.';
       }
 
+      const tooBig = [];
+      const unreadable = [];
       for (const f of accepted) {
         if (f.size > 8 * 1024 * 1024) {
-          this.attachmentError = `${f.name} is over the 8 MB attachment limit and was skipped.`;
+          tooBig.push(f.name);
           continue;
         }
-        const isImage = f.type.startsWith('image/');
+        // HEIC, TIFF, SVG, AVIF... would reach the model as a bare file
+        // name, which is never what someone attaching a picture wants.
+        if (f.type.startsWith('image/') && !SUPPORTED_IMAGE_TYPES.includes(f.type)) {
+          unreadable.push(f.name);
+          continue;
+        }
+        const isImage = SUPPORTED_IMAGE_TYPES.includes(f.type);
         const reader = new FileReader();
         reader.onload = () => this.attachments.push({ dataUrl: reader.result, filename: f.name, isImage });
         reader.readAsDataURL(f);
       }
+
+      const problems = [];
+      if (tooBig.length) problems.push(`${tooBig.join(', ')} ${tooBig.length > 1 ? 'are' : 'is'} over the 8 MB limit.`);
+      if (unreadable.length) problems.push(`${unreadable.join(', ')} ${unreadable.length > 1 ? 'are image formats' : 'is an image format'} the model can't read - convert to PNG, JPEG, WebP, GIF or BMP.`);
+      if (problems.length) this.attachmentError = `Skipped: ${problems.join(' ')}`;
     },
 
     handlePaste(e) {
@@ -239,6 +255,20 @@ document.addEventListener('alpine:init', () => {
       if (files.length === 0) return; // no file data - let normal text paste happen
       e.preventDefault();
       this.addFiles(files);
+    },
+
+    // Not blocking: the file is still kept with the message, the user just
+    // shouldn't expect the model to have looked at it.
+    get attachmentWarning() {
+      const warnings = [];
+      if (!this.canSee && this.attachments.some((a) => a.isImage)) {
+        warnings.push(`${this.model} can't see images - it will only get the file name. Switch to a vision model to ask about the picture.`);
+      }
+      const files = this.attachments.filter((a) => !a.isImage).map((a) => a.filename);
+      if (files.length) {
+        warnings.push(`The model can't open ${files.join(', ')} - it only sees the name. Paste the text into your message if you want it read.`);
+      }
+      return warnings.join(' ');
     },
 
     removeAttachment(i) {

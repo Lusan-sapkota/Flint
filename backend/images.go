@@ -17,11 +17,14 @@ const (
 	maxAttachmentsPerTurn = 4
 )
 
+// Every format here was checked to decode in Ollama's vision path. Keep
+// SUPPORTED_IMAGE_TYPES in chat.js in sync.
 var imageMimeExtensions = map[string]string{
 	"image/png":  "png",
 	"image/jpeg": "jpg",
 	"image/gif":  "gif",
 	"image/webp": "webp",
+	"image/bmp":  "bmp",
 }
 
 func isImageMime(mimeType string) bool {
