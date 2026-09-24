@@ -40,8 +40,10 @@
         </div>
       </label>
 
-      <button type="button" @click="saveGeneral" :aria-busy="savingGeneral" :disabled="savingGeneral">Save</button>
-      <p class="flint-save-status" x-text="generalStatus"></p>
+      <div class="flint-settings-actions">
+        <button type="button" @click="saveGeneral" :aria-busy="savingGeneral" :disabled="savingGeneral">Save</button>
+        <p class="flint-save-status" x-text="generalStatus"></p>
+      </div>
     </section>
 
     <section class="flint-settings-section">
@@ -134,9 +136,22 @@
 
       <button type="button" class="secondary flint-btn-icon" @click="addQuestionRow" :disabled="editQuestions.length >= 5">{{template "icon-plus"}} Add question</button>
       <p class="flint-error" x-text="questionsError"></p>
-      <button type="button" @click="saveQuestions" :aria-busy="savingQuestions" :disabled="savingQuestions">Save questions</button>
-      <p class="flint-save-status" x-text="questionsStatus"></p>
+      <div class="flint-settings-actions">
+        <button type="button" @click="saveQuestions" :aria-busy="savingQuestions" :disabled="savingQuestions">Save questions</button>
+        <p class="flint-save-status" x-text="questionsStatus"></p>
+      </div>
     </section>
+
+    <dialog x-ref="confirmDialog" class="flint-confirm-dialog" @click.self="$el.close()">
+      <article>
+        <h3 x-text="confirmTitle"></h3>
+        <p x-text="confirmMessage"></p>
+        <form method="dialog" class="flint-settings-actions">
+          <button value="cancel" class="secondary" autofocus>Cancel</button>
+          <button value="confirm" class="flint-danger-solid">{{template "icon-trash"}} Delete</button>
+        </form>
+      </article>
+    </dialog>
   </div>
 </div>
 {{end}}

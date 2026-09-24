@@ -12,6 +12,8 @@
   --flint-accent-dim: #c9884a;
   --flint-danger: #e0655a;
   --flint-success: #7cb381;
+  --flint-bar-h: 3.75rem;
+  --flint-control-h: 2.75rem;
 
   --pico-background-color: var(--flint-bg);
   --pico-color: var(--flint-text);
@@ -35,6 +37,14 @@
   --pico-muted-border-color: var(--flint-border);
   --pico-dropdown-background-color: var(--flint-surface-raised);
   --pico-dropdown-border-color: var(--flint-border);
+  --pico-secondary: var(--flint-text-dim);
+  --pico-secondary-background: var(--flint-surface-raised);
+  --pico-secondary-border: var(--flint-border);
+  --pico-secondary-hover-background: var(--flint-border);
+  --pico-secondary-hover-border: var(--flint-border);
+  --pico-secondary-inverse: var(--flint-text);
+  --pico-secondary-hover: var(--flint-text);
+  --pico-secondary-focus: rgba(154, 154, 158, 0.25);
 }
 
 html {
@@ -91,10 +101,12 @@ body {
 
 .flint-password-wrap {
   position: relative;
+  margin-bottom: var(--pico-spacing);
 }
 
 .flint-password-wrap input {
   padding-right: 2.75rem;
+  margin-bottom: 0;
 }
 
 .flint-password-toggle {
@@ -112,6 +124,7 @@ body {
   justify-content: center;
   color: var(--flint-text-dim);
   cursor: pointer;
+  box-shadow: none;
 }
 
 .flint-password-toggle:hover {
@@ -146,11 +159,15 @@ body {
   border-right: 1px solid var(--flint-border);
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
   overflow: hidden;
 }
 
 .flint-sidebar-header {
-  padding: 1rem;
+  height: var(--flint-bar-h);
+  flex-shrink: 0;
+  padding: 0 1rem;
   border-bottom: 1px solid var(--flint-border);
   display: flex;
   align-items: center;
@@ -246,6 +263,7 @@ button.flint-btn-icon {
   height: 2.25rem;
   margin: 0.75rem auto 0;
   padding: 0;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -286,6 +304,7 @@ button.flint-btn-icon {
 }
 
 .flint-sidebar-footer {
+  margin-top: auto;
   padding: 0.75rem 1rem;
   border-top: 1px solid var(--flint-border);
   display: flex;
@@ -381,7 +400,9 @@ button.flint-btn-icon {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1.25rem;
+  height: var(--flint-bar-h);
+  flex-shrink: 0;
+  padding: 0 1.25rem;
   border-bottom: 1px solid var(--flint-border);
   background: var(--flint-bg);
 }
@@ -708,7 +729,20 @@ button.flint-btn-icon {
   flex: 1;
   margin: 0;
   resize: none;
+  min-height: var(--flint-control-h);
+  height: var(--flint-control-h);
   max-height: 12rem;
+  line-height: 1.5;
+  padding-top: calc((var(--flint-control-h) - 1.5em - 2px) / 2);
+  padding-bottom: calc((var(--flint-control-h) - 1.5em - 2px) / 2);
+}
+
+.flint-input-row > button {
+  height: var(--flint-control-h);
+}
+
+.flint-input-row .flint-icon-btn {
+  width: var(--flint-control-h);
 }
 
 .flint-icon-btn {
@@ -732,6 +766,7 @@ button.flint-btn-icon {
   flex-shrink: 0;
   width: auto;
   margin: 0;
+  padding: 0 1.25rem;
 }
 
 /* Settings page */
@@ -764,8 +799,56 @@ button.flint-btn-icon {
 }
 
 .flint-settings-section h3 {
-  margin-top: 0;
+  margin: 0 0 1rem;
   font-size: 1.05rem;
+}
+
+.flint-settings-section > *:last-child {
+  margin-bottom: 0;
+}
+
+.flint-settings-section .flint-error:empty,
+.flint-settings-section .flint-save-status:empty {
+  display: none;
+}
+
+.flint-settings-section .flint-empty-state {
+  margin: 0.5rem 0;
+  text-align: left;
+  max-width: none;
+  font-size: 0.9rem;
+}
+
+.flint-settings-section input,
+.flint-settings-section button:not(.flint-password-toggle) {
+  height: var(--flint-control-h);
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.flint-settings-section input[type="checkbox"] {
+  height: 1.25em;
+}
+
+.flint-settings-section .flint-icon-btn,
+.flint-settings-section .flint-sq-remove {
+  width: var(--flint-control-h);
+}
+
+.flint-settings-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.flint-settings-actions button {
+  margin: 0;
+  width: auto;
+}
+
+.flint-settings-actions .flint-save-status {
+  margin: 0;
 }
 
 .flint-model-checkbox-list {
@@ -810,6 +893,11 @@ button.flint-btn-icon {
   list-style: none;
   margin: 0;
   padding: 0;
+}
+
+.flint-running-models li,
+.flint-installed-models li {
+  list-style: none;
 }
 
 .flint-running-models li {
@@ -918,6 +1006,7 @@ button.flint-btn-icon {
 
 .flint-sq-row input {
   margin: 0;
+  flex: 1;
 }
 
 .flint-sq-remove {
@@ -940,6 +1029,51 @@ button.flint-btn-icon {
   font-size: 0.85rem;
   color: var(--flint-success);
   min-height: 1.2em;
+}
+
+.flint-confirm-dialog article {
+  max-width: 28rem;
+  padding: 1.5rem;
+  background: var(--flint-surface);
+  border: 1px solid var(--flint-border);
+}
+
+.flint-confirm-dialog h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.flint-confirm-dialog p {
+  color: var(--flint-text-dim);
+}
+
+.flint-confirm-dialog .flint-settings-actions {
+  justify-content: flex-end;
+  margin: 1.25rem 0 0;
+}
+
+.flint-confirm-dialog button {
+  height: var(--flint-control-h);
+  padding: 0 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.flint-confirm-dialog button svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+button.flint-danger-solid {
+  background: var(--flint-danger);
+  border-color: var(--flint-danger);
+  color: #1c1c1e;
+}
+
+button.flint-danger-solid:hover {
+  background: #c9544a;
+  border-color: #c9544a;
 }
 
 [x-cloak] {
