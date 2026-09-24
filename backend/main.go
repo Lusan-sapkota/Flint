@@ -101,6 +101,7 @@ func main() {
 	mux.HandleFunc("GET /api/attachments/{id}", srv.requireAuth(srv.handleGetAttachment))
 	mux.HandleFunc("POST /api/conversations/{id}/attach", srv.requireAuth(srv.handleAttachFolder))
 	mux.HandleFunc("POST /api/conversations/{id}/messages", srv.requireAuth(srv.handlePostMessage))
+	mux.HandleFunc("PUT /api/conversations/{id}/messages/last", srv.requireAuth(srv.handleEditLastMessage))
 	mux.HandleFunc("POST /api/conversations/{id}/commands/{cmdId}/approve", srv.requireAuth(srv.handleApproveCommand))
 	mux.HandleFunc("POST /api/conversations/{id}/commands/{cmdId}/deny", srv.requireAuth(srv.handleDenyCommand))
 

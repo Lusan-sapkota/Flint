@@ -140,6 +140,8 @@ document.addEventListener('alpine:init', () => {
     streaming: false,
     folderInput: '',
     folderSuggestions: [],
+    editingIndex: null,
+    editText: '',
     browser: { path: '', parent: '', dirs: [], error: '', loading: false },
     folderBusy: false,
     folderError: '',
@@ -323,12 +325,70 @@ document.addEventListener('alpine:init', () => {
       this.attachmentError = '';
       this.scrollToBottom();
 
+      await this.streamTurn('POST', `/api/conversations/${this.conversationId}/messages`, { content, attachments });
+    },
+
+    get lastUserIndex() {
+      for (let i = this.timeline.length - 1; i >= 0; i--) {
+        if (this.timeline[i].kind === 'user') return i;
+      }
+      return -1;
+    },
+
+    startEdit(index) {
+      this.editingIndex = index;
+      this.editText = this.timeline[index].content;
+      this.$nextTick(() => {
+        const el = document.querySelector('.flint-edit-box textarea');
+        if (el) {
+          el.focus();
+          el.setSelectionRange(el.value.length, el.value.length);
+        }
+      });
+    },
+
+    cancelEdit() {
+      this.editingIndex = null;
+      this.editText = '';
+    },
+
+    // Mirrors the server: the edited message's reply and everything after
+    // it go, along with @web results injected for the old text.
+    async saveEdit() {
+      const index = this.editingIndex;
+      const content = this.editText.trim();
+      const item = this.timeline[index];
+      this.cancelEdit();
+      if (!content || content === item.content || this.streaming) return;
+
+      item.content = content;
+      this.timeline.splice(index + 1);
+      let start = index;
+      while (start > 0 && this.timeline[start - 1].kind === 'system' && this.timeline[start - 1].content.startsWith('Web search results for ')) {
+        start--;
+      }
+      this.timeline.splice(start, index - start);
+      this.scrollToBottom();
+
+      await this.streamTurn('PUT', `/api/conversations/${this.conversationId}/messages/last`, { content });
+    },
+
+    editKeydown(e) {
+      if (e.key === 'Escape') {
+        this.cancelEdit();
+      } else if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this.saveEdit();
+      }
+    },
+
+    async streamTurn(method, url, payload) {
       this.streaming = true;
       try {
-        const res = await fetch(`/api/conversations/${this.conversationId}/messages`, {
-          method: 'POST',
+        const res = await fetch(url, {
+          method,
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content, attachments }),
+          body: JSON.stringify(payload),
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));

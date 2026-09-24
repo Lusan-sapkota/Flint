@@ -108,7 +108,16 @@
 
       <template x-for="(item, index) in timeline" :key="index">
         <div class="flint-timeline-item">
-          <template x-if="item.kind === 'user'">
+          <template x-if="item.kind === 'user' && editingIndex === index">
+            <div class="flint-edit-box">
+              <textarea x-model="editText" rows="3" @keydown="editKeydown($event)" aria-label="Edit message"></textarea>
+              <div class="flint-settings-actions">
+                <button type="button" class="secondary" @click="cancelEdit()">Cancel</button>
+                <button type="button" @click="saveEdit()" :disabled="!editText.trim()">Send</button>
+              </div>
+            </div>
+          </template>
+          <template x-if="item.kind === 'user' && editingIndex !== index">
             <div class="flint-msg flint-msg-user">
               <div class="flint-msg-text" x-text="item.content"></div>
               <template x-if="(item.pendingAttachments && item.pendingAttachments.length) || (item.attachments && item.attachments.length)">
@@ -130,8 +139,11 @@
               </template>
             </div>
           </template>
-          <template x-if="item.kind === 'user' && item.content">
+          <template x-if="item.kind === 'user' && item.content && editingIndex !== index">
             <div class="flint-msg-actions flint-msg-actions-user">
+              <template x-if="index === lastUserIndex && !streaming">
+                <button type="button" @click="startEdit(index)" title="Edit message" aria-label="Edit message">{{template "icon-edit"}}</button>
+              </template>
               <button type="button" @click="copyText(item.content, $el)" title="Copy message" aria-label="Copy message">
                 <span class="flint-copy-idle">{{template "icon-copy"}}</span><span class="flint-copy-done">{{template "icon-check"}}</span>
               </button>

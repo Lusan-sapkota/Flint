@@ -444,8 +444,75 @@ func (s *Server) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer s.lockConversation(id)()
+	s.runUserTurn(w, r, user, id, body.Content, body.Attachments, nil)
+}
 
-	content := body.Content
+// Edits the conversation's latest user message: that message and
+// everything after it (the reply, tool calls/results, any proposed
+// commands - including a still-pending one) are dropped, then the new text
+// runs through exactly the same path as a freshly sent message. Only the
+// latest one is editable, so no branch of history is ever silently
+// rewritten.
+func (s *Server) handleEditLastMessage(w http.ResponseWriter, r *http.Request) {
+	user := userFromContext(r)
+	id := r.PathValue("id")
+
+	var body struct {
+		Content string `json:"content"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || strings.TrimSpace(body.Content) == "" {
+		writeError(w, http.StatusBadRequest, "content is required")
+		return
+	}
+
+	if convo, err := getConversation(s.db, id, user.ID); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	} else if convo == nil {
+		writeError(w, http.StatusNotFound, "conversation not found")
+		return
+	}
+
+	defer s.lockConversation(id)()
+
+	// Re-read inside the lock: a reply that finished streaming while we
+	// waited has changed what "everything after" means.
+	convo, err := getConversation(s.db, id, user.ID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	last := -1
+	for i := len(convo.Messages) - 1; i >= 0; i-- {
+		if convo.Messages[i].Role == "user" {
+			last = i
+			break
+		}
+	}
+	if last == -1 {
+		writeError(w, http.StatusNotFound, "no message to edit")
+		return
+	}
+
+	// An @web search injects its results as a system message just before
+	// the user message; they belong to the old text, so they go too.
+	start := last
+	for start > 0 && convo.Messages[start-1].Role == "system" && strings.HasPrefix(convo.Messages[start-1].Content, webResultsPrefix) {
+		start--
+	}
+
+	carried := convo.Messages[last].Attachments
+	from := convo.Messages[start]
+	if err := truncateConversation(s.db, id, from.ID, from.CreatedAt); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	s.runUserTurn(w, r, user, id, body.Content, nil, carried)
+}
+
+// Shared by sending and editing. carried are attachments from an edited
+// message whose files are still on disk and get re-linked to the new one.
+func (s *Server) runUserTurn(w http.ResponseWriter, r *http.Request, user *User, id, content string, uploads []AttachmentUpload, carried []Attachment) {
 	webNotice := ""
 	if isWeb, query := stripWebFlag(content); isWeb {
 		content = query
@@ -465,9 +532,15 @@ func (s *Server) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if len(body.Attachments) > 0 {
-		if err := saveAttachments(s.attachmentsDir, s.db, messageID, body.Attachments); err != nil {
+	if len(uploads) > 0 {
+		if err := saveAttachments(s.attachmentsDir, s.db, messageID, uploads); err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+	}
+	for _, a := range carried {
+		if err := createAttachment(s.db, a.ID, messageID, a.MimeType, a.Filename, a.FilePath); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 	}
@@ -476,7 +549,7 @@ func (s *Server) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 		log.Printf("warning: failed to set title: %v", err)
 	}
 
-	convo, err = getConversation(s.db, id, user.ID)
+	convo, err := getConversation(s.db, id, user.ID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return

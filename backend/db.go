@@ -514,6 +514,25 @@ func insertAssistantMessage(db *sql.DB, conversationID, content string, tokensPe
 	return err
 }
 
+// Drops messages from fromID onward and every shell command proposed since
+// fromTime, including a still-pending one. Attachment rows cascade with
+// their message, but the files stay on disk so an edited message can
+// re-link them.
+func truncateConversation(db *sql.DB, conversationID string, fromID, fromTime int64) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err := tx.Exec(`DELETE FROM commands WHERE conversation_id = ? AND created_at >= ?`, conversationID, fromTime); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM messages WHERE conversation_id = ? AND id >= ?`, conversationID, fromID); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
 func createAttachment(db *sql.DB, id string, messageID int64, mimeType, filename, filePath string) error {
 	_, err := db.Exec(
 		`INSERT INTO attachments (id, message_id, mime_type, filename, file_path, created_at) VALUES (?, ?, ?, ?, ?, ?)`,

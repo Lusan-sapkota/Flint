@@ -129,9 +129,11 @@ func rankByRelevance(ctx context.Context, ollama *OllamaClient, baseURL, query s
 	return top, nil
 }
 
+const webResultsPrefix = "Web search results for "
+
 func formatSearchResults(query string, results []SearchResult) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "Web search results for %q:\n\n", query)
+	fmt.Fprintf(&b, webResultsPrefix+"%q:\n\n", query)
 	for i, r := range results {
 		fmt.Fprintf(&b, "%d. %s\n%s\n%s\n\n", i+1, r.Title, r.URL, r.Snippet)
 	}

@@ -745,6 +745,27 @@ button.flint-btn-icon {
   justify-content: flex-end;
 }
 
+.flint-edit-box {
+  align-self: flex-end;
+  width: min(36rem, 100%);
+}
+
+.flint-edit-box textarea {
+  margin: 0 0 0.5rem;
+  resize: vertical;
+}
+
+.flint-edit-box .flint-settings-actions {
+  justify-content: flex-end;
+  margin: 0;
+}
+
+.flint-edit-box button {
+  height: 2.25rem;
+  padding: 0 1rem;
+  font-size: 0.9rem;
+}
+
 .flint-msg-actions button {
   all: unset;
   display: inline-flex;
