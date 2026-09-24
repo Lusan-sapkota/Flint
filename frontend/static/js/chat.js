@@ -152,6 +152,7 @@ document.addEventListener('alpine:init', () => {
     folderSuggestions: [],
     abortController: null,
     canThink: config.canThink,
+    lastActive: config.lastActive,
     thinkOn: localStorage.getItem('flint-think') !== '0',
     editingIndex: null,
     editText: '',
@@ -341,6 +342,13 @@ document.addEventListener('alpine:init', () => {
       await this.streamTurn('POST', `/api/conversations/${this.conversationId}/messages${this.thinkQuery}`, { content, attachments });
     },
 
+    // e.g. "9/25/26 12:02 AM", in the viewer's local time zone.
+    formatDate(ms) {
+      return new Date(ms)
+        .toLocaleString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit', hour: 'numeric', minute: '2-digit' })
+        .replace(',', '');
+    },
+
     toggleThink() {
       this.thinkOn = !this.thinkOn;
       localStorage.setItem('flint-think', this.thinkOn ? '1' : '0');
@@ -433,6 +441,7 @@ document.addEventListener('alpine:init', () => {
         this.streaming = false;
         this.streamingBubble = null;
         this.abortController = null;
+        this.lastActive = Date.now();
       }
     },
 
@@ -487,6 +496,7 @@ document.addEventListener('alpine:init', () => {
         this.streaming = false;
         this.streamingBubble = null;
         this.abortController = null;
+        this.lastActive = Date.now();
       }
     },
 

@@ -541,6 +541,14 @@ button.flint-btn-icon {
   color: var(--flint-text);
 }
 
+.flint-topbar-date {
+  margin-left: 0.75rem;
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--flint-border);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
 .flint-model-missing {
   margin-left: 0.4rem;
   padding: 0.1rem 0.45rem;

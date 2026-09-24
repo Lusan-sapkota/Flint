@@ -189,6 +189,7 @@ type chatViewData struct {
 	CurrentModelMissing bool
 	SelectedModel       string
 	CanThink            bool
+	CurrentUpdatedAt    int64
 	CurrentFolder       string
 	TimelineJSON        string
 	Models              []OllamaModelInfo
@@ -219,6 +220,7 @@ func (s *Server) handleChatPage(w http.ResponseWriter, r *http.Request, user *Us
 		data.HasCurrent = true
 		data.CurrentID = full.ID
 		data.CurrentModel = full.Model
+		data.CurrentUpdatedAt = full.UpdatedAt
 		if full.AttachedFolder != nil {
 			data.CurrentFolder = *full.AttachedFolder
 		}

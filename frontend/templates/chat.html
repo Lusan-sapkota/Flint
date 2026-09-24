@@ -88,13 +88,14 @@
          model: '{{.CurrentModel | jsStr}}',
          attachedFolder: {{if .CurrentFolder}}'{{.CurrentFolder | jsStr}}'{{else}}null{{end}},
          canThink: {{.CanThink}},
+         lastActive: {{.CurrentUpdatedAt}},
          timeline: {{.TimelineJSON}}
        })"
        x-cloak>
     <header class="flint-topbar">
       <button type="button" class="flint-menu-btn" @click="navOpen = true" aria-label="Open sidebar">{{template "icon-sidebar"}}</button>
       <div class="flint-topbar-model">
-        <template x-if="model"><span>Model: <strong x-text="model"></strong>{{if .CurrentModelMissing}} <span class="flint-model-missing" title="This model is no longer installed on the Ollama server. Pull it again in Settings, or start a new chat with another model.">not installed</span>{{end}}</span></template>
+        <template x-if="model"><span>Model: <strong x-text="model"></strong>{{if .CurrentModelMissing}} <span class="flint-model-missing" title="This model is no longer installed on the Ollama server. Pull it again in Settings, or start a new chat with another model.">not installed</span>{{end}}<span class="flint-topbar-date" x-show="lastActive" x-text="formatDate(lastActive)" title="Last activity in this chat"></span></span></template>
         <template x-if="!model"><span>No conversation selected</span></template>
       </div>
       <a href="/settings" class="flint-settings-gear" title="Settings">{{template "icon-settings"}}</a>
