@@ -201,6 +201,9 @@
           </template>
         </div>
       </template>
+      <div class="flint-typing" x-show="streaming && !streamingBubble" role="status" aria-label="Waiting for the reply">
+        <span></span><span></span><span></span>
+      </div>
     </main>
 
     <div class="flint-inputbar">
@@ -251,7 +254,11 @@
         <button type="button" class="flint-icon-btn secondary" title="Attach a file" @click="$refs.fileInput.click()" :disabled="!conversationId || attachments.length >= 4">{{template "icon-paperclip"}}</button>
         <input type="file" x-ref="fileInput" multiple hidden @change="onFileChange">
         <textarea rows="1" placeholder="Message Flint…" x-model="input" @keydown.enter="submitOnEnter($event)" @paste="handlePaste($event)" :disabled="!conversationId || streaming || pendingCommand"></textarea>
-        <button type="button" class="flint-send-btn" @click="send" :disabled="!conversationId || streaming || pendingCommand || !input.trim()" :aria-busy="streaming">Send</button>
+        <button type="button" class="flint-send-btn" x-show="!streaming" @click="send" :disabled="!conversationId || pendingCommand || !input.trim()">Send</button>
+        <button type="button" class="flint-send-btn flint-stop-btn secondary" x-show="streaming" @click="stop()" title="Stop generating" aria-label="Stop generating">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+          Stop
+        </button>
       </div>
     </div>
 

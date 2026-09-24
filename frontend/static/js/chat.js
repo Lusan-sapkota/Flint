@@ -127,7 +127,15 @@ document.addEventListener('alpine:init', () => {
     const found = [s.indexOf(TOOL_CALL_MARKER), s.indexOf(STATS_MARKER)].filter((i) => i !== -1);
     return found.length ? Math.min(...found) : -1;
   };
-  const HOLDBACK = TOOL_CALL_MARKER.length + 8;
+  // Only a tail that could still grow into a marker is held back, so
+  // ordinary text shows the moment it arrives instead of lagging behind.
+  const partialMarkerAt = (s) => {
+    for (let i = Math.max(0, s.length - TOOL_CALL_MARKER.length); i < s.length; i++) {
+      const tail = s.slice(i);
+      if (TOOL_CALL_MARKER.startsWith(tail) || STATS_MARKER.startsWith(tail)) return i;
+    }
+    return s.length;
+  };
 
   Alpine.data('chatApp', (config) => ({
     conversationId: config.conversationId,
@@ -140,6 +148,7 @@ document.addEventListener('alpine:init', () => {
     streaming: false,
     folderInput: '',
     folderSuggestions: [],
+    abortController: null,
     editingIndex: null,
     editText: '',
     browser: { path: '', parent: '', dirs: [], error: '', loading: false },
@@ -384,11 +393,13 @@ document.addEventListener('alpine:init', () => {
 
     async streamTurn(method, url, payload) {
       this.streaming = true;
+      this.abortController = new AbortController();
       try {
         const res = await fetch(url, {
           method,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
+          signal: this.abortController.signal,
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
@@ -398,11 +409,31 @@ document.addEventListener('alpine:init', () => {
         await this.consumeStream(res.body, { expectResultMarker: false });
         this.refreshTitle();
       } catch (e) {
-        this.timeline.push({ kind: 'system', content: 'Error: could not reach the server.' });
+        if (e.name === 'AbortError') {
+          this.finishStopped();
+        } else {
+          this.timeline.push({ kind: 'system', content: 'Error: could not reach the server.' });
+        }
       } finally {
         this.streaming = false;
         this.streamingBubble = null;
+        this.abortController = null;
       }
+    },
+
+    // Aborting the fetch closes the connection; the server sees its request
+    // context cancelled, which cancels the call to Ollama and keeps
+    // whatever part of the reply had already arrived.
+    stop() {
+      if (this.abortController) this.abortController.abort();
+    },
+
+    finishStopped() {
+      const bubble = this.streamingBubble;
+      if (bubble && bubble.content.trim() === '') {
+        this.timeline.splice(this.timeline.indexOf(bubble), 1);
+      }
+      this.refreshTitle();
     },
 
     async approve(cmd) {
@@ -415,10 +446,12 @@ document.addEventListener('alpine:init', () => {
 
     async decide(cmd, action) {
       this.streaming = true;
+      this.abortController = new AbortController();
       cmd.commandStatus = 'resolving';
       try {
         const res = await fetch(`/api/conversations/${this.conversationId}/commands/${cmd.commandId}/${action}`, {
           method: 'POST',
+          signal: this.abortController.signal,
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
@@ -428,11 +461,17 @@ document.addEventListener('alpine:init', () => {
         }
         await this.consumeStream(res.body, { expectResultMarker: true, targetCmd: cmd });
       } catch (e) {
-        cmd.commandStatus = 'unknown';
-        this.timeline.push({ kind: 'system', content: 'Error: could not reach the server.' });
+        if (e.name === 'AbortError') {
+          if (cmd.commandStatus === 'resolving') cmd.commandStatus = 'unknown';
+          this.finishStopped();
+        } else {
+          cmd.commandStatus = 'unknown';
+          this.timeline.push({ kind: 'system', content: 'Error: could not reach the server.' });
+        }
       } finally {
         this.streaming = false;
         this.streamingBubble = null;
+        this.abortController = null;
       }
     },
 
@@ -506,8 +545,8 @@ document.addEventListener('alpine:init', () => {
             markerFound = true;
             appendVisible(pending.slice(0, idx));
             pending = pending.slice(idx);
-          } else if (pending.length > HOLDBACK) {
-            const safeLen = pending.length - HOLDBACK;
+          } else {
+            const safeLen = partialMarkerAt(pending);
             appendVisible(pending.slice(0, safeLen));
             pending = pending.slice(safeLen);
           }

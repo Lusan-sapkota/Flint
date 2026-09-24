@@ -579,6 +579,9 @@ Title: Battery Drain After Update`
 // the model is already loaded at that point, which keeps this well under a
 // second in practice. Any failure just leaves the placeholder title.
 func (s *Server) generateTitle(ctx context.Context, user *User, model, id, placeholder, firstMessage string) {
+	if ctx.Err() != nil {
+		return
+	}
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	out, err := s.ollama.Chat(ctx, s.ollamaURLFor(user), model, []OllamaMessage{
@@ -772,6 +775,20 @@ func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, use
 			flusher.Flush()
 		}
 	})
+	if err != nil && r.Context().Err() != nil {
+		// The user pressed Stop (or the tab closed): keep what they already
+		// saw so history matches the screen. A tool call cut off mid-way is
+		// dropped, since a partial command must never become approvable.
+		if result.Content != "" {
+			if err := insertAssistantMessage(s.db, convo.ID, result.Content, 0); err != nil {
+				log.Printf("warning: failed to save stopped assistant message: %v", err)
+			}
+		}
+		if err := touchConversation(s.db, convo.ID); err != nil {
+			log.Printf("warning: failed to touch conversation: %v", err)
+		}
+		return
+	}
 	if err != nil {
 		log.Printf("ollama stream error: %v", err)
 		w.Write([]byte("\n[error: " + err.Error() + "]"))
