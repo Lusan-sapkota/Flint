@@ -964,6 +964,17 @@ details.flint-thinking > summary:focus {
   animation: flint-typing 1.2s ease-in-out infinite;
 }
 
+.flint-typing {
+  align-items: center;
+}
+
+.flint-typing .flint-typing-label {
+  margin-left: 0.5rem;
+  font-size: 0.85rem;
+  font-style: normal;
+  color: var(--flint-text-dim);
+}
+
 .flint-typing span:nth-child(2) {
   animation-delay: 0.15s;
 }

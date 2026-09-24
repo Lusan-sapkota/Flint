@@ -124,7 +124,8 @@ document.addEventListener('alpine:init', () => {
   const TOOL_RESULT_MARKER = '<<<TOOL_RESULT>>>';
   const STATS_MARKER = '<<<STATS>>>';
   const THINK_MARKER = '<<<THINK>>>';
-  const MARKERS = [TOOL_CALL_MARKER, STATS_MARKER, THINK_MARKER];
+  const LOADING_MARKER = '<<<LOADING>>>';
+  const MARKERS = [TOOL_CALL_MARKER, STATS_MARKER, THINK_MARKER, LOADING_MARKER];
   // Mirrors imageMimeExtensions in images.go.
   const SUPPORTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/bmp'];
   const firstMarker = (s) => {
@@ -163,6 +164,7 @@ document.addEventListener('alpine:init', () => {
     folderBusy: false,
     folderError: '',
     streamingBubble: null,
+    modelLoading: false,
 
     init() {
       this.scrollToBottom();
@@ -472,6 +474,7 @@ document.addEventListener('alpine:init', () => {
         this.streamingBubble = null;
         this.abortController = null;
         this.lastActive = Date.now();
+        this.modelLoading = false;
       }
     },
 
@@ -527,6 +530,7 @@ document.addEventListener('alpine:init', () => {
         this.streamingBubble = null;
         this.abortController = null;
         this.lastActive = Date.now();
+        this.modelLoading = false;
       }
     },
 
@@ -584,6 +588,7 @@ document.addEventListener('alpine:init', () => {
           this.timeline.push({ kind: 'assistant', content: '', thinking: '' });
           bubble = this.timeline[this.timeline.length - 1];
           this.streamingBubble = bubble;
+          this.modelLoading = false;
         }
         return bubble;
       };
@@ -606,6 +611,11 @@ document.addEventListener('alpine:init', () => {
           }
           appendVisible(pending.slice(0, idx));
           pending = pending.slice(idx);
+          if (pending.startsWith(LOADING_MARKER)) {
+            this.modelLoading = true;
+            pending = pending.slice(LOADING_MARKER.length).replace(/^\n/, '');
+            continue;
+          }
           if (!pending.startsWith(THINK_MARKER)) {
             markerFound = true;
             return;

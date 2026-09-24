@@ -165,6 +165,30 @@ func (c *OllamaClient) RunningModels(ctx context.Context, baseURL string) (json.
 	return c.doRaw(ctx, http.MethodGet, baseURL+"/api/ps", nil)
 }
 
+// IsLoaded reports whether Ollama already has the model in memory. An
+// error counts as loaded: this only decides whether to show a "loading"
+// hint, never whether to send the request.
+func (c *OllamaClient) IsLoaded(ctx context.Context, baseURL, model string) bool {
+	raw, err := c.RunningModels(ctx, baseURL)
+	if err != nil {
+		return true
+	}
+	var ps struct {
+		Models []struct {
+			Name string `json:"name"`
+		} `json:"models"`
+	}
+	if json.Unmarshal(raw, &ps) != nil {
+		return true
+	}
+	for _, m := range ps.Models {
+		if m.Name == model {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *OllamaClient) ShowModel(ctx context.Context, baseURL, name string) (json.RawMessage, error) {
 	body, _ := json.Marshal(map[string]string{"name": name, "model": name})
 	return c.doRaw(ctx, http.MethodPost, baseURL+"/api/show", bytes.NewReader(body))

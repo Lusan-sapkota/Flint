@@ -793,6 +793,13 @@ func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, use
 		}
 	}
 
+	// A cold load can take tens of seconds on a GPU the model doesn't fit
+	// in, with nothing else to show; say so instead of looking hung.
+	if !s.ollama.IsLoaded(r.Context(), s.ollamaURLFor(user), convo.Model) {
+		fmt.Fprint(w, "<<<LOADING>>>\n")
+		flush()
+	}
+
 	// Thinking tokens travel as one JSON-string line each, so the client can
 	// show them apart from the answer without any escaping ambiguity.
 	onThinking := func(t string) {

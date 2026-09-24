@@ -225,6 +225,7 @@
       </template>
       <div class="flint-typing" x-show="streaming && !streamingBubble" role="status" aria-label="Waiting for the reply">
         <span></span><span></span><span></span>
+        <em class="flint-typing-label" x-show="modelLoading" x-text="'Loading ' + model + ' into memory…'"></em>
       </div>
     </main>
 
