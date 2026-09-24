@@ -1531,6 +1531,39 @@ details.flint-thinking > summary:focus {
   margin: 0 0 0.5rem;
 }
 
+.flint-context {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.75rem;
+  color: var(--flint-text-dim);
+  font-variant-numeric: tabular-nums;
+  cursor: help;
+}
+
+.flint-context-bar {
+  width: 4rem;
+  height: 0.3rem;
+  border-radius: 999px;
+  background: var(--flint-surface-raised);
+  overflow: hidden;
+}
+
+.flint-context-bar span {
+  display: block;
+  height: 100%;
+  background: var(--flint-text-dim);
+  transition: width 0.3s;
+}
+
+.flint-context-high {
+  color: var(--flint-accent);
+}
+
+.flint-context-high .flint-context-bar span {
+  background: var(--flint-accent);
+}
+
 .flint-inputbar-top {
   display: flex;
   align-items: center;

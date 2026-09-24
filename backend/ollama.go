@@ -54,6 +54,7 @@ type ollamaChatChunk struct {
 	Done         bool          `json:"done"`
 	Error        string        `json:"error"`
 	EvalCount    int           `json:"eval_count"`
+	PromptCount  int           `json:"prompt_eval_count"`
 	EvalDuration int64         `json:"eval_duration"`
 }
 
@@ -62,6 +63,10 @@ type ChatResult struct {
 	Thinking     string
 	ToolCalls    []OllamaToolCall
 	TokensPerSec float64
+	// Prompt plus generated tokens: how much of the context window this
+	// request actually occupied. prompt_eval_count is the whole prompt even
+	// when part of it came from the cache.
+	ContextUsed int
 }
 
 type OllamaModelDetails struct {
@@ -169,24 +174,37 @@ func (c *OllamaClient) RunningModels(ctx context.Context, baseURL string) (json.
 // error counts as loaded: this only decides whether to show a "loading"
 // hint, never whether to send the request.
 func (c *OllamaClient) IsLoaded(ctx context.Context, baseURL, model string) bool {
+	loaded, _, err := c.resident(ctx, baseURL, model)
+	return loaded || err != nil
+}
+
+// LoadedContext is the context window the resident model was loaded with,
+// or 0 if that can't be told.
+func (c *OllamaClient) LoadedContext(ctx context.Context, baseURL, model string) int {
+	_, n, _ := c.resident(ctx, baseURL, model)
+	return n
+}
+
+func (c *OllamaClient) resident(ctx context.Context, baseURL, model string) (bool, int, error) {
 	raw, err := c.RunningModels(ctx, baseURL)
 	if err != nil {
-		return true
+		return false, 0, err
 	}
 	var ps struct {
 		Models []struct {
-			Name string `json:"name"`
+			Name          string `json:"name"`
+			ContextLength int    `json:"context_length"`
 		} `json:"models"`
 	}
-	if json.Unmarshal(raw, &ps) != nil {
-		return true
+	if err := json.Unmarshal(raw, &ps); err != nil {
+		return false, 0, err
 	}
 	for _, m := range ps.Models {
 		if m.Name == model {
-			return true
+			return true, m.ContextLength, nil
 		}
 	}
-	return false
+	return false, 0, nil
 }
 
 func (c *OllamaClient) ShowModel(ctx context.Context, baseURL, name string) (json.RawMessage, error) {
@@ -335,6 +353,7 @@ func (c *OllamaClient) StreamChat(ctx context.Context, baseURL, model string, me
 	var full, thinking bytes.Buffer
 	var toolCalls []OllamaToolCall
 	var tokensPerSec float64
+	var contextUsed int
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		if len(bytes.TrimSpace(line)) == 0 {
@@ -363,6 +382,7 @@ func (c *OllamaClient) StreamChat(ctx context.Context, baseURL, model string, me
 			if chunk.EvalDuration > 0 {
 				tokensPerSec = float64(chunk.EvalCount) / (float64(chunk.EvalDuration) / 1e9)
 			}
+			contextUsed = chunk.PromptCount + chunk.EvalCount
 			break
 		}
 	}
@@ -370,7 +390,7 @@ func (c *OllamaClient) StreamChat(ctx context.Context, baseURL, model string, me
 		return ChatResult{Content: full.String(), Thinking: thinking.String(), ToolCalls: toolCalls}, err
 	}
 
-	return ChatResult{Content: full.String(), Thinking: thinking.String(), ToolCalls: toolCalls, TokensPerSec: tokensPerSec}, nil
+	return ChatResult{Content: full.String(), Thinking: thinking.String(), ToolCalls: toolCalls, TokensPerSec: tokensPerSec, ContextUsed: contextUsed}, nil
 }
 
 func readAll(r interface{ Read([]byte) (int, error) }, max int) ([]byte, error) {

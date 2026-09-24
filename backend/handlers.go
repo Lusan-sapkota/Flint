@@ -834,6 +834,14 @@ func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, use
 		return
 	}
 
+	contextMax := 0
+	if result.ContextUsed > 0 {
+		contextMax = s.ollama.LoadedContext(r.Context(), s.ollamaURLFor(user), convo.Model)
+		if err := setContextUsage(s.db, convo.ID, result.ContextUsed, contextMax); err != nil {
+			log.Printf("warning: failed to save context usage: %v", err)
+		}
+	}
+
 	if len(result.ToolCalls) > 0 {
 		tc := result.ToolCalls[0]
 		toolCallsJSON, _ := json.Marshal(result.ToolCalls)
@@ -898,7 +906,11 @@ func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, use
 			log.Printf("warning: failed to save assistant message: %v", err)
 		}
 		if result.TokensPerSec > 0 {
-			stats, _ := json.Marshal(map[string]float64{"tokensPerSec": math.Round(result.TokensPerSec*10) / 10})
+			stats, _ := json.Marshal(map[string]float64{
+				"tokensPerSec": math.Round(result.TokensPerSec*10) / 10,
+				"contextUsed":  float64(result.ContextUsed),
+				"contextMax":   float64(contextMax),
+			})
 			fmt.Fprintf(w, "\n<<<STATS>>>%s\n", stats)
 		}
 	}

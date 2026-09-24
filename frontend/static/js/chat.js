@@ -157,6 +157,8 @@ document.addEventListener('alpine:init', () => {
     canThink: config.canThink,
     canSee: config.canSee,
     lastActive: config.lastActive,
+    contextUsed: config.contextUsed,
+    contextMax: config.contextMax,
     thinkOn: localStorage.getItem('flint-think') !== '0',
     editingIndex: null,
     editText: '',
@@ -379,6 +381,10 @@ document.addEventListener('alpine:init', () => {
       return new Date(ms)
         .toLocaleString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit', hour: 'numeric', minute: '2-digit' })
         .replace(',', '');
+    },
+
+    formatTokens(n) {
+      return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
     },
 
     toggleThink() {
@@ -646,6 +652,10 @@ document.addEventListener('alpine:init', () => {
         try {
           const obj = JSON.parse(pending.slice(STATS_MARKER.length).trim());
           if (bubble) bubble.tokensPerSec = obj.tokensPerSec;
+          if (obj.contextMax) {
+            this.contextUsed = obj.contextUsed;
+            this.contextMax = obj.contextMax;
+          }
         } catch (e) {
           // stats are cosmetic - a malformed line just means none are shown
         }

@@ -53,6 +53,8 @@ type Conversation struct {
 	Title          string  `json:"title"`
 	Model          string  `json:"model"`
 	AttachedFolder *string `json:"attached_folder,omitempty"`
+	ContextUsed    int     `json:"context_used"`
+	ContextMax     int     `json:"context_max"`
 	CreatedAt      int64   `json:"created_at"`
 	UpdatedAt      int64   `json:"updated_at"`
 }
@@ -133,6 +135,8 @@ CREATE TABLE IF NOT EXISTS conversations (
 	title           TEXT NOT NULL,
 	model           TEXT NOT NULL,
 	attached_folder TEXT,
+	context_used    INTEGER NOT NULL DEFAULT 0,
+	context_max     INTEGER NOT NULL DEFAULT 0,
 	created_at      INTEGER NOT NULL,
 	updated_at      INTEGER NOT NULL
 );
@@ -206,6 +210,8 @@ func migrate(db *sql.DB) error {
 		`ALTER TABLE attachments ADD COLUMN filename TEXT NOT NULL DEFAULT ''`,
 		`ALTER TABLE messages ADD COLUMN tokens_per_sec REAL`,
 		`ALTER TABLE messages ADD COLUMN thinking TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE conversations ADD COLUMN context_used INTEGER NOT NULL DEFAULT 0`,
+		`ALTER TABLE conversations ADD COLUMN context_max INTEGER NOT NULL DEFAULT 0`,
 	} {
 		if _, err := db.Exec(stmt); err != nil && !strings.Contains(err.Error(), "duplicate column") {
 			return err
@@ -423,8 +429,8 @@ func listConversations(db *sql.DB, userID string) ([]Conversation, error) {
 func getConversation(db *sql.DB, id, userID string) (*ConversationWithMessages, error) {
 	var c Conversation
 	err := db.QueryRow(
-		`SELECT id, user_id, title, model, attached_folder, created_at, updated_at FROM conversations WHERE id = ? AND user_id = ?`, id, userID,
-	).Scan(&c.ID, &c.UserID, &c.Title, &c.Model, &c.AttachedFolder, &c.CreatedAt, &c.UpdatedAt)
+		`SELECT id, user_id, title, model, attached_folder, context_used, context_max, created_at, updated_at FROM conversations WHERE id = ? AND user_id = ?`, id, userID,
+	).Scan(&c.ID, &c.UserID, &c.Title, &c.Model, &c.AttachedFolder, &c.ContextUsed, &c.ContextMax, &c.CreatedAt, &c.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -595,6 +601,11 @@ func insertToolResultMessage(db *sql.DB, conversationID, toolCallID, content str
 		`INSERT INTO messages (conversation_id, role, content, tool_call_id, created_at) VALUES (?, 'tool', ?, ?, ?)`,
 		conversationID, content, toolCallID, time.Now().UnixMilli(),
 	)
+	return err
+}
+
+func setContextUsage(db *sql.DB, id string, used, max int) error {
+	_, err := db.Exec(`UPDATE conversations SET context_used = ?, context_max = ? WHERE id = ?`, used, max, id)
 	return err
 }
 

@@ -102,6 +102,8 @@
          canThink: {{.CanThink}},
          canSee: {{.CanSee}},
          lastActive: {{.CurrentUpdatedAt}},
+         contextUsed: {{.ContextUsed}},
+         contextMax: {{.ContextMax}},
          timeline: {{.TimelineJSON}}
        })"
        x-cloak>
@@ -249,6 +251,11 @@
             <button type="submit" :disabled="folderBusy">Attach</button>
           </form>
         </template>
+        <div class="flint-context" x-show="contextMax" :class="{ 'flint-context-high': contextUsed / contextMax > 0.8 }"
+             :title="`The last request used ${contextUsed} of the ${contextMax} tokens this model was loaded with. Flint trims and condenses older messages to stay inside it.`">
+          <span class="flint-context-bar"><span :style="`width: ${Math.min(100, contextUsed / contextMax * 100)}%`"></span></span>
+          <span x-text="`Context ${formatTokens(contextUsed)} / ${formatTokens(contextMax)}`"></span>
+        </div>
         <p class="flint-input-hint">Tip: start with <code>@web</code> to search the web (needs a Brave key in Settings)</p>
       </div>
       <template x-if="folderError"><p class="flint-error" x-text="folderError"></p></template>
