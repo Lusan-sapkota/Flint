@@ -576,12 +576,25 @@ func normalizeTitle(s string) string {
 	return s
 }
 
-func maybeSetTitle(db *sql.DB, id, firstMessage string) error {
+// Sets an immediate placeholder title from the first message and reports
+// whether it did, i.e. whether this was the conversation's first message.
+func maybeSetTitle(db *sql.DB, id, firstMessage string) (string, bool, error) {
 	title := normalizeTitle(firstMessage)
 	if title == "" {
-		return nil
+		return "", false, nil
 	}
-	_, err := db.Exec(`UPDATE conversations SET title = ? WHERE id = ? AND title = 'New chat'`, title, id)
+	res, err := db.Exec(`UPDATE conversations SET title = ? WHERE id = ? AND title = 'New chat'`, title, id)
+	if err != nil {
+		return "", false, err
+	}
+	n, err := res.RowsAffected()
+	return title, n > 0, err
+}
+
+// Only replaces the title if it is still the placeholder, so a rename the
+// user made in the meantime always wins.
+func replacePlaceholderTitle(db *sql.DB, id, placeholder, title string) error {
+	_, err := db.Exec(`UPDATE conversations SET title = ? WHERE id = ? AND title = ?`, title, id, placeholder)
 	return err
 }
 

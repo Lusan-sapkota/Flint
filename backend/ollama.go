@@ -43,6 +43,7 @@ type ollamaChatRequest struct {
 	Stream   bool            `json:"stream"`
 	Tools    []OllamaTool    `json:"tools,omitempty"`
 	Options  map[string]any  `json:"options,omitempty"`
+	Think    *bool           `json:"think,omitempty"`
 }
 
 type ollamaChatChunk struct {
@@ -202,6 +203,26 @@ func (c *OllamaClient) doRaw(ctx context.Context, method, url string, body *byte
 		return nil, fmt.Errorf("ollama returned status %d: %s", resp.StatusCode, data)
 	}
 	return json.RawMessage(data), nil
+}
+
+// Non-streaming, with thinking disabled: a thinking model (qwen3.5)
+// otherwise spends a small num_predict budget entirely on reasoning and
+// returns empty content. Non-thinking models accept think:false fine.
+func (c *OllamaClient) Chat(ctx context.Context, baseURL, model string, messages []OllamaMessage, options map[string]any) (string, error) {
+	think := false
+	body, err := json.Marshal(ollamaChatRequest{Model: model, Messages: messages, Options: options, Think: &think})
+	if err != nil {
+		return "", err
+	}
+	raw, err := c.doRaw(ctx, http.MethodPost, baseURL+"/api/chat", bytes.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+	var resp ollamaChatChunk
+	if err := json.Unmarshal(raw, &resp); err != nil {
+		return "", err
+	}
+	return resp.Message.Content, nil
 }
 
 func (c *OllamaClient) StreamChat(ctx context.Context, baseURL, model string, messages []OllamaMessage, tools []OllamaTool, options map[string]any, onToken func(string)) (ChatResult, error) {

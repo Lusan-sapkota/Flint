@@ -42,19 +42,6 @@ Functional: auth (signup/login/security-question recovery), chat with
 streaming responses, image and folder attachments, human-approved shell
 tool calls, and a settings page are all in place end to end.
 
-## Project layout
-
-```
-flint/
-├── backend/          Go module — HTTP server, SQLite storage, Ollama proxy
-│   └── data/         chat.db lives here at runtime (gitignored)
-└── frontend/
-    ├── templates/    server-rendered HTML templates
-    └── static/
-        ├── css/      vendored Pico.css
-        └── js/       vendored htmx.min.js, alpine.min.js
-```
-
 ## Running
 
 Make sure [Ollama](https://ollama.com) is running locally first

@@ -470,7 +470,8 @@ func (s *Server) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if err := maybeSetTitle(s.db, id, content); err != nil {
+	placeholderTitle, firstMessage, err := maybeSetTitle(s.db, id, content)
+	if err != nil {
 		log.Printf("warning: failed to set title: %v", err)
 	}
 
@@ -486,6 +487,51 @@ func (s *Server) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(webNotice))
 	}
 	s.streamAssistantTurn(w, r, user, convo)
+
+	if firstMessage {
+		s.generateTitle(r.Context(), user, convo.Model, id, placeholderTitle, content)
+	}
+}
+
+const titlePrompt = `You name chat conversations. Read the user's first message and reply with a short, natural title (2 to 6 words) describing what they want. Reply with the title only, no quotes or trailing punctuation.
+
+Message: how do i reverse a list in python without making a copy
+Title: Reversing a Python List In Place
+
+Message: my laptop battery drains really fast since the last update
+Title: Battery Drain After Update`
+
+// Runs after the reply has streamed, so it never delays the first token;
+// the model is already loaded at that point, which keeps this well under a
+// second in practice. Any failure just leaves the placeholder title.
+func (s *Server) generateTitle(ctx context.Context, user *User, model, id, placeholder, firstMessage string) {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	out, err := s.ollama.Chat(ctx, s.ollamaURLFor(user), model, []OllamaMessage{
+		{Role: "system", Content: titlePrompt},
+		{Role: "user", Content: "Message: " + firstMessage + "\nTitle:"},
+	}, map[string]any{"temperature": 0.2, "num_predict": 24})
+	if err != nil {
+		log.Printf("warning: title generation failed: %v", err)
+		return
+	}
+	title := cleanGeneratedTitle(out)
+	if title == "" {
+		return
+	}
+	if err := replacePlaceholderTitle(s.db, id, placeholder, title); err != nil {
+		log.Printf("warning: failed to save generated title: %v", err)
+	}
+}
+
+func cleanGeneratedTitle(s string) string {
+	s = strings.TrimSpace(s)
+	if i := strings.IndexByte(s, '\n'); i >= 0 {
+		s = s[:i]
+	}
+	s = strings.TrimSpace(strings.TrimPrefix(s, "Title:"))
+	s = strings.Trim(s, "\"'`*#. ")
+	return normalizeTitle(s)
 }
 
 func (s *Server) injectWebSearchResults(ctx context.Context, conversationID string, user *User, query string) error {
