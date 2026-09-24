@@ -117,7 +117,6 @@ func main() {
 	mux.HandleFunc("GET /{$}", srv.requireAuthPage(srv.handleChatPage))
 	mux.HandleFunc("GET /c/{id}", srv.requireAuthPage(srv.handleChatPage))
 	mux.HandleFunc("POST /conversations", srv.requireAuthPage(srv.handleCreateConversationPage))
-	mux.HandleFunc("POST /conversations/{id}/delete", srv.requireAuthPage(srv.handleDeleteConversationPage))
 
 	httpServer := &http.Server{Addr: ":" + port, Handler: mux}
 

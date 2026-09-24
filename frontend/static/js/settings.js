@@ -16,9 +16,6 @@ document.addEventListener('alpine:init', () => {
     preferredModels: config.preferredModels || [],
     existingQuestions: config.questions || [],
     editQuestions: (config.questions || []).map((q) => ({ question: q.question, answer: '' })),
-    confirmTitle: '',
-    confirmMessage: '',
-    confirmTyped: '',
     savingGeneral: false,
     generalStatus: '',
     savingQuestions: false,
@@ -73,20 +70,8 @@ document.addEventListener('alpine:init', () => {
       return JSON.stringify(data, null, 2);
     },
 
-    askConfirm(title, message) {
-      this.confirmTitle = title;
-      this.confirmMessage = message;
-      this.confirmTyped = '';
-      const dialog = this.$refs.confirmDialog;
-      dialog.returnValue = '';
-      dialog.showModal();
-      return new Promise((resolve) => {
-        dialog.addEventListener('close', () => resolve(dialog.returnValue === 'confirm' && this.confirmTyped === 'DELETE'), { once: true });
-      });
-    },
-
     async deleteModel(name) {
-      if (!(await this.askConfirm(`Delete ${name}?`, "This removes the model from the Ollama server itself, not just from Flint. You'd have to pull it again to use it."))) return;
+      if (!(await flintConfirmDelete(`Delete ${name}?`, "This removes the model from the Ollama server itself, not just from Flint. You'd have to pull it again to use it."))) return;
       this.deleteError = '';
       this.deletingModel = name;
       try {

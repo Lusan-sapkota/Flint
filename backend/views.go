@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/dustin/go-humanize"
@@ -229,7 +230,7 @@ func (s *Server) handleChatPage(w http.ResponseWriter, r *http.Request, user *Us
 	if err != nil {
 		data.ModelsErr = err.Error()
 	}
-	data.Models = models
+	data.Models = preferredOrAll(models, user.PreferredModels)
 
 	timelineJSON, err := json.Marshal(timeline)
 	if err != nil {
@@ -320,11 +321,17 @@ func (s *Server) handleCreateConversationPage(w http.ResponseWriter, r *http.Req
 	http.Redirect(w, r, "/c/"+c.ID, http.StatusSeeOther)
 }
 
-func (s *Server) handleDeleteConversationPage(w http.ResponseWriter, r *http.Request, user *User) {
-	id := r.PathValue("id")
-	if _, err := s.deleteConversationAndFiles(id, user.ID); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+// Falls back to every model when none of the preferred ones are installed
+// anymore, so a stale preference can't leave the New chat picker empty.
+func preferredOrAll(models []OllamaModelInfo, preferred []string) []OllamaModelInfo {
+	var kept []OllamaModelInfo
+	for _, m := range models {
+		if slices.Contains(preferred, m.Name) {
+			kept = append(kept, m)
+		}
 	}
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	if len(kept) == 0 {
+		return models
+	}
+	return kept
 }

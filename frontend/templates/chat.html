@@ -43,9 +43,10 @@
 
     <div class="flint-conversations" x-show="!collapsed">
       {{range .Conversations}}
-        <a href="/c/{{.ID}}"
-           class="flint-conversation-link{{if eq .ID $.CurrentID}} active{{end}}"
-           data-conversation-link="{{.ID}}">{{.Title}}</a>
+        <div class="flint-conversation-row{{if eq .ID $.CurrentID}} active{{end}}">
+          <a href="/c/{{.ID}}" class="flint-conversation-link" data-conversation-link="{{.ID}}">{{.Title}}</a>
+          <button type="button" class="flint-conversation-delete" onclick="flintDeleteConversation('{{.ID}}', this)" title="Delete conversation" aria-label="Delete conversation">{{template "icon-trash"}}</button>
+        </div>
       {{else}}
         <p class="flint-empty-state">No conversations yet.</p>
       {{end}}
@@ -196,6 +197,7 @@
         <textarea rows="1" placeholder="Message Flint…" x-model="input" @keydown.enter="submitOnEnter($event)" @paste="handlePaste($event)" :disabled="!conversationId || streaming || pendingCommand"></textarea>
         <button type="button" class="flint-send-btn" @click="send" :disabled="!conversationId || streaming || pendingCommand || !input.trim()" :aria-busy="streaming">Send</button>
       </div>
+      <p class="flint-field-hint flint-input-hint" x-show="conversationId">Start a message with <code>@web</code> to search the web (needs a Brave Search key in Settings).</p>
     </div>
   </div>
 </div>

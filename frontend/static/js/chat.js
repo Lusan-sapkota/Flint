@@ -7,6 +7,22 @@ async function flintLogout() {
   window.location.href = '/login';
 }
 
+async function flintDeleteConversation(id, button) {
+  const row = button.closest('.flint-conversation-row');
+  const title = row.querySelector('a').textContent;
+  if (!(await flintConfirmDelete(`Delete "${title}"?`, 'This permanently deletes the conversation, its messages, and any files attached to it.'))) return;
+  const res = await fetch(`/api/conversations/${id}`, { method: 'DELETE' });
+  if (!res.ok && res.status !== 404) {
+    button.title = 'Could not delete this conversation';
+    return;
+  }
+  if (window.location.pathname === `/c/${id}`) {
+    window.location.href = '/';
+  } else {
+    row.remove();
+  }
+}
+
 document.addEventListener('alpine:init', () => {
   const TOOL_CALL_MARKER = '<<<TOOL_CALL>>>';
   const TOOL_RESULT_MARKER = '<<<TOOL_RESULT>>>';

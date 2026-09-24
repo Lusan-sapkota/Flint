@@ -11,13 +11,34 @@
   <link rel="stylesheet" href="/static/css/pico.min.css">
   <link rel="stylesheet" href="/static/css/flint.css">
   <script src="/static/js/htmx.min.js" defer></script>
+  <script src="/static/js/confirm.js" defer></script>
   {{block "scripts" .}}{{end}}
   <script src="/static/js/alpine.min.js" defer></script>
 </head>
 <body>
 {{template "content" .}}
+{{template "confirm-dialog"}}
 </body>
 </html>
+{{end}}
+
+{{/* Opened by flintConfirmDelete() in confirm.js; the confirm button
+     stays disabled until the literal word DELETE is typed. */}}
+{{define "confirm-dialog"}}
+<dialog id="flint-confirm-dialog" class="flint-confirm-dialog">
+  <article>
+    <h3></h3>
+    <p></p>
+    <form method="dialog">
+      <label for="flint-confirm-typed">Type <strong>DELETE</strong> to confirm</label>
+      <input type="text" id="flint-confirm-typed" autocomplete="off" spellcheck="false" autofocus>
+      <div class="flint-settings-actions">
+        <button value="cancel" class="secondary">Cancel</button>
+        <button value="confirm" class="flint-danger-solid" disabled>{{template "icon-trash"}} Delete</button>
+      </div>
+    </form>
+  </article>
+</dialog>
 {{end}}
 
 {{/* A show/hide toggle for a password field. Wrap the <input> in

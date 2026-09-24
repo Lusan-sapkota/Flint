@@ -281,26 +281,63 @@ button.flint-btn-icon {
   padding: 0.5rem;
 }
 
+.flint-conversation-row {
+  display: flex;
+  align-items: center;
+  border-radius: 0.4rem;
+  margin-bottom: 0.15rem;
+}
+
+.flint-conversation-row:hover,
+.flint-conversation-row.active {
+  background: var(--flint-surface-raised);
+}
+
+.flint-conversation-row.active {
+  box-shadow: inset 2px 0 0 var(--flint-accent);
+}
+
+.flint-conversation-delete {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  margin: 0 0.25rem 0 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--flint-text-dim);
+  opacity: 0;
+  cursor: pointer;
+}
+
+.flint-conversation-row:hover .flint-conversation-delete,
+.flint-conversation-delete:focus-visible {
+  opacity: 1;
+}
+
+.flint-conversation-delete:hover {
+  color: var(--flint-danger);
+}
+
+.flint-conversation-delete svg {
+  width: 1rem;
+  height: 1rem;
+}
+
 .flint-conversation-link {
+  flex: 1;
+  min-width: 0;
   display: block;
   padding: 0.6rem 0.75rem;
-  border-radius: 0.4rem;
   color: var(--flint-text);
   text-decoration: none;
   font-size: 0.9rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 0.15rem;
-}
-
-.flint-conversation-link:hover {
-  background: var(--flint-surface-raised);
-}
-
-.flint-conversation-link.active {
-  background: var(--flint-surface-raised);
-  border-left: 2px solid var(--flint-accent);
 }
 
 .flint-sidebar-footer {
@@ -1023,6 +1060,21 @@ button.flint-btn-icon {
 .flint-sq-remove svg {
   width: 1rem;
   height: 1rem;
+}
+
+.flint-field-hint {
+  font-size: 0.8rem;
+  color: var(--flint-text-dim);
+  margin: 0 0 0.5rem;
+}
+
+.flint-input-hint {
+  margin: 0.4rem 0 0;
+}
+
+.flint-input-hint code {
+  font-size: 0.75rem;
+  padding: 0.05rem 0.3rem;
 }
 
 .flint-save-status {
