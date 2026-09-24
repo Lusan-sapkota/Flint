@@ -1,29 +1,42 @@
 {{define "scripts"}}<script src="/static/js/chat.js" defer></script>{{end}}
 {{define "content"}}
 <div class="flint-shell"
-     x-data="{ collapsed: localStorage.getItem('flint-sidebar-collapsed') === '1' }"
-     :class="{ 'flint-shell-collapsed': collapsed }">
+     x-data="{
+       collapsed: localStorage.getItem('flint-sidebar-collapsed') === '1',
+       mobile: matchMedia('(max-width: 767px)').matches,
+       navOpen: false,
+       get rail() { return this.collapsed && !this.mobile },
+       toggleSidebar() {
+         if (this.mobile) { this.navOpen = false; return }
+         this.collapsed = !this.collapsed;
+         localStorage.setItem('flint-sidebar-collapsed', this.collapsed ? '1' : '0');
+       },
+     }"
+     x-init="matchMedia('(max-width: 767px)').addEventListener('change', (e) => { mobile = e.matches; navOpen = false })"
+     @keydown.escape.window="navOpen = false"
+     :class="{ 'flint-shell-collapsed': rail, 'flint-nav-open': navOpen }">
+  <div class="flint-nav-backdrop" x-show="navOpen" x-transition.opacity @click="navOpen = false"></div>
   <nav class="flint-sidebar" hx-boost="true">
     <div class="flint-sidebar-header">
-      <a href="/" class="flint-sidebar-brand" x-show="!collapsed">
+      <a href="/" class="flint-sidebar-brand" x-show="!rail">
         <img src="/static/image/flint-180.png" alt="Flint" class="flint-sidebar-logo">
         <span class="flint-sidebar-brand-text">Flint</span>
       </a>
-      <button type="button" class="flint-sidebar-toggle" x-show="!collapsed"
-              @click="collapsed = !collapsed; localStorage.setItem('flint-sidebar-collapsed', collapsed ? '1' : '0')"
-              title="Collapse sidebar">
+      <button type="button" class="flint-sidebar-toggle" x-show="!rail"
+              @click="toggleSidebar()"
+              title="Collapse sidebar" aria-label="Close sidebar">
         {{template "icon-sidebar"}}
       </button>
 
-      <button type="button" class="flint-sidebar-hover-toggle" x-show="collapsed"
-              @click="collapsed = !collapsed; localStorage.setItem('flint-sidebar-collapsed', collapsed ? '1' : '0')"
+      <button type="button" class="flint-sidebar-hover-toggle" x-show="rail"
+              @click="toggleSidebar()"
               title="Expand sidebar">
         <img src="/static/image/flint-180.png" alt="" class="flint-sidebar-logo flint-hover-hide">
         <span class="flint-hover-show">{{template "icon-sidebar"}}</span>
       </button>
     </div>
 
-    <div x-show="!collapsed">
+    <div x-show="!rail">
       <form action="/conversations" method="post" class="flint-new-chat-form">
         <select name="model" required {{if not .Models}}disabled{{end}}>
           {{if not .Models}}
@@ -37,11 +50,11 @@
       </form>
       {{if .ModelsErr}}<p class="flint-error">Couldn't reach Ollama: {{.ModelsErr}}</p>{{end}}
     </div>
-    <button type="button" class="flint-new-chat-icon-btn" x-show="collapsed" @click="collapsed = false" title="New chat">
+    <button type="button" class="flint-new-chat-icon-btn" x-show="rail" @click="collapsed = false" title="New chat">
       {{template "icon-plus"}}
     </button>
 
-    <div class="flint-conversations" x-show="!collapsed">
+    <div class="flint-conversations" x-show="!rail">
       {{range .Conversations}}
         <div class="flint-conversation-row{{if eq .ID $.CurrentID}} active{{end}}">
           <a href="/c/{{.ID}}" class="flint-conversation-link" data-conversation-link="{{.ID}}">{{.Title}}</a>
@@ -54,13 +67,13 @@
     </div>
 
     <div class="flint-sidebar-footer">
-      <div class="flint-sidebar-user" x-show="!collapsed">
+      <div class="flint-sidebar-user" x-show="!rail">
         <span class="flint-sidebar-avatar">{{.User.FullName | initial}}</span>
         <span class="flint-sidebar-user-name">{{.User.FullName}}</span>
         <a href="#" onclick="flintLogout(); return false;" class="flint-sidebar-logout" title="Log out" aria-label="Log out">{{template "icon-log-out"}}</a>
       </div>
 
-      <a href="#" onclick="flintLogout(); return false;" x-show="collapsed" class="flint-sidebar-hover-toggle" title="Log out">
+      <a href="#" onclick="flintLogout(); return false;" x-show="rail" class="flint-sidebar-hover-toggle" title="Log out">
         <span class="flint-sidebar-avatar flint-hover-hide">{{.User.FullName | initial}}</span>
         <span class="flint-hover-show">{{template "icon-log-out"}}</span>
       </a>
@@ -76,6 +89,7 @@
        })"
        x-cloak>
     <header class="flint-topbar">
+      <button type="button" class="flint-menu-btn" @click="navOpen = true" aria-label="Open sidebar">{{template "icon-sidebar"}}</button>
       <div class="flint-topbar-model">
         <template x-if="model"><span>Model: <strong x-text="model"></strong></span></template>
         <template x-if="!model"><span>No conversation selected</span></template>
