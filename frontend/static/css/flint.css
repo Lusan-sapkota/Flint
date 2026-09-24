@@ -1068,8 +1068,22 @@ button.flint-btn-icon {
   margin: 0 0 0.5rem;
 }
 
+.flint-inputbar-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.flint-inputbar-top .flint-folder-indicator {
+  margin-bottom: 0;
+}
+
 .flint-input-hint {
-  margin: 0.4rem 0 0;
+  margin: 0 0 0 auto;
+  font-size: 0.8rem;
+  color: var(--flint-text-dim);
 }
 
 .flint-input-hint code {

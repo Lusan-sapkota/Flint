@@ -155,20 +155,23 @@
     </main>
 
     <div class="flint-inputbar">
-      <template x-if="attachedFolder">
-        <div class="flint-folder-indicator">
-          {{template "icon-folder"}}
-          <span x-text="attachedFolder"></span>
-        </div>
-      </template>
+      <div class="flint-inputbar-top" x-show="conversationId">
+        <template x-if="attachedFolder">
+          <div class="flint-folder-indicator">
+            {{template "icon-folder"}}
+            <span x-text="attachedFolder"></span>
+          </div>
+        </template>
 
-      <template x-if="conversationId && !attachedFolder">
-        <form class="flint-folder-indicator" style="background:transparent;border-style:dashed;" @submit.prevent="attachFolder">
-          {{template "icon-folder"}}
-          <input type="text" x-model="folderInput" placeholder="Attach a folder (absolute path)" style="all:unset;min-width:14rem;">
-          <button type="submit" :disabled="folderBusy" style="all:unset;cursor:pointer;">Attach</button>
-        </form>
-      </template>
+        <template x-if="conversationId && !attachedFolder">
+          <form class="flint-folder-indicator" style="background:transparent;border-style:dashed;" @submit.prevent="attachFolder">
+            {{template "icon-folder"}}
+            <input type="text" x-model="folderInput" placeholder="Attach a folder (absolute path)" style="all:unset;min-width:14rem;">
+            <button type="submit" :disabled="folderBusy" style="all:unset;cursor:pointer;">Attach</button>
+          </form>
+        </template>
+        <p class="flint-input-hint">Tip: start with <code>@web</code> to search the web (needs a Brave key in Settings)</p>
+      </div>
       <template x-if="folderError"><p class="flint-error" x-text="folderError"></p></template>
 
       <template x-if="attachments.length">
@@ -197,7 +200,6 @@
         <textarea rows="1" placeholder="Message Flint…" x-model="input" @keydown.enter="submitOnEnter($event)" @paste="handlePaste($event)" :disabled="!conversationId || streaming || pendingCommand"></textarea>
         <button type="button" class="flint-send-btn" @click="send" :disabled="!conversationId || streaming || pendingCommand || !input.trim()" :aria-busy="streaming">Send</button>
       </div>
-      <p class="flint-field-hint flint-input-hint" x-show="conversationId">Start a message with <code>@web</code> to search the web (needs a Brave Search key in Settings).</p>
     </div>
   </div>
 </div>
