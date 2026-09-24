@@ -87,6 +87,7 @@
          conversationId: {{if .HasCurrent}}'{{.CurrentID | jsStr}}'{{else}}null{{end}},
          model: '{{.CurrentModel | jsStr}}',
          attachedFolder: {{if .CurrentFolder}}'{{.CurrentFolder | jsStr}}'{{else}}null{{end}},
+         canThink: {{.CanThink}},
          timeline: {{.TimelineJSON}}
        })"
        x-cloak>
@@ -152,6 +153,13 @@
 
           <template x-if="item.kind === 'assistant'">
             <div class="flint-msg flint-msg-assistant">
+              <template x-if="item.thinking">
+                <details class="flint-thinking">
+                  <summary :class="{ 'flint-thinking-live': isStreamingBubble(item) && !item.content }"
+                           x-text="isStreamingBubble(item) && !item.content ? 'Thinking…' : 'Thought process'"></summary>
+                  <div class="flint-thinking-text flint-md" x-html="renderMarkdown(item.thinking)"></div>
+                </details>
+              </template>
               <div class="flint-md" x-html="renderMarkdown(item.content)"></div>
               <span class="flint-cursor" x-show="isStreamingBubble(item)"></span>
             </div>
@@ -252,6 +260,11 @@
 
       <div class="flint-input-row">
         <button type="button" class="flint-icon-btn secondary" title="Attach a file" @click="$refs.fileInput.click()" :disabled="!conversationId || attachments.length >= 4">{{template "icon-paperclip"}}</button>
+        <button type="button" class="flint-icon-btn secondary flint-think-toggle"
+                :class="{ 'flint-think-on': canThink && thinkOn }"
+                @click="toggleThink()" :disabled="!conversationId || !canThink"
+                :aria-pressed="canThink && thinkOn"
+                :title="!canThink ? 'This model does not support thinking' : (thinkOn ? 'Thinking on - click to answer directly' : 'Thinking off - click to let the model reason first')">{{template "icon-bulb"}}</button>
         <input type="file" x-ref="fileInput" multiple hidden @change="onFileChange">
         <textarea rows="1" placeholder="Message Flint…" x-model="input" @keydown.enter="submitOnEnter($event)" @paste="handlePaste($event)" :disabled="!conversationId || streaming || pendingCommand"></textarea>
         <button type="button" class="flint-send-btn" x-show="!streaming" @click="send" :disabled="!conversationId || pendingCommand || !input.trim()">Send</button>

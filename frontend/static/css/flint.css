@@ -613,6 +613,83 @@ button.flint-btn-icon {
   padding: 0.25rem 0;
 }
 
+.flint-thinking {
+  margin: 0 0 0.6rem;
+  border: none;
+}
+
+details.flint-thinking > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--flint-text-dim);
+  cursor: pointer;
+  list-style: none;
+}
+
+.flint-thinking summary::-webkit-details-marker {
+  display: none;
+}
+
+.flint-thinking summary::after {
+  content: "›";
+  display: inline-block;
+  float: none;
+  width: auto;
+  height: auto;
+  margin: 0;
+  background: none;
+  transform: none;
+  transition: transform 0.15s;
+}
+
+.flint-thinking[open] summary::after {
+  transform: rotate(90deg);
+}
+
+details.flint-thinking > summary:hover,
+details.flint-thinking > summary:focus {
+  color: var(--flint-text);
+}
+
+.flint-thinking-live {
+  animation: flint-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes flint-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.flint-thinking-text {
+  margin-top: 0.4rem;
+  padding: 0.1rem 0 0.1rem 0.8rem;
+  border-left: 2px solid var(--flint-border);
+  color: var(--flint-text-dim);
+  font-size: 0.85rem;
+  line-height: 1.55;
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+.flint-thinking-text p,
+.flint-thinking-text ul,
+.flint-thinking-text ol {
+  margin-bottom: 0.4rem;
+}
+
+.flint-thinking-text :is(p, li, strong, em, h1, h2, h3, h4) {
+  color: inherit;
+}
+
+.flint-think-toggle.flint-think-on {
+  color: var(--flint-accent);
+  border-color: var(--flint-accent-dim);
+}
+
 .flint-md > :first-child {
   margin-top: 0;
 }

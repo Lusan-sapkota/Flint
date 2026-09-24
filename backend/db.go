@@ -64,6 +64,7 @@ type Message struct {
 	ToolCalls    *string      `json:"tool_calls,omitempty"`
 	ToolCallID   *string      `json:"tool_call_id,omitempty"`
 	TokensPerSec *float64     `json:"tokens_per_sec,omitempty"`
+	Thinking     string       `json:"thinking,omitempty"`
 	Attachments  []Attachment `json:"attachments,omitempty"`
 	CreatedAt    int64        `json:"created_at,omitempty"`
 }
@@ -144,6 +145,7 @@ CREATE TABLE IF NOT EXISTS messages (
 	tool_calls      TEXT,
 	tool_call_id    TEXT,
 	tokens_per_sec  REAL,
+	thinking        TEXT NOT NULL DEFAULT '',
 	created_at      INTEGER NOT NULL
 );
 
@@ -203,6 +205,7 @@ func migrate(db *sql.DB) error {
 	for _, stmt := range []string{
 		`ALTER TABLE attachments ADD COLUMN filename TEXT NOT NULL DEFAULT ''`,
 		`ALTER TABLE messages ADD COLUMN tokens_per_sec REAL`,
+		`ALTER TABLE messages ADD COLUMN thinking TEXT NOT NULL DEFAULT ''`,
 	} {
 		if _, err := db.Exec(stmt); err != nil && !strings.Contains(err.Error(), "duplicate column") {
 			return err
@@ -430,7 +433,7 @@ func getConversation(db *sql.DB, id, userID string) (*ConversationWithMessages, 
 	}
 
 	rows, err := db.Query(
-		`SELECT id, role, content, tool_calls, tool_call_id, tokens_per_sec, created_at FROM messages WHERE conversation_id = ? ORDER BY id ASC`, id,
+		`SELECT id, role, content, tool_calls, tool_call_id, tokens_per_sec, thinking, created_at FROM messages WHERE conversation_id = ? ORDER BY id ASC`, id,
 	)
 	if err != nil {
 		return nil, err
@@ -440,7 +443,7 @@ func getConversation(db *sql.DB, id, userID string) (*ConversationWithMessages, 
 	messages := []Message{}
 	for rows.Next() {
 		var m Message
-		if err := rows.Scan(&m.ID, &m.Role, &m.Content, &m.ToolCalls, &m.ToolCallID, &m.TokensPerSec, &m.CreatedAt); err != nil {
+		if err := rows.Scan(&m.ID, &m.Role, &m.Content, &m.ToolCalls, &m.ToolCallID, &m.TokensPerSec, &m.Thinking, &m.CreatedAt); err != nil {
 			return nil, err
 		}
 		messages = append(messages, m)
@@ -502,14 +505,14 @@ func insertMessage(db *sql.DB, conversationID, role, content string) (int64, err
 	return res.LastInsertId()
 }
 
-func insertAssistantMessage(db *sql.DB, conversationID, content string, tokensPerSec float64) error {
+func insertAssistantMessage(db *sql.DB, conversationID, content, thinking string, tokensPerSec float64) error {
 	var tps *float64
 	if tokensPerSec > 0 {
 		tps = &tokensPerSec
 	}
 	_, err := db.Exec(
-		`INSERT INTO messages (conversation_id, role, content, tokens_per_sec, created_at) VALUES (?, 'assistant', ?, ?, ?)`,
-		conversationID, content, tps, time.Now().UnixMilli(),
+		`INSERT INTO messages (conversation_id, role, content, thinking, tokens_per_sec, created_at) VALUES (?, 'assistant', ?, ?, ?, ?)`,
+		conversationID, content, thinking, tps, time.Now().UnixMilli(),
 	)
 	return err
 }
@@ -579,10 +582,10 @@ func getAttachmentOwned(db *sql.DB, attachmentID, userID string) (*Attachment, e
 	return &a, nil
 }
 
-func insertToolCallMessage(db *sql.DB, conversationID, content, toolCallsJSON string) error {
+func insertToolCallMessage(db *sql.DB, conversationID, content, thinking, toolCallsJSON string) error {
 	_, err := db.Exec(
-		`INSERT INTO messages (conversation_id, role, content, tool_calls, created_at) VALUES (?, 'assistant', ?, ?, ?)`,
-		conversationID, content, toolCallsJSON, time.Now().UnixMilli(),
+		`INSERT INTO messages (conversation_id, role, content, thinking, tool_calls, created_at) VALUES (?, 'assistant', ?, ?, ?, ?)`,
+		conversationID, content, thinking, toolCallsJSON, time.Now().UnixMilli(),
 	)
 	return err
 }

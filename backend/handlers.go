@@ -747,6 +747,21 @@ func (s *Server) resolveCommandAndContinue(w http.ResponseWriter, r *http.Reques
 	s.streamAssistantTurn(w, r, user, convo)
 }
 
+// ?think=1 / ?think=0 from the thinking toggle; absent means the model's
+// own default. The client only sends it for models that report the
+// "thinking" capability.
+func thinkParam(r *http.Request) *bool {
+	switch r.URL.Query().Get("think") {
+	case "1":
+		v := true
+		return &v
+	case "0":
+		v := false
+		return &v
+	}
+	return nil
+}
+
 func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, user *User, convo *ConversationWithMessages) {
 	history := buildOptimizedHistory(convo.Messages, s.attachmentsDir)
 
@@ -768,19 +783,29 @@ func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, use
 	}
 
 	flusher, canFlush := w.(http.Flusher)
-
-	result, err := s.ollama.StreamChat(r.Context(), s.ollamaURLFor(user), convo.Model, history, tools, options, func(token string) {
-		w.Write([]byte(token))
+	flush := func() {
 		if canFlush {
 			flusher.Flush()
 		}
-	})
+	}
+
+	// Thinking tokens travel as one JSON-string line each, so the client can
+	// show them apart from the answer without any escaping ambiguity.
+	onThinking := func(t string) {
+		line, _ := json.Marshal(t)
+		fmt.Fprintf(w, "<<<THINK>>>%s\n", line)
+		flush()
+	}
+	result, err := s.ollama.StreamChat(r.Context(), s.ollamaURLFor(user), convo.Model, history, tools, options, thinkParam(r), func(token string) {
+		w.Write([]byte(token))
+		flush()
+	}, onThinking)
 	if err != nil && r.Context().Err() != nil {
 		// The user pressed Stop (or the tab closed): keep what they already
 		// saw so history matches the screen. A tool call cut off mid-way is
 		// dropped, since a partial command must never become approvable.
-		if result.Content != "" {
-			if err := insertAssistantMessage(s.db, convo.ID, result.Content, 0); err != nil {
+		if result.Content != "" || result.Thinking != "" {
+			if err := insertAssistantMessage(s.db, convo.ID, result.Content, result.Thinking, 0); err != nil {
 				log.Printf("warning: failed to save stopped assistant message: %v", err)
 			}
 		}
@@ -801,7 +826,7 @@ func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, use
 	if len(result.ToolCalls) > 0 {
 		tc := result.ToolCalls[0]
 		toolCallsJSON, _ := json.Marshal(result.ToolCalls)
-		if err := insertToolCallMessage(s.db, convo.ID, result.Content, string(toolCallsJSON)); err != nil {
+		if err := insertToolCallMessage(s.db, convo.ID, result.Content, result.Thinking, string(toolCallsJSON)); err != nil {
 			log.Printf("warning: failed to save tool call message: %v", err)
 		}
 
@@ -858,7 +883,7 @@ func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, use
 	}
 
 	if result.Content != "" {
-		if err := insertAssistantMessage(s.db, convo.ID, result.Content, result.TokensPerSec); err != nil {
+		if err := insertAssistantMessage(s.db, convo.ID, result.Content, result.Thinking, result.TokensPerSec); err != nil {
 			log.Printf("warning: failed to save assistant message: %v", err)
 		}
 		if result.TokensPerSec > 0 {

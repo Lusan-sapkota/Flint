@@ -123,8 +123,10 @@ document.addEventListener('alpine:init', () => {
   const TOOL_CALL_MARKER = '<<<TOOL_CALL>>>';
   const TOOL_RESULT_MARKER = '<<<TOOL_RESULT>>>';
   const STATS_MARKER = '<<<STATS>>>';
+  const THINK_MARKER = '<<<THINK>>>';
+  const MARKERS = [TOOL_CALL_MARKER, STATS_MARKER, THINK_MARKER];
   const firstMarker = (s) => {
-    const found = [s.indexOf(TOOL_CALL_MARKER), s.indexOf(STATS_MARKER)].filter((i) => i !== -1);
+    const found = MARKERS.map((m) => s.indexOf(m)).filter((i) => i !== -1);
     return found.length ? Math.min(...found) : -1;
   };
   // Only a tail that could still grow into a marker is held back, so
@@ -132,7 +134,7 @@ document.addEventListener('alpine:init', () => {
   const partialMarkerAt = (s) => {
     for (let i = Math.max(0, s.length - TOOL_CALL_MARKER.length); i < s.length; i++) {
       const tail = s.slice(i);
-      if (TOOL_CALL_MARKER.startsWith(tail) || STATS_MARKER.startsWith(tail)) return i;
+      if (MARKERS.some((m) => m.startsWith(tail))) return i;
     }
     return s.length;
   };
@@ -149,6 +151,8 @@ document.addEventListener('alpine:init', () => {
     folderInput: '',
     folderSuggestions: [],
     abortController: null,
+    canThink: config.canThink,
+    thinkOn: localStorage.getItem('flint-think') !== '0',
     editingIndex: null,
     editText: '',
     browser: { path: '', parent: '', dirs: [], error: '', loading: false },
@@ -334,7 +338,18 @@ document.addEventListener('alpine:init', () => {
       this.attachmentError = '';
       this.scrollToBottom();
 
-      await this.streamTurn('POST', `/api/conversations/${this.conversationId}/messages`, { content, attachments });
+      await this.streamTurn('POST', `/api/conversations/${this.conversationId}/messages${this.thinkQuery}`, { content, attachments });
+    },
+
+    toggleThink() {
+      this.thinkOn = !this.thinkOn;
+      localStorage.setItem('flint-think', this.thinkOn ? '1' : '0');
+    },
+
+    // Omitted entirely for models without thinking: Ollama rejects
+    // think:true there instead of ignoring it.
+    get thinkQuery() {
+      return this.canThink ? `?think=${this.thinkOn ? 1 : 0}` : '';
     },
 
     get lastUserIndex() {
@@ -379,7 +394,7 @@ document.addEventListener('alpine:init', () => {
       this.timeline.splice(start, index - start);
       this.scrollToBottom();
 
-      await this.streamTurn('PUT', `/api/conversations/${this.conversationId}/messages/last`, { content });
+      await this.streamTurn('PUT', `/api/conversations/${this.conversationId}/messages/last${this.thinkQuery}`, { content });
     },
 
     editKeydown(e) {
@@ -430,7 +445,7 @@ document.addEventListener('alpine:init', () => {
 
     finishStopped() {
       const bubble = this.streamingBubble;
-      if (bubble && bubble.content.trim() === '') {
+      if (bubble && bubble.content.trim() === '' && !bubble.thinking) {
         this.timeline.splice(this.timeline.indexOf(bubble), 1);
       }
       this.refreshTitle();
@@ -449,7 +464,7 @@ document.addEventListener('alpine:init', () => {
       this.abortController = new AbortController();
       cmd.commandStatus = 'resolving';
       try {
-        const res = await fetch(`/api/conversations/${this.conversationId}/commands/${cmd.commandId}/${action}`, {
+        const res = await fetch(`/api/conversations/${this.conversationId}/commands/${cmd.commandId}/${action}${this.thinkQuery}`, {
           method: 'POST',
           signal: this.abortController.signal,
         });
@@ -526,7 +541,7 @@ document.addEventListener('alpine:init', () => {
 
       const ensureBubble = () => {
         if (!bubble) {
-          this.timeline.push({ kind: 'assistant', content: '' });
+          this.timeline.push({ kind: 'assistant', content: '', thinking: '' });
           bubble = this.timeline[this.timeline.length - 1];
           this.streamingBubble = bubble;
         }
@@ -538,33 +553,42 @@ document.addEventListener('alpine:init', () => {
         this.scrollToBottom();
       };
 
-      while (true) {
-        if (!markerFound) {
+      // Thinking lines are consumed in place and streaming continues; a
+      // tool-call or stats marker ends the visible text for this response.
+      const drain = () => {
+        while (!markerFound) {
           const idx = firstMarker(pending);
-          if (idx !== -1) {
-            markerFound = true;
-            appendVisible(pending.slice(0, idx));
-            pending = pending.slice(idx);
-          } else {
+          if (idx === -1) {
             const safeLen = partialMarkerAt(pending);
             appendVisible(pending.slice(0, safeLen));
             pending = pending.slice(safeLen);
+            return;
           }
+          appendVisible(pending.slice(0, idx));
+          pending = pending.slice(idx);
+          if (!pending.startsWith(THINK_MARKER)) {
+            markerFound = true;
+            return;
+          }
+          const nl = pending.indexOf('\n');
+          if (nl === -1) return; // rest of this thinking line hasn't arrived yet
+          try {
+            ensureBubble().thinking += JSON.parse(pending.slice(THINK_MARKER.length, nl));
+          } catch (e) {
+            // a malformed thinking line only loses that fragment of reasoning
+          }
+          pending = pending.slice(nl + 1);
         }
+      };
+
+      while (true) {
+        drain();
         const done = await readChunk();
         pending += buf;
         buf = '';
         if (done) break;
       }
-
-      if (!markerFound) {
-        const idx = firstMarker(pending);
-        if (idx !== -1) {
-          markerFound = true;
-          appendVisible(pending.slice(0, idx));
-          pending = pending.slice(idx);
-        }
-      }
+      drain();
 
       this.streamingBubble = null;
 
@@ -579,7 +603,7 @@ document.addEventListener('alpine:init', () => {
         const jsonPart = pending.slice(TOOL_CALL_MARKER.length).trim();
         try {
           const obj = JSON.parse(jsonPart);
-          if (bubble && bubble.content.trim() === '') {
+          if (bubble && bubble.content.trim() === '' && !bubble.thinking) {
             this.timeline.splice(this.timeline.indexOf(bubble), 1);
           }
           this.timeline.push({ kind: 'command', commandId: obj.id, commandText: obj.command, commandStatus: 'pending' });
@@ -588,7 +612,7 @@ document.addEventListener('alpine:init', () => {
         }
       } else {
         appendVisible(pending);
-        if (bubble && bubble.content.trim() === '') {
+        if (bubble && bubble.content.trim() === '' && !bubble.thinking) {
           this.timeline.splice(this.timeline.indexOf(bubble), 1);
         }
       }

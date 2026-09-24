@@ -34,6 +34,7 @@ type OllamaToolFunction struct {
 type OllamaMessage struct {
 	Role       string           `json:"role"`
 	Content    string           `json:"content"`
+	Thinking   string           `json:"thinking,omitempty"`
 	Images     []string         `json:"images,omitempty"`
 	ToolCalls  []OllamaToolCall `json:"tool_calls,omitempty"`
 	ToolCallID string           `json:"tool_call_id,omitempty"`
@@ -58,6 +59,7 @@ type ollamaChatChunk struct {
 
 type ChatResult struct {
 	Content      string
+	Thinking     string
 	ToolCalls    []OllamaToolCall
 	TokensPerSec float64
 }
@@ -87,12 +89,12 @@ type OllamaClient struct {
 
 	// Keyed by model digest: a given model build's capabilities never
 	// change, so each is looked up via /api/show at most once.
-	capsMu  sync.Mutex
-	canChat map[string]bool
+	capsMu sync.Mutex
+	caps   map[string][]string
 }
 
 func NewOllamaClient() *OllamaClient {
-	return &OllamaClient{http: &http.Client{}, canChat: map[string]bool{}}
+	return &OllamaClient{http: &http.Client{}, caps: map[string][]string{}}
 }
 
 func (c *OllamaClient) ListModels(ctx context.Context, baseURL string) ([]OllamaModelInfo, error) {
@@ -123,16 +125,20 @@ func (c *OllamaClient) ListModels(ctx context.Context, baseURL string) ([]Ollama
 func (c *OllamaClient) ChatModels(ctx context.Context, baseURL string, models []OllamaModelInfo) []OllamaModelInfo {
 	var out []OllamaModelInfo
 	for _, m := range models {
-		if c.canChatWith(ctx, baseURL, m) {
+		// Older Ollama versions don't report capabilities at all (nil);
+		// never hide a model just because we couldn't tell.
+		if caps := c.Capabilities(ctx, baseURL, m); caps == nil || slices.Contains(caps, "completion") {
 			out = append(out, m)
 		}
 	}
 	return out
 }
 
-func (c *OllamaClient) canChatWith(ctx context.Context, baseURL string, m OllamaModelInfo) bool {
+// Capabilities returns what Ollama reports for a model ("completion",
+// "thinking", "vision", "tools", "embedding", ...), or nil if unknown.
+func (c *OllamaClient) Capabilities(ctx context.Context, baseURL string, m OllamaModelInfo) []string {
 	c.capsMu.Lock()
-	v, ok := c.canChat[m.Digest]
+	v, ok := c.caps[m.Digest]
 	c.capsMu.Unlock()
 	if ok {
 		return v
@@ -140,22 +146,19 @@ func (c *OllamaClient) canChatWith(ctx context.Context, baseURL string, m Ollama
 
 	raw, err := c.ShowModel(ctx, baseURL, m.Name)
 	if err != nil {
-		return true
+		return nil
 	}
 	var info struct {
 		Capabilities []string `json:"capabilities"`
 	}
-	// Older Ollama versions don't report capabilities at all; never hide a
-	// model just because we couldn't tell.
 	if json.Unmarshal(raw, &info) != nil || len(info.Capabilities) == 0 {
-		return true
+		return nil
 	}
-	v = slices.Contains(info.Capabilities, "completion")
 
 	c.capsMu.Lock()
-	c.canChat[m.Digest] = v
+	c.caps[m.Digest] = info.Capabilities
 	c.capsMu.Unlock()
-	return v
+	return info.Capabilities
 }
 
 func (c *OllamaClient) RunningModels(ctx context.Context, baseURL string) (json.RawMessage, error) {
@@ -276,8 +279,11 @@ func (c *OllamaClient) Chat(ctx context.Context, baseURL, model string, messages
 	return resp.Message.Content, nil
 }
 
-func (c *OllamaClient) StreamChat(ctx context.Context, baseURL, model string, messages []OllamaMessage, tools []OllamaTool, options map[string]any, onToken func(string)) (ChatResult, error) {
-	body, err := json.Marshal(ollamaChatRequest{Model: model, Messages: messages, Stream: true, Tools: tools, Options: options})
+// think is nil to leave it to the model's default. It must stay nil for a
+// model without the "thinking" capability: Ollama rejects think:true there
+// with "does not support thinking".
+func (c *OllamaClient) StreamChat(ctx context.Context, baseURL, model string, messages []OllamaMessage, tools []OllamaTool, options map[string]any, think *bool, onToken, onThinking func(string)) (ChatResult, error) {
+	body, err := json.Marshal(ollamaChatRequest{Model: model, Messages: messages, Stream: true, Tools: tools, Options: options, Think: think})
 	if err != nil {
 		return ChatResult{}, err
 	}
@@ -302,7 +308,7 @@ func (c *OllamaClient) StreamChat(ctx context.Context, baseURL, model string, me
 	scanner := bufio.NewScanner(resp.Body)
 	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 
-	var full bytes.Buffer
+	var full, thinking bytes.Buffer
 	var toolCalls []OllamaToolCall
 	var tokensPerSec float64
 	for scanner.Scan() {
@@ -316,7 +322,11 @@ func (c *OllamaClient) StreamChat(ctx context.Context, baseURL, model string, me
 			continue
 		}
 		if chunk.Error != "" {
-			return ChatResult{Content: full.String()}, fmt.Errorf("ollama error: %s", chunk.Error)
+			return ChatResult{Content: full.String(), Thinking: thinking.String()}, fmt.Errorf("ollama error: %s", chunk.Error)
+		}
+		if chunk.Message.Thinking != "" {
+			thinking.WriteString(chunk.Message.Thinking)
+			onThinking(chunk.Message.Thinking)
 		}
 		if len(chunk.Message.ToolCalls) > 0 {
 			toolCalls = append(toolCalls, chunk.Message.ToolCalls...)
@@ -333,10 +343,10 @@ func (c *OllamaClient) StreamChat(ctx context.Context, baseURL, model string, me
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return ChatResult{Content: full.String(), ToolCalls: toolCalls}, err
+		return ChatResult{Content: full.String(), Thinking: thinking.String(), ToolCalls: toolCalls}, err
 	}
 
-	return ChatResult{Content: full.String(), ToolCalls: toolCalls, TokensPerSec: tokensPerSec}, nil
+	return ChatResult{Content: full.String(), Thinking: thinking.String(), ToolCalls: toolCalls, TokensPerSec: tokensPerSec}, nil
 }
 
 func readAll(r interface{ Read([]byte) (int, error) }, max int) ([]byte, error) {

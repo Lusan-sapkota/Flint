@@ -75,6 +75,7 @@ type timelineItem struct {
 	CommandStatus string           `json:"commandStatus,omitempty"`
 	CommandResult string           `json:"commandResult,omitempty"`
 	TokensPerSec  float64          `json:"tokensPerSec,omitempty"`
+	Thinking      string           `json:"thinking,omitempty"`
 }
 
 type timelineAttach struct {
@@ -123,8 +124,8 @@ func buildTimeline(messages []Message, pending *Command) []timelineItem {
 		case "tool":
 			continue // rendered as part of its paired "command" item, not standalone
 		case "assistant":
-			if m.Content != "" {
-				item := timelineItem{Kind: "assistant", Content: m.Content}
+			if m.Content != "" || m.Thinking != "" {
+				item := timelineItem{Kind: "assistant", Content: m.Content, Thinking: m.Thinking}
 				if m.TokensPerSec != nil {
 					item.TokensPerSec = math.Round(*m.TokensPerSec*10) / 10
 				}
@@ -187,6 +188,7 @@ type chatViewData struct {
 	CurrentModel        string
 	CurrentModelMissing bool
 	SelectedModel       string
+	CanThink            bool
 	CurrentFolder       string
 	TimelineJSON        string
 	Models              []OllamaModelInfo
@@ -245,6 +247,11 @@ func (s *Server) handleChatPage(w http.ResponseWriter, r *http.Request, user *Us
 	data.SelectedModel = data.CurrentModel
 	for i := 0; !hasModel(data.Models, data.SelectedModel) && i < len(convos); i++ {
 		data.SelectedModel = convos[i].Model
+	}
+	for _, m := range models {
+		if m.Name == data.CurrentModel {
+			data.CanThink = slices.Contains(s.ollama.Capabilities(r.Context(), s.ollamaURLFor(user), m), "thinking")
+		}
 	}
 
 	timelineJSON, err := json.Marshal(timeline)
