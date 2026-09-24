@@ -325,11 +325,11 @@ button.flint-btn-icon {
   box-shadow: inset 2px 0 0 var(--flint-accent);
 }
 
-.flint-conversation-delete {
+.flint-conversation-action {
   flex-shrink: 0;
   width: 1.75rem;
   height: 1.75rem;
-  margin: 0 0.25rem 0 0;
+  margin: 0;
   padding: 0;
   display: inline-flex;
   align-items: center;
@@ -341,16 +341,33 @@ button.flint-btn-icon {
   cursor: pointer;
 }
 
-.flint-conversation-row:hover .flint-conversation-delete,
-.flint-conversation-delete:focus-visible {
+.flint-conversation-row:hover .flint-conversation-action,
+.flint-conversation-action:focus-visible {
   opacity: 1;
+}
+
+.flint-conversation-action:hover {
+  color: var(--flint-accent);
+}
+
+.flint-conversation-row.renaming .flint-conversation-action {
+  display: none;
+}
+
+.flint-conversation-rename {
+  flex: 1;
+  min-width: 0;
+  height: var(--flint-side-control-h);
+  margin: 0;
+  padding: 0 0.75rem;
+  font-size: 0.9rem;
 }
 
 .flint-conversation-delete:hover {
   color: var(--flint-danger);
 }
 
-.flint-conversation-delete svg {
+.flint-conversation-action svg {
   width: 1rem;
   height: 1rem;
 }
@@ -1148,6 +1165,123 @@ button.flint-btn-icon {
   margin-bottom: 0;
 }
 
+.flint-folder-form {
+  background: transparent;
+  border-style: dashed;
+  margin: 0;
+}
+
+.flint-folder-form input {
+  all: unset;
+  min-width: 14rem;
+  color: var(--flint-text);
+}
+
+.flint-folder-form input::placeholder {
+  color: var(--flint-text-dim);
+}
+
+.flint-folder-form button {
+  all: unset;
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+
+.flint-folder-form button:hover {
+  text-decoration: underline;
+}
+
+.flint-folder-dialog article {
+  width: min(34rem, 92vw);
+  max-width: none;
+  padding: 1.5rem;
+  background: var(--flint-surface);
+  border: 1px solid var(--flint-border);
+}
+
+.flint-folder-dialog h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+}
+
+.flint-folder-path {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.flint-folder-path code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+  font-size: 0.8rem;
+  padding: 0.5rem 0.6rem;
+}
+
+.flint-folder-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem;
+  height: 18rem;
+  overflow-y: auto;
+  border: 1px solid var(--flint-border);
+  border-radius: 0.4rem;
+  background: var(--flint-bg);
+}
+
+.flint-folder-list li {
+  list-style: none;
+  margin: 0;
+}
+
+.flint-folder-list button {
+  all: unset;
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.3rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.flint-folder-list button:hover,
+.flint-folder-list button:focus-visible {
+  background: var(--flint-surface-raised);
+}
+
+.flint-folder-list svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  color: var(--flint-accent);
+}
+
+.flint-folder-list-empty {
+  padding: 0.6rem;
+  color: var(--flint-text-dim);
+  font-size: 0.9rem;
+}
+
+.flint-folder-dialog .flint-settings-actions {
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.flint-folder-dialog .flint-settings-actions button {
+  height: var(--flint-control-h);
+  padding: 0 1.1rem;
+}
+
 .flint-input-hint {
   margin: 0 0 0 auto;
   font-size: 0.8rem;
@@ -1221,4 +1355,8 @@ button.flint-danger-solid:hover {
 
 [x-cloak] {
   display: none !important;
+}
+
+.flint-folder-dialog .flint-error:empty {
+  display: none;
 }

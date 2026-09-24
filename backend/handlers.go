@@ -264,6 +264,70 @@ func (s *Server) deleteConversationAndFiles(id, userID string) (found bool, err 
 	return true, nil
 }
 
+func (s *Server) handleRenameConversation(w http.ResponseWriter, r *http.Request) {
+	user := userFromContext(r)
+	id := r.PathValue("id")
+
+	var body struct {
+		Title string `json:"title"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	title := normalizeTitle(body.Title)
+	if title == "" {
+		writeError(w, http.StatusBadRequest, "title is required")
+		return
+	}
+
+	found, err := renameConversation(s.db, id, user.ID, title)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if !found {
+		writeError(w, http.StatusNotFound, "conversation not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"title": title})
+}
+
+func (s *Server) handleListDirs(w http.ResponseWriter, r *http.Request) {
+	dir := r.URL.Query().Get("path")
+	if dir == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			home = string(filepath.Separator)
+		}
+		dir = home
+	}
+	dir = filepath.Clean(dir)
+	if !filepath.IsAbs(dir) {
+		writeError(w, http.StatusBadRequest, "path must be absolute")
+		return
+	}
+
+	dirs, err := listSubdirs(dir)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "can't open that folder")
+		return
+	}
+	type entry struct {
+		Name string `json:"name"`
+		Path string `json:"path"`
+	}
+	entries := make([]entry, len(dirs))
+	for i, name := range dirs {
+		entries[i] = entry{Name: name, Path: filepath.Join(dir, name)}
+	}
+	parent := filepath.Dir(dir)
+	if parent == dir {
+		parent = ""
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"path": dir, "parent": parent, "dirs": entries})
+}
+
 func (s *Server) handleDeleteConversation(w http.ResponseWriter, r *http.Request) {
 	user := userFromContext(r)
 	id := r.PathValue("id")

@@ -564,13 +564,34 @@ func touchConversation(db *sql.DB, id string) error {
 	return err
 }
 
+const maxTitleRunes = 60
+
+// Truncates by rune, not byte, so a multibyte character is never split
+// into invalid UTF-8; newlines are collapsed so a title stays one line.
+func normalizeTitle(s string) string {
+	s = strings.Join(strings.Fields(s), " ")
+	if r := []rune(s); len(r) > maxTitleRunes {
+		s = string(r[:maxTitleRunes])
+	}
+	return s
+}
+
 func maybeSetTitle(db *sql.DB, id, firstMessage string) error {
-	title := firstMessage
-	if len(title) > 60 {
-		title = title[:60]
+	title := normalizeTitle(firstMessage)
+	if title == "" {
+		return nil
 	}
 	_, err := db.Exec(`UPDATE conversations SET title = ? WHERE id = ? AND title = 'New chat'`, title, id)
 	return err
+}
+
+func renameConversation(db *sql.DB, id, userID, title string) (bool, error) {
+	res, err := db.Exec(`UPDATE conversations SET title = ? WHERE id = ? AND user_id = ?`, title, id, userID)
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	return n > 0, err
 }
 
 func createCommand(db *sql.DB, id, conversationID, toolCallID, command, cwd string) (Command, error) {

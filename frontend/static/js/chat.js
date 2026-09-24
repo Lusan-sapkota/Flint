@@ -23,6 +23,48 @@ async function flintDeleteConversation(id, button) {
   }
 }
 
+function flintRenameConversation(id, button) {
+  const row = button.closest('.flint-conversation-row');
+  const link = row.querySelector('a');
+  const input = document.createElement('input');
+  input.className = 'flint-conversation-rename';
+  input.value = link.textContent;
+  input.maxLength = 60;
+  input.setAttribute('aria-label', 'Conversation name');
+  row.classList.add('renaming');
+  link.hidden = true;
+  row.insertBefore(input, link);
+  input.focus();
+  input.select();
+
+  let done = false;
+  const finish = async (save) => {
+    if (done) return;
+    done = true;
+    const title = input.value.trim();
+    if (save && title && title !== link.textContent) {
+      const res = await fetch(`/api/conversations/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title }),
+      });
+      if (res.ok) link.textContent = (await res.json()).title;
+    }
+    input.remove();
+    link.hidden = false;
+    row.classList.remove('renaming');
+  };
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      finish(true);
+    } else if (e.key === 'Escape') {
+      finish(false);
+    }
+  });
+  input.addEventListener('blur', () => finish(true));
+}
+
 document.addEventListener('alpine:init', () => {
   const TOOL_CALL_MARKER = '<<<TOOL_CALL>>>';
   const TOOL_RESULT_MARKER = '<<<TOOL_RESULT>>>';
@@ -38,6 +80,8 @@ document.addEventListener('alpine:init', () => {
     attachmentError: '',
     streaming: false,
     folderInput: '',
+    folderSuggestions: [],
+    browser: { path: '', parent: '', dirs: [], error: '', loading: false },
     folderBusy: false,
     folderError: '',
     streamingBubble: null,
@@ -113,6 +157,59 @@ document.addEventListener('alpine:init', () => {
 
     removeAttachment(i) {
       this.attachments.splice(i, 1);
+    },
+
+    async listDirs(path) {
+      const res = await fetch('/api/fs/dirs' + (path ? '?path=' + encodeURIComponent(path) : ''));
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Could not open that folder.');
+      return data;
+    },
+
+    async browseTo(path) {
+      this.browser.loading = true;
+      this.browser.error = '';
+      try {
+        const data = await this.listDirs(path);
+        Object.assign(this.browser, { path: data.path, parent: data.parent, dirs: data.dirs });
+      } catch (e) {
+        this.browser.error = e.message;
+      } finally {
+        this.browser.loading = false;
+      }
+    },
+
+    openFolderBrowser() {
+      this.$refs.folderDialog.showModal();
+      this.browseTo(this.folderInput.trim());
+    },
+
+    useBrowsedFolder() {
+      this.folderInput = this.browser.path;
+      this.$refs.folderDialog.close();
+      this.attachFolder();
+    },
+
+    // Suggests subfolders of whatever directory the typed path is inside,
+    // filtered by the partial name after the last separator.
+    async suggestFolders() {
+      const typed = this.folderInput;
+      const cut = Math.max(typed.lastIndexOf('/'), typed.lastIndexOf('\\'));
+      if (cut < 0) {
+        this.folderSuggestions = [];
+        return;
+      }
+      const base = typed.slice(0, cut + 1);
+      const partial = typed.slice(cut + 1).toLowerCase();
+      try {
+        const data = await this.listDirs(base);
+        this.folderSuggestions = data.dirs
+          .filter((d) => d.name.toLowerCase().startsWith(partial))
+          .slice(0, 20)
+          .map((d) => d.path);
+      } catch (e) {
+        this.folderSuggestions = [];
+      }
     },
 
     async attachFolder() {

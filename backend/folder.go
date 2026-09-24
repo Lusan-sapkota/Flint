@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -102,4 +103,32 @@ func buildAnchorHeader(path string) string {
 	}
 
 	return fmt.Sprintf("[Workspace anchor]\nAttached folder: %s\nEntries: %s", path, strings.Join(names, ", "))
+}
+
+// Only names of non-hidden subfolders, never file names or contents: this
+// backs the attach-folder browser, which only needs something to click
+// into. Symlinks to directories count, since that's how many project
+// folders are reached.
+func listSubdirs(dir string) ([]string, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	dirs := []string{}
+	for _, e := range entries {
+		if strings.HasPrefix(e.Name(), ".") {
+			continue
+		}
+		isDir := e.IsDir()
+		if !isDir && e.Type()&os.ModeSymlink != 0 {
+			if info, err := os.Stat(filepath.Join(dir, e.Name())); err == nil {
+				isDir = info.IsDir()
+			}
+		}
+		if isDir {
+			dirs = append(dirs, e.Name())
+		}
+	}
+	slices.SortFunc(dirs, func(a, b string) int { return strings.Compare(strings.ToLower(a), strings.ToLower(b)) })
+	return dirs, nil
 }

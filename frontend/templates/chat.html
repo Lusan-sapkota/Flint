@@ -45,7 +45,8 @@
       {{range .Conversations}}
         <div class="flint-conversation-row{{if eq .ID $.CurrentID}} active{{end}}">
           <a href="/c/{{.ID}}" class="flint-conversation-link" data-conversation-link="{{.ID}}">{{.Title}}</a>
-          <button type="button" class="flint-conversation-delete" onclick="flintDeleteConversation('{{.ID}}', this)" title="Delete conversation" aria-label="Delete conversation">{{template "icon-trash"}}</button>
+          <button type="button" class="flint-conversation-action" onclick="flintRenameConversation('{{.ID}}', this)" title="Rename conversation" aria-label="Rename conversation">{{template "icon-edit"}}</button>
+          <button type="button" class="flint-conversation-action flint-conversation-delete" onclick="flintDeleteConversation('{{.ID}}', this)" title="Delete conversation" aria-label="Delete conversation">{{template "icon-trash"}}</button>
         </div>
       {{else}}
         <p class="flint-empty-state">No conversations yet.</p>
@@ -167,10 +168,14 @@
         </template>
 
         <template x-if="conversationId && !attachedFolder">
-          <form class="flint-folder-indicator" style="background:transparent;border-style:dashed;" @submit.prevent="attachFolder">
+          <form class="flint-folder-indicator flint-folder-form" @submit.prevent="folderInput.trim() ? attachFolder() : openFolderBrowser()">
             {{template "icon-folder"}}
-            <input type="text" x-model="folderInput" placeholder="Attach a folder (absolute path)" style="all:unset;min-width:14rem;">
-            <button type="submit" :disabled="folderBusy" style="all:unset;cursor:pointer;">Attach</button>
+            <input type="text" x-model="folderInput" list="flint-folder-suggestions" placeholder="Attach a folder (absolute path)" autocomplete="off" spellcheck="false" @input.debounce.200ms="suggestFolders">
+            <datalist id="flint-folder-suggestions">
+              <template x-for="s in folderSuggestions" :key="s"><option :value="s"></option></template>
+            </datalist>
+            <button type="button" @click="openFolderBrowser()">Browse</button>
+            <button type="submit" :disabled="folderBusy">Attach</button>
           </form>
         </template>
         <p class="flint-input-hint">Tip: start with <code>@web</code> to search the web (needs a Brave key in Settings)</p>
@@ -204,6 +209,27 @@
         <button type="button" class="flint-send-btn" @click="send" :disabled="!conversationId || streaming || pendingCommand || !input.trim()" :aria-busy="streaming">Send</button>
       </div>
     </div>
+
+    <dialog x-ref="folderDialog" class="flint-folder-dialog" @click.self="$el.close()">
+      <article>
+        <h3>Choose a folder</h3>
+        <div class="flint-folder-path">
+          <button type="button" class="secondary flint-icon-btn" @click="browseTo(browser.parent)" :disabled="!browser.parent || browser.loading" title="Up one level" aria-label="Up one level">{{template "icon-arrow-up"}}</button>
+          <code><bdi x-text="browser.path"></bdi></code>
+        </div>
+        <p class="flint-error" x-text="browser.error"></p>
+        <ul class="flint-folder-list" :aria-busy="browser.loading">
+          <template x-for="d in browser.dirs" :key="d.path">
+            <li><button type="button" @click="browseTo(d.path)">{{template "icon-folder"}}<span x-text="d.name"></span></button></li>
+          </template>
+          <li class="flint-folder-list-empty" x-show="!browser.loading && !browser.error && browser.dirs.length === 0">No subfolders here.</li>
+        </ul>
+        <div class="flint-settings-actions">
+          <button type="button" class="secondary" @click="$refs.folderDialog.close()">Cancel</button>
+          <button type="button" @click="useBrowsedFolder()" :disabled="!browser.path || folderBusy">Use this folder</button>
+        </div>
+      </article>
+    </dialog>
   </div>
 </div>
 {{end}}
