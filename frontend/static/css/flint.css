@@ -582,25 +582,204 @@ button.flint-btn-icon {
   max-width: 28rem;
 }
 
+.flint-timeline-item {
+  width: 100%;
+  max-width: 52rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
 .flint-msg {
-  max-width: 70ch;
-  padding: 0.75rem 1rem;
+  max-width: 100%;
+  padding: 0.6rem 0.9rem;
   border-radius: 0.6rem;
-  line-height: 1.5;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.flint-msg-text {
   white-space: pre-wrap;
-  word-break: break-word;
 }
 
 .flint-msg-user {
   align-self: flex-end;
+  max-width: min(36rem, 85%);
   background: var(--flint-accent);
   color: #1c1c1e;
+  border-bottom-right-radius: 0.2rem;
 }
 
 .flint-msg-assistant {
   align-self: flex-start;
-  background: var(--flint-surface);
+  width: 100%;
+  padding: 0.25rem 0;
+}
+
+.flint-md > :first-child {
+  margin-top: 0;
+}
+
+.flint-md > :last-child {
+  margin-bottom: 0;
+}
+
+.flint-md p,
+.flint-md ul,
+.flint-md ol,
+.flint-md blockquote,
+.flint-md table,
+.flint-md .flint-code {
+  margin: 0 0 0.85rem;
+}
+
+.flint-md ul,
+.flint-md ol {
+  padding-left: 1.4rem;
+}
+
+.flint-md li {
+  list-style: revert;
+  margin-bottom: 0.25rem;
+}
+
+.flint-md h1,
+.flint-md h2,
+.flint-md h3,
+.flint-md h4 {
+  margin: 1.1rem 0 0.5rem;
+  line-height: 1.3;
+}
+
+.flint-md h1 { font-size: 1.35rem; }
+.flint-md h2 { font-size: 1.2rem; }
+.flint-md h3 { font-size: 1.05rem; }
+.flint-md h4 { font-size: 1rem; }
+
+.flint-md :not(pre) > code {
+  padding: 0.1rem 0.35rem;
+  font-size: 0.85em;
+  border-radius: 0.3rem;
+  background: var(--flint-surface-raised);
+  color: var(--flint-text);
+}
+
+.flint-md a {
+  color: var(--flint-accent);
+}
+
+.flint-md blockquote {
+  padding: 0.25rem 0 0.25rem 0.9rem;
+  border-left: 3px solid var(--flint-border);
+  color: var(--flint-text-dim);
+}
+
+.flint-md table {
+  display: block;
+  overflow-x: auto;
+  font-size: 0.9rem;
+}
+
+.flint-md hr {
+  margin: 1rem 0;
+  border-color: var(--flint-border);
+}
+
+.flint-code {
   border: 1px solid var(--flint-border);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: #141416;
+}
+
+.flint-code-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.3rem 0.4rem 0.3rem 0.8rem;
+  font-size: 0.75rem;
+  color: var(--flint-text-dim);
+  background: var(--flint-surface);
+  border-bottom: 1px solid var(--flint-border);
+}
+
+.flint-code-copy {
+  all: unset;
+  cursor: pointer;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.3rem;
+}
+
+.flint-code-copy:hover {
+  color: var(--flint-text);
+  background: var(--flint-surface-raised);
+}
+
+.flint-code pre {
+  margin: 0;
+  padding: 0.8rem;
+  background: transparent;
+  overflow-x: auto;
+}
+
+.flint-code pre code {
+  padding: 0;
+  background: none;
+  color: var(--flint-text);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: pre;
+}
+
+.flint-msg-actions {
+  display: flex;
+  margin-top: 0.15rem;
+}
+
+.flint-msg-actions-user {
+  justify-content: flex-end;
+}
+
+.flint-msg-actions button {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.3rem;
+  color: var(--flint-text-dim);
+  cursor: pointer;
+}
+
+.flint-msg-actions button:hover {
+  color: var(--flint-text);
+  background: var(--flint-surface-raised);
+}
+
+.flint-msg-actions svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.flint-msg-actions-user {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.flint-timeline-item:hover .flint-msg-actions-user,
+.flint-msg-actions-user:focus-within {
+  opacity: 1;
+}
+
+.flint-copy-done,
+.copied .flint-copy-idle {
+  display: none;
+}
+
+.copied .flint-copy-done {
+  display: inline-flex;
+  color: var(--flint-success);
 }
 
 .flint-msg-system {

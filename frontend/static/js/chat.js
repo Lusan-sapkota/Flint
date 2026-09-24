@@ -23,6 +23,60 @@ async function flintDeleteConversation(id, button) {
   }
 }
 
+function flintEscapeHTML(s) {
+  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+}
+
+// navigator.clipboard only exists in secure contexts; Flint is often
+// reached over plain http on a LAN address, so fall back to execCommand.
+async function flintCopy(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  ta.remove();
+}
+
+function flintFlashCopied(el) {
+  el.classList.add('copied');
+  setTimeout(() => el.classList.remove('copied'), 1500);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  marked.use({
+    breaks: true,
+    renderer: {
+      code({ text, lang }) {
+        const label = (lang || '').split(/\s/)[0];
+        return `<div class="flint-code"><div class="flint-code-bar"><span>${flintEscapeHTML(label || 'code')}</span>` +
+          `<button type="button" class="flint-code-copy">Copy</button></div>` +
+          `<pre><code>${flintEscapeHTML(text)}</code></pre></div>`;
+      },
+    },
+  });
+  DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+    if (node.tagName === 'A') {
+      node.setAttribute('target', '_blank');
+      node.setAttribute('rel', 'noopener noreferrer');
+    }
+  });
+});
+
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.flint-code-copy');
+  if (!btn) return;
+  await flintCopy(btn.closest('.flint-code').querySelector('code').textContent);
+  btn.textContent = 'Copied';
+  setTimeout(() => (btn.textContent = 'Copy'), 1500);
+});
+
 function flintRenameConversation(id, button) {
   const row = button.closest('.flint-conversation-row');
   const link = row.querySelector('a');
@@ -93,6 +147,17 @@ document.addEventListener('alpine:init', () => {
     get pendingCommand() {
       const last = this.timeline[this.timeline.length - 1];
       return last && last.kind === 'command' && last.commandStatus === 'pending' ? last : null;
+    },
+
+    // Model output is untrusted: everything marked produces goes through
+    // DOMPurify before it touches the DOM.
+    renderMarkdown(text) {
+      return DOMPurify.sanitize(marked.parse(text || ''));
+    },
+
+    async copyText(text, el) {
+      await flintCopy(text);
+      flintFlashCopied(el);
     },
 
     isStreamingBubble(item) {

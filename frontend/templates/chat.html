@@ -1,4 +1,6 @@
-{{define "scripts"}}<script src="/static/js/chat.js" defer></script>{{end}}
+{{define "scripts"}}<script src="/static/js/marked.min.js" defer></script>
+<script src="/static/js/purify.min.js" defer></script>
+<script src="/static/js/chat.js" defer></script>{{end}}
 {{define "content"}}
 <div class="flint-shell"
      x-data="{
@@ -105,10 +107,10 @@
       </template>
 
       <template x-for="(item, index) in timeline" :key="index">
-        <div>
+        <div class="flint-timeline-item">
           <template x-if="item.kind === 'user'">
             <div class="flint-msg flint-msg-user">
-              <span x-text="item.content"></span>
+              <div class="flint-msg-text" x-text="item.content"></div>
               <template x-if="(item.pendingAttachments && item.pendingAttachments.length) || (item.attachments && item.attachments.length)">
                 <div class="flint-msg-attachment">
                   <template x-for="a in (item.pendingAttachments || item.attachments)" :key="a.id || a.dataUrl">
@@ -128,11 +130,25 @@
               </template>
             </div>
           </template>
+          <template x-if="item.kind === 'user' && item.content">
+            <div class="flint-msg-actions flint-msg-actions-user">
+              <button type="button" @click="copyText(item.content, $el)" title="Copy message" aria-label="Copy message">
+                <span class="flint-copy-idle">{{template "icon-copy"}}</span><span class="flint-copy-done">{{template "icon-check"}}</span>
+              </button>
+            </div>
+          </template>
 
           <template x-if="item.kind === 'assistant'">
             <div class="flint-msg flint-msg-assistant">
-              <span x-text="item.content"></span>
+              <div class="flint-md" x-html="renderMarkdown(item.content)"></div>
               <span class="flint-cursor" x-show="isStreamingBubble(item)"></span>
+            </div>
+          </template>
+          <template x-if="item.kind === 'assistant' && item.content && !isStreamingBubble(item)">
+            <div class="flint-msg-actions">
+              <button type="button" @click="copyText(item.content, $el)" title="Copy message" aria-label="Copy message">
+                <span class="flint-copy-idle">{{template "icon-copy"}}</span><span class="flint-copy-done">{{template "icon-check"}}</span>
+              </button>
             </div>
           </template>
 
