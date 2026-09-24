@@ -513,6 +513,12 @@ func (s *Server) handleEditLastMessage(w http.ResponseWriter, r *http.Request) {
 // Shared by sending and editing. carried are attachments from an edited
 // message whose files are still on disk and get re-linked to the new one.
 func (s *Server) runUserTurn(w http.ResponseWriter, r *http.Request, user *User, id, content string, uploads []AttachmentUpload, carried []Attachment) {
+	decoded, err := decodeUploads(uploads)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	webNotice := ""
 	if isWeb, query := stripWebFlag(content); isWeb {
 		content = query
@@ -532,11 +538,9 @@ func (s *Server) runUserTurn(w http.ResponseWriter, r *http.Request, user *User,
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if len(uploads) > 0 {
-		if err := saveAttachments(s.attachmentsDir, s.db, messageID, uploads); err != nil {
-			writeError(w, http.StatusBadRequest, err.Error())
-			return
-		}
+	if err := saveAttachments(s.attachmentsDir, s.db, messageID, decoded); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 	for _, a := range carried {
 		if err := createAttachment(s.db, a.ID, messageID, a.MimeType, a.Filename, a.FilePath); err != nil {

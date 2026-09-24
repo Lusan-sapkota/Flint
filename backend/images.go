@@ -54,36 +54,50 @@ type AttachmentUpload struct {
 // toOllamaMessage in context.go; anything else is retained purely for the
 // human to see and download, with a plain-text note so the model at least
 // knows a file was attached (see toOllamaMessage).
-func saveAttachments(attachmentsDir string, db *sql.DB, messageID int64, uploads []AttachmentUpload) error {
-	if len(uploads) > maxAttachmentsPerTurn {
-		uploads = uploads[:maxAttachmentsPerTurn]
-	}
+type decodedUpload struct {
+	data     []byte
+	filename string
+}
 
+// decodeUploads validates every upload before anything is written, so one
+// bad file rejects the whole message instead of leaving it saved with only
+// some of its attachments.
+func decodeUploads(uploads []AttachmentUpload) ([]decodedUpload, error) {
+	if len(uploads) > maxAttachmentsPerTurn {
+		return nil, fmt.Errorf("at most %d attachments per message", maxAttachmentsPerTurn)
+	}
+	out := make([]decodedUpload, 0, len(uploads))
 	for _, u := range uploads {
 		data, err := base64.StdEncoding.DecodeString(stripDataURIPrefix(u.Data))
 		if err != nil {
-			return fmt.Errorf("invalid base64 attachment data: %w", err)
+			return nil, fmt.Errorf("%s: invalid attachment data", u.Filename)
 		}
 		if len(data) > maxAttachmentBytes {
-			return fmt.Errorf("attachment exceeds the %d byte limit", maxAttachmentBytes)
+			return nil, fmt.Errorf("%s is over the %d MB attachment limit", u.Filename, maxAttachmentBytes/(1024*1024))
 		}
+		out = append(out, decodedUpload{data: data, filename: u.Filename})
+	}
+	return out, nil
+}
 
-		mimeType := http.DetectContentType(data)
+func saveAttachments(attachmentsDir string, db *sql.DB, messageID int64, uploads []decodedUpload) error {
+	for _, u := range uploads {
+		mimeType := http.DetectContentType(u.data)
 
 		id := uuid.NewString()
-		ext := filepath.Ext(filepath.Base(u.Filename))
+		ext := filepath.Ext(filepath.Base(u.filename))
 		filename := id + ext
 		fullPath := filepath.Join(attachmentsDir, filename)
-		if err := os.WriteFile(fullPath, data, 0o644); err != nil {
+		if err := os.WriteFile(fullPath, u.data, 0o644); err != nil {
 			return fmt.Errorf("saving attachment: %w", err)
 		}
 
-		displayName := strings.TrimSpace(u.Filename)
+		displayName := strings.TrimSpace(u.filename)
 		if displayName == "" {
 			displayName = filename
 		}
-		if len(displayName) > 200 {
-			displayName = displayName[:200]
+		if r := []rune(displayName); len(r) > 200 {
+			displayName = string(r[:200])
 		}
 
 		if err := createAttachment(db, id, messageID, mimeType, displayName, filename); err != nil {
