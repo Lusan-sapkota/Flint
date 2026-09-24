@@ -175,14 +175,16 @@ func (s *Server) handleRecoverPage(w http.ResponseWriter, r *http.Request) {
 
 type chatViewData struct {
 	baseData
-	Conversations []Conversation
-	HasCurrent    bool
-	CurrentID     string
-	CurrentModel  string
-	CurrentFolder string
-	TimelineJSON  string
-	Models        []OllamaModelInfo
-	ModelsErr     string
+	Conversations       []Conversation
+	HasCurrent          bool
+	CurrentID           string
+	CurrentModel        string
+	CurrentModelMissing bool
+	SelectedModel       string
+	CurrentFolder       string
+	TimelineJSON        string
+	Models              []OllamaModelInfo
+	ModelsErr           string
 }
 
 func (s *Server) handleChatPage(w http.ResponseWriter, r *http.Request, user *User) {
@@ -230,7 +232,14 @@ func (s *Server) handleChatPage(w http.ResponseWriter, r *http.Request, user *Us
 	if err != nil {
 		data.ModelsErr = err.Error()
 	}
-	data.Models = preferredOrAll(models, user.PreferredModels)
+	data.Models = preferredOrAll(s.ollama.ChatModels(r.Context(), s.ollamaURLFor(user), models), user.PreferredModels)
+	data.CurrentModelMissing = data.HasCurrent && err == nil && !hasModel(models, data.CurrentModel)
+	// Default the New chat picker to the open chat's model, else the most
+	// recently used one that's still offered (convos are newest first).
+	data.SelectedModel = data.CurrentModel
+	for i := 0; !hasModel(data.Models, data.SelectedModel) && i < len(convos); i++ {
+		data.SelectedModel = convos[i].Model
+	}
 
 	timelineJSON, err := json.Marshal(timeline)
 	if err != nil {
@@ -250,6 +259,7 @@ type settingsQuestionView struct {
 type settingsViewData struct {
 	baseData
 	Models              []OllamaModelInfo
+	ChatModels          []OllamaModelInfo
 	ModelsErr           string
 	OllamaBaseURL       string
 	BraveAPIKey         string
@@ -288,6 +298,7 @@ func (s *Server) handleSettingsPage(w http.ResponseWriter, r *http.Request, user
 	data := settingsViewData{
 		baseData:            baseData{Title: "Settings", User: user},
 		Models:              models,
+		ChatModels:          s.ollama.ChatModels(r.Context(), s.ollamaURLFor(user), models),
 		ModelsErr:           modelsErr,
 		PreferredModelsJSON: string(preferredJSON),
 		QuestionsJSON:       string(questionsJSON),
@@ -334,4 +345,8 @@ func preferredOrAll(models []OllamaModelInfo, preferred []string) []OllamaModelI
 		return models
 	}
 	return kept
+}
+
+func hasModel(models []OllamaModelInfo, name string) bool {
+	return slices.ContainsFunc(models, func(m OllamaModelInfo) bool { return m.Name == name })
 }

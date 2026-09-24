@@ -541,6 +541,16 @@ button.flint-btn-icon {
   color: var(--flint-text);
 }
 
+.flint-model-missing {
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--flint-danger);
+  border-radius: 0.3rem;
+  color: var(--flint-danger);
+  font-size: 0.75rem;
+  cursor: help;
+}
+
 .flint-settings-gear {
   color: var(--flint-text-dim);
   text-decoration: none;

@@ -43,7 +43,7 @@
             <option value="">No models available</option>
           {{end}}
           {{range .Models}}
-            <option value="{{.Name}}">{{.Name}}</option>
+            <option value="{{.Name}}" {{if eq .Name $.SelectedModel}}selected{{end}}>{{.Name}}</option>
           {{end}}
         </select>
         <button type="submit" class="flint-new-chat-btn" {{if not .Models}}disabled{{end}}>{{template "icon-plus"}} New chat</button>
@@ -91,7 +91,7 @@
     <header class="flint-topbar">
       <button type="button" class="flint-menu-btn" @click="navOpen = true" aria-label="Open sidebar">{{template "icon-sidebar"}}</button>
       <div class="flint-topbar-model">
-        <template x-if="model"><span>Model: <strong x-text="model"></strong></span></template>
+        <template x-if="model"><span>Model: <strong x-text="model"></strong>{{if .CurrentModelMissing}} <span class="flint-model-missing" title="This model is no longer installed on the Ollama server. Pull it again in Settings, or start a new chat with another model.">not installed</span>{{end}}</span></template>
         <template x-if="!model"><span>No conversation selected</span></template>
       </div>
       <a href="/settings" class="flint-settings-gear" title="Settings">{{template "icon-settings"}}</a>

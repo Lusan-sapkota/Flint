@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
+	"sync"
 )
 
 type OllamaToolCall struct {
@@ -79,10 +81,15 @@ type ollamaTagsResponse struct {
 
 type OllamaClient struct {
 	http *http.Client
+
+	// Keyed by model digest: a given model build's capabilities never
+	// change, so each is looked up via /api/show at most once.
+	capsMu  sync.Mutex
+	canChat map[string]bool
 }
 
 func NewOllamaClient() *OllamaClient {
-	return &OllamaClient{http: &http.Client{}}
+	return &OllamaClient{http: &http.Client{}, canChat: map[string]bool{}}
 }
 
 func (c *OllamaClient) ListModels(ctx context.Context, baseURL string) ([]OllamaModelInfo, error) {
@@ -105,6 +112,47 @@ func (c *OllamaClient) ListModels(ctx context.Context, baseURL string) ([]Ollama
 		return nil, err
 	}
 	return tags.Models, nil
+}
+
+// ChatModels drops models that can't hold a conversation, such as
+// embedding-only ones (nomic-embed-text reports ["embedding"] only).
+// /api/tags doesn't carry capabilities, so this asks /api/show per model.
+func (c *OllamaClient) ChatModels(ctx context.Context, baseURL string, models []OllamaModelInfo) []OllamaModelInfo {
+	var out []OllamaModelInfo
+	for _, m := range models {
+		if c.canChatWith(ctx, baseURL, m) {
+			out = append(out, m)
+		}
+	}
+	return out
+}
+
+func (c *OllamaClient) canChatWith(ctx context.Context, baseURL string, m OllamaModelInfo) bool {
+	c.capsMu.Lock()
+	v, ok := c.canChat[m.Digest]
+	c.capsMu.Unlock()
+	if ok {
+		return v
+	}
+
+	raw, err := c.ShowModel(ctx, baseURL, m.Name)
+	if err != nil {
+		return true
+	}
+	var info struct {
+		Capabilities []string `json:"capabilities"`
+	}
+	// Older Ollama versions don't report capabilities at all; never hide a
+	// model just because we couldn't tell.
+	if json.Unmarshal(raw, &info) != nil || len(info.Capabilities) == 0 {
+		return true
+	}
+	v = slices.Contains(info.Capabilities, "completion")
+
+	c.capsMu.Lock()
+	c.canChat[m.Digest] = v
+	c.capsMu.Unlock()
+	return v
 }
 
 func (c *OllamaClient) RunningModels(ctx context.Context, baseURL string) (json.RawMessage, error) {

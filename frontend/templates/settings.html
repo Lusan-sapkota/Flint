@@ -21,11 +21,11 @@
       <p class="flint-field-hint">Only checked models appear in the New chat picker. Leave all unchecked to show every model.</p>
       {{if .ModelsErr}}
         <p class="flint-error">Couldn't reach Ollama: {{.ModelsErr}}</p>
-      {{else if not .Models}}
-        <p class="flint-error">No models found on this Ollama server.</p>
+      {{else if not .ChatModels}}
+        <p class="flint-error">No chat models found on this Ollama server.</p>
       {{else}}
         <div class="flint-model-checkbox-list">
-          {{range .Models}}
+          {{range .ChatModels}}
           <label>
             <input type="checkbox" :checked="isPreferred('{{.Name | jsStr}}')" @change="toggleModel('{{.Name | jsStr}}')">
             {{.Name}}
