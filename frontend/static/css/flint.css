@@ -1047,6 +1047,15 @@ button.flint-btn-icon {
   color: var(--flint-text-dim);
 }
 
+.flint-confirm-dialog label {
+  font-size: 0.9rem;
+}
+
+.flint-confirm-dialog input {
+  height: var(--flint-control-h);
+  margin: 0.4rem 0 0;
+}
+
 .flint-confirm-dialog .flint-settings-actions {
   justify-content: flex-end;
   margin: 1.25rem 0 0;

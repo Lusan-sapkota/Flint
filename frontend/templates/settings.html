@@ -146,9 +146,14 @@
       <article>
         <h3 x-text="confirmTitle"></h3>
         <p x-text="confirmMessage"></p>
-        <form method="dialog" class="flint-settings-actions">
-          <button value="cancel" class="secondary" autofocus>Cancel</button>
-          <button value="confirm" class="flint-danger-solid">{{template "icon-trash"}} Delete</button>
+        <form method="dialog">
+          <label for="confirm_typed">Type <strong>DELETE</strong> to confirm</label>
+          <input type="text" id="confirm_typed" x-model="confirmTyped" autocomplete="off" spellcheck="false" autofocus
+                 @keydown.enter.prevent="confirmTyped === 'DELETE' && $refs.confirmDialog.close('confirm')">
+          <div class="flint-settings-actions">
+            <button value="cancel" class="secondary">Cancel</button>
+            <button value="confirm" class="flint-danger-solid" :disabled="confirmTyped !== 'DELETE'">{{template "icon-trash"}} Delete</button>
+          </div>
         </form>
       </article>
     </dialog>

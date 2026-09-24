@@ -18,6 +18,7 @@ document.addEventListener('alpine:init', () => {
     editQuestions: (config.questions || []).map((q) => ({ question: q.question, answer: '' })),
     confirmTitle: '',
     confirmMessage: '',
+    confirmTyped: '',
     savingGeneral: false,
     generalStatus: '',
     savingQuestions: false,
@@ -75,11 +76,12 @@ document.addEventListener('alpine:init', () => {
     askConfirm(title, message) {
       this.confirmTitle = title;
       this.confirmMessage = message;
+      this.confirmTyped = '';
       const dialog = this.$refs.confirmDialog;
       dialog.returnValue = '';
       dialog.showModal();
       return new Promise((resolve) => {
-        dialog.addEventListener('close', () => resolve(dialog.returnValue === 'confirm'), { once: true });
+        dialog.addEventListener('close', () => resolve(dialog.returnValue === 'confirm' && this.confirmTyped === 'DELETE'), { once: true });
       });
     },
 

@@ -102,7 +102,13 @@ func main() {
 	mux.HandleFunc("POST /api/conversations/{id}/commands/{cmdId}/approve", srv.requireAuth(srv.handleApproveCommand))
 	mux.HandleFunc("POST /api/conversations/{id}/commands/{cmdId}/deny", srv.requireAuth(srv.handleDenyCommand))
 
-	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("../frontend/static"))))
+	static := http.StripPrefix("/static/", http.FileServer(http.Dir("../frontend/static")))
+	// no-cache still allows 304s via Last-Modified, but stops browsers
+	// heuristically serving stale JS/CSS for hours after an edit.
+	mux.Handle("GET /static/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache")
+		static.ServeHTTP(w, r)
+	}))
 
 	mux.HandleFunc("GET /login", srv.handleLoginPage)
 	mux.HandleFunc("GET /signup", srv.handleSignupPage)
