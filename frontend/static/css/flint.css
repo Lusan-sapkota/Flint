@@ -161,8 +161,16 @@ body {
   transition: grid-template-columns 0.18s ease;
 }
 
-.flint-shell-collapsed {
+.flint-shell-collapsed,
+html.flint-rail-pre .flint-shell {
   grid-template-columns: 4.25rem 1fr;
+}
+
+/* Before Alpine starts, show only the pieces matching the saved state
+   (see the inline script at the top of chat.html). */
+html.flint-pre:not(.flint-rail-pre) .flint-sidebar [x-show="rail"],
+html.flint-rail-pre .flint-sidebar [x-show="!rail"] {
+  display: none !important;
 }
 
 .flint-sidebar {
@@ -186,7 +194,8 @@ body {
   gap: 0.5rem;
 }
 
-.flint-shell-collapsed .flint-sidebar-header {
+.flint-shell-collapsed .flint-sidebar-header,
+html.flint-rail-pre .flint-sidebar-header {
   justify-content: center;
 }
 
@@ -407,7 +416,8 @@ button.flint-btn-icon {
   color: var(--flint-text-dim);
 }
 
-.flint-shell-collapsed .flint-sidebar-footer {
+.flint-shell-collapsed .flint-sidebar-footer,
+html.flint-rail-pre .flint-sidebar-footer {
   justify-content: center;
 }
 
@@ -490,7 +500,10 @@ button.flint-btn-icon {
 
 .flint-shell-collapsed .flint-sidebar-hover-toggle,
 .flint-shell-collapsed .flint-sidebar-hover-toggle .flint-sidebar-logo,
-.flint-shell-collapsed .flint-sidebar-avatar {
+.flint-shell-collapsed .flint-sidebar-avatar,
+html.flint-rail-pre .flint-sidebar-hover-toggle,
+html.flint-rail-pre .flint-sidebar-hover-toggle .flint-sidebar-logo,
+html.flint-rail-pre .flint-sidebar-avatar {
   width: var(--flint-side-control-h);
   height: var(--flint-side-control-h);
 }

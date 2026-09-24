@@ -2,6 +2,18 @@
 <script src="/static/js/purify.min.js" defer></script>
 <script src="/static/js/chat.js" defer></script>{{end}}
 {{define "content"}}
+{{/* Runs before first paint, while Alpine (deferred) hasn't applied any
+     x-show yet: marks the saved sidebar state on <html> so CSS can render
+     the right rail/expanded pieces instead of all of them at once. The
+     shell's x-init clears it once Alpine owns the state. */}}
+<script>
+  (function () {
+    var rail = false;
+    try { rail = localStorage.getItem('flint-sidebar-collapsed') === '1' && !matchMedia('(max-width: 767px)').matches; } catch (e) {}
+    document.documentElement.classList.add('flint-pre');
+    document.documentElement.classList.toggle('flint-rail-pre', rail);
+  })();
+</script>
 <div class="flint-shell"
      x-data="{
        collapsed: localStorage.getItem('flint-sidebar-collapsed') === '1',
@@ -14,7 +26,7 @@
          localStorage.setItem('flint-sidebar-collapsed', this.collapsed ? '1' : '0');
        },
      }"
-     x-init="matchMedia('(max-width: 767px)').addEventListener('change', (e) => { mobile = e.matches; navOpen = false })"
+     x-init="matchMedia('(max-width: 767px)').addEventListener('change', (e) => { mobile = e.matches; navOpen = false }); $nextTick(() => document.documentElement.classList.remove('flint-pre', 'flint-rail-pre'))"
      @keydown.escape.window="navOpen = false"
      :class="{ 'flint-shell-collapsed': rail, 'flint-nav-open': navOpen }">
   <div class="flint-nav-backdrop" x-show="navOpen" x-transition.opacity @click="navOpen = false"></div>
