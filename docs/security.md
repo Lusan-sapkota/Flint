@@ -1,0 +1,67 @@
+# Security
+
+Flint runs model-proposed shell commands on the machine it's installed on,
+and signup is open. Treat it as a local, single-machine tool. Don't expose
+it to a network you don't trust.
+
+## Accounts and sessions
+
+- Passwords and security-question answers are hashed with bcrypt and
+  never returned.
+- Sessions are random ids stored in SQLite and sent as an `HttpOnly`,
+  `SameSite=Lax` cookie. They last 30 days. Logging out deletes the
+  session, and a password reset deletes all of that user's sessions.
+- Every conversation, message, attachment and command is scoped to its
+  owner. Another account's resources return **404, not 403**, so their
+  existence isn't revealed.
+- Recovery lookups answer the same way whether or not the email exists.
+
+## Rate limits
+
+An in-memory sliding window per client IP (`r.RemoteAddr`):
+
+| Endpoints | Limit |
+|---|---|
+| login | 5 per 5 minutes |
+| signup | 5 per 5 minutes, separate from login |
+| recovery questions + reset (shared) | 5 per 30 minutes |
+
+`X-Forwarded-For` is ignored on purpose. Without a trusted-proxy list,
+anyone could set it to get around the limit. Behind a reverse proxy, every
+client therefore shares the proxy's IP and its limit.
+
+## Shell commands
+
+Layers, in order:
+
+1. **Human approval.** Every command is held as pending, and its exact
+   text is shown unchanged. Nothing runs without an explicit approve.
+   This is the real safety net.
+2. **Shield** (`shield.go`). Blocked when proposed and again when run:
+   `rm -rf` aimed at `/` or `~`, fork bombs, `sudo`, piping `curl`/`wget`
+   into a shell, `mkfs`, `dd` to `/dev/*`, and reading `/etc/shadow` or
+   SSH private keys. The model is told to ask you to run a genuinely
+   needed blocked command yourself, not to work around the block. This is
+   a floor, not a guarantee: a Turing-complete shell can evade any pattern
+   list.
+3. **Preconditions** (`preconditions.go`). The program must exist, and a
+   simple read (`cat`, `head`, `tail`, ...) must target a path that
+   exists. Compound commands skip the path check. A failure goes straight
+   back to the model, without asking you to approve something that can't
+   work.
+4. **Serialization.** Every request touching a conversation takes that
+   conversation's lock, and approve/deny re-reads the command's status
+   inside the lock. A double-clicked approve can't run a command twice.
+
+The working directory is the attached folder, but a command can still
+`cd` elsewhere or use absolute paths. Commands time out after 60 seconds,
+and their output is capped at 20,000 characters.
+
+## Network
+
+- Flint talks to Ollama, and to Brave Search only for an explicit `@web`
+  message using that user's own key. Nothing else leaves the machine.
+- The UI is same-origin with the API, so no CORS headers are set.
+- Docker Compose publishes Flint on `127.0.0.1:8080` only, because of open
+  signup and the shell tool.
+- Model output is rendered as Markdown through DOMPurify.

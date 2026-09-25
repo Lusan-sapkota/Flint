@@ -70,6 +70,11 @@ run inside the container. Folder attach and the shell tool can only see
 files inside the container, so bind-mount any project folder you want to
 work on.
 
+## Docs
+
+How it works, features, security, deployment and the experiments behind
+the design: see [docs/](./docs/README.md).
+
 ## License
 
 AGPL-3.0 — see [LICENSE](./LICENSE).
