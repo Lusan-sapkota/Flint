@@ -66,7 +66,8 @@ type ChatResult struct {
 	// Prompt plus generated tokens: how much of the context window this
 	// request actually occupied. prompt_eval_count is the whole prompt even
 	// when part of it came from the cache.
-	ContextUsed int
+	ContextUsed  int
+	PromptTokens int
 }
 
 type OllamaModelDetails struct {
@@ -174,37 +175,24 @@ func (c *OllamaClient) RunningModels(ctx context.Context, baseURL string) (json.
 // error counts as loaded: this only decides whether to show a "loading"
 // hint, never whether to send the request.
 func (c *OllamaClient) IsLoaded(ctx context.Context, baseURL, model string) bool {
-	loaded, _, err := c.resident(ctx, baseURL, model)
-	return loaded || err != nil
-}
-
-// LoadedContext is the context window the resident model was loaded with,
-// or 0 if that can't be told.
-func (c *OllamaClient) LoadedContext(ctx context.Context, baseURL, model string) int {
-	_, n, _ := c.resident(ctx, baseURL, model)
-	return n
-}
-
-func (c *OllamaClient) resident(ctx context.Context, baseURL, model string) (bool, int, error) {
 	raw, err := c.RunningModels(ctx, baseURL)
 	if err != nil {
-		return false, 0, err
+		return true
 	}
 	var ps struct {
 		Models []struct {
-			Name          string `json:"name"`
-			ContextLength int    `json:"context_length"`
+			Name string `json:"name"`
 		} `json:"models"`
 	}
 	if err := json.Unmarshal(raw, &ps); err != nil {
-		return false, 0, err
+		return true
 	}
 	for _, m := range ps.Models {
 		if m.Name == model {
-			return true, m.ContextLength, nil
+			return true
 		}
 	}
-	return false, 0, nil
+	return false
 }
 
 func (c *OllamaClient) ShowModel(ctx context.Context, baseURL, name string) (json.RawMessage, error) {
@@ -353,7 +341,7 @@ func (c *OllamaClient) StreamChat(ctx context.Context, baseURL, model string, me
 	var full, thinking bytes.Buffer
 	var toolCalls []OllamaToolCall
 	var tokensPerSec float64
-	var contextUsed int
+	var contextUsed, promptTokens int
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		if len(bytes.TrimSpace(line)) == 0 {
@@ -383,6 +371,7 @@ func (c *OllamaClient) StreamChat(ctx context.Context, baseURL, model string, me
 				tokensPerSec = float64(chunk.EvalCount) / (float64(chunk.EvalDuration) / 1e9)
 			}
 			contextUsed = chunk.PromptCount + chunk.EvalCount
+			promptTokens = chunk.PromptCount
 			break
 		}
 	}
@@ -390,7 +379,7 @@ func (c *OllamaClient) StreamChat(ctx context.Context, baseURL, model string, me
 		return ChatResult{Content: full.String(), Thinking: thinking.String(), ToolCalls: toolCalls}, err
 	}
 
-	return ChatResult{Content: full.String(), Thinking: thinking.String(), ToolCalls: toolCalls, TokensPerSec: tokensPerSec, ContextUsed: contextUsed}, nil
+	return ChatResult{Content: full.String(), Thinking: thinking.String(), ToolCalls: toolCalls, TokensPerSec: tokensPerSec, ContextUsed: contextUsed, PromptTokens: promptTokens}, nil
 }
 
 func readAll(r interface{ Read([]byte) (int, error) }, max int) ([]byte, error) {

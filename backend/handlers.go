@@ -27,6 +27,9 @@ type Server struct {
 
 	conversationQueueMu sync.Mutex
 	conversationQueue   map[string]*sync.Mutex
+
+	// Conversations with a background summarization in flight.
+	summarizing sync.Map
 }
 
 func (s *Server) lockConversation(id string) func() {
@@ -577,7 +580,7 @@ func (s *Server) runUserTurn(w http.ResponseWriter, r *http.Request, user *User,
 	s.streamAssistantTurn(w, r, user, convo)
 
 	if firstMessage {
-		s.generateTitle(r.Context(), user, convo.Model, id, placeholderTitle, content)
+		s.generateTitle(r.Context(), user, convo.Model, numCtxFor(convo.Conversation), id, placeholderTitle, content)
 	}
 }
 
@@ -592,7 +595,7 @@ Title: Battery Drain After Update`
 // Runs after the reply has streamed, so it never delays the first token;
 // the model is already loaded at that point, which keeps this well under a
 // second in practice. Any failure just leaves the placeholder title.
-func (s *Server) generateTitle(ctx context.Context, user *User, model, id, placeholder, firstMessage string) {
+func (s *Server) generateTitle(ctx context.Context, user *User, model string, numCtx int, id, placeholder, firstMessage string) {
 	if ctx.Err() != nil {
 		return
 	}
@@ -601,7 +604,7 @@ func (s *Server) generateTitle(ctx context.Context, user *User, model, id, place
 	out, err := s.ollama.Chat(ctx, s.ollamaURLFor(user), model, []OllamaMessage{
 		{Role: "system", Content: titlePrompt},
 		{Role: "user", Content: "Message: " + firstMessage + "\nTitle:"},
-	}, map[string]any{"temperature": 0.2, "num_predict": 24})
+	}, map[string]any{"num_ctx": numCtx, "temperature": 0.2, "num_predict": 24})
 	if err != nil {
 		log.Printf("warning: title generation failed: %v", err)
 		return
@@ -777,23 +780,28 @@ func thinkParam(r *http.Request) *bool {
 }
 
 func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, user *User, convo *ConversationWithMessages) {
-	history := buildOptimizedHistory(convo.Messages, s.attachmentsDir)
+	numCtx := numCtxFor(convo.Conversation)
+	options := map[string]any{"num_ctx": numCtx}
+	count := tokenCounter(convo.TokenRatio)
 
 	var tools []OllamaTool
-	var options map[string]any
-	if convo.AttachedFolder != nil && *convo.AttachedFolder != "" {
-		options = map[string]any{"num_ctx": boostedNumCtx}
-		if consecutiveToolCycles(convo.Messages) < maxToolAttemptsPerTurn {
-			tools = []OllamaTool{runShellTool}
-			if len(history) > 0 {
-				last := &history[len(history)-1]
-				suffix := toolReasoningPrompt
-				if anchor := buildAnchorHeader(*convo.AttachedFolder); anchor != "" {
-					suffix = anchor + "\n\n" + suffix
-				}
-				last.Content = strings.TrimRight(last.Content, "\n") + "\n\n" + suffix
-			}
+	var suffix string
+	if convo.AttachedFolder != nil && *convo.AttachedFolder != "" && consecutiveToolCycles(convo.Messages) < maxToolAttemptsPerTurn {
+		tools = []OllamaTool{runShellTool}
+		suffix = toolReasoningPrompt
+		if anchor := buildAnchorHeader(*convo.AttachedFolder); anchor != "" {
+			suffix = anchor + "\n\n" + suffix
 		}
+	}
+	toolsJSON, _ := json.Marshal(tools)
+	toolsTokens := estimateTokens(string(toolsJSON))
+	overhead := toolsTokens + estimateTokens(suffix)
+	budget := numCtx - responseReserve - int(float64(overhead)*float64(count))
+
+	history := buildOptimizedHistory(convo.Messages, convo.Summaries, s.attachmentsDir, budget, count)
+	if suffix != "" && len(history) > 0 {
+		last := &history[len(history)-1]
+		last.Content = strings.TrimRight(last.Content, "\n") + "\n\n" + suffix
 	}
 
 	flusher, canFlush := w.(http.Flusher)
@@ -847,16 +855,14 @@ func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, use
 	// Sent on its own line for every response, not just final text ones,
 	// so the bar also moves after tool-call turns.
 	if result.ContextUsed > 0 {
-		contextMax := s.ollama.LoadedContext(r.Context(), s.ollamaURLFor(user), convo.Model)
-		if err := setContextUsage(s.db, convo.ID, result.ContextUsed, contextMax); err != nil {
+		if err := setContextUsage(s.db, convo.ID, result.ContextUsed, numCtx); err != nil {
 			log.Printf("warning: failed to save context usage: %v", err)
 		}
-		if contextMax > 0 {
-			line, _ := json.Marshal(map[string]int{"used": result.ContextUsed, "max": contextMax})
-			fmt.Fprintf(w, "<<<CONTEXT>>>%s\n", line)
-			flush()
-		}
+		line, _ := json.Marshal(map[string]int{"used": result.ContextUsed, "max": numCtx})
+		fmt.Fprintf(w, "<<<CONTEXT>>>%s\n", line)
+		flush()
 	}
+	s.calibrateTokenRatio(convo.ID, history, toolsTokens, result.PromptTokens)
 
 	if len(result.ToolCalls) > 0 {
 		tc := result.ToolCalls[0]
@@ -925,8 +931,27 @@ func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, use
 			stats, _ := json.Marshal(map[string]float64{"tokensPerSec": math.Round(result.TokensPerSec*10) / 10})
 			fmt.Fprintf(w, "\n<<<STATS>>>%s\n", stats)
 		}
+		s.summarizeInBackground(user, convo.ID)
 	}
 	if err := touchConversation(s.db, convo.ID); err != nil {
 		log.Printf("warning: failed to touch conversation: %v", err)
+	}
+}
+
+// calibrateTokenRatio stores how many real prompt tokens Ollama counted per
+// estimated token. Skipped when images were sent, since their cost is its
+// own estimate and would skew the text ratio.
+func (s *Server) calibrateTokenRatio(convoID string, history []OllamaMessage, toolsTokens, promptTokens int) {
+	if promptTokens == 0 {
+		return
+	}
+	for _, m := range history {
+		if len(m.Images) > 0 {
+			return
+		}
+	}
+	estimate := tokenCounter(1).messages(history) + toolsTokens
+	if err := setTokenRatio(s.db, convoID, clampRatio(float64(promptTokens)/float64(estimate))); err != nil {
+		log.Printf("warning: failed to save token ratio: %v", err)
 	}
 }

@@ -83,6 +83,22 @@ type Attachment struct {
 type ConversationWithMessages struct {
 	Conversation
 	Messages []Message `json:"messages"`
+	// Summaries not yet folded into a higher level, oldest first.
+	Summaries []Summary `json:"-"`
+	// Real prompt tokens per estimated token, measured on the last request.
+	TokenRatio float64 `json:"-"`
+}
+
+// Summary stands in for messages FirstMessageID..LastMessageID when
+// building history. Level 0 condenses messages; level n+1 condenses level-n
+// summaries, which are then marked merged but kept.
+type Summary struct {
+	ID             int64
+	Level          int
+	FirstMessageID int64
+	LastMessageID  int64
+	Content        string
+	UserNotes      string
 }
 
 type Command struct {
@@ -175,6 +191,19 @@ CREATE TABLE IF NOT EXISTS attachments (
 	created_at INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS summaries (
+	id               INTEGER PRIMARY KEY AUTOINCREMENT,
+	conversation_id  TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+	level            INTEGER NOT NULL,
+	first_message_id INTEGER NOT NULL,
+	last_message_id  INTEGER NOT NULL,
+	content          TEXT NOT NULL,
+	user_notes       TEXT NOT NULL DEFAULT '',
+	merged           INTEGER NOT NULL DEFAULT 0,
+	created_at       INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_summaries_conversation_id ON summaries(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
 CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id);
@@ -212,6 +241,7 @@ func migrate(db *sql.DB) error {
 		`ALTER TABLE messages ADD COLUMN thinking TEXT NOT NULL DEFAULT ''`,
 		`ALTER TABLE conversations ADD COLUMN context_used INTEGER NOT NULL DEFAULT 0`,
 		`ALTER TABLE conversations ADD COLUMN context_max INTEGER NOT NULL DEFAULT 0`,
+		`ALTER TABLE conversations ADD COLUMN token_ratio REAL NOT NULL DEFAULT 1`,
 	} {
 		if _, err := db.Exec(stmt); err != nil && !strings.Contains(err.Error(), "duplicate column") {
 			return err
@@ -515,9 +545,10 @@ func listConversations(db *sql.DB, userID string) ([]Conversation, error) {
 
 func getConversation(db *sql.DB, id, userID string) (*ConversationWithMessages, error) {
 	var c Conversation
+	var ratio float64
 	err := db.QueryRow(
-		`SELECT id, user_id, title, model, attached_folder, context_used, context_max, created_at, updated_at FROM conversations WHERE id = ? AND user_id = ?`, id, userID,
-	).Scan(&c.ID, &c.UserID, &c.Title, &c.Model, &c.AttachedFolder, &c.ContextUsed, &c.ContextMax, &c.CreatedAt, &c.UpdatedAt)
+		`SELECT id, user_id, title, model, attached_folder, context_used, context_max, token_ratio, created_at, updated_at FROM conversations WHERE id = ? AND user_id = ?`, id, userID,
+	).Scan(&c.ID, &c.UserID, &c.Title, &c.Model, &c.AttachedFolder, &c.ContextUsed, &c.ContextMax, &ratio, &c.CreatedAt, &c.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -570,7 +601,57 @@ func getConversation(db *sql.DB, id, userID string) (*ConversationWithMessages, 
 		messages[i].Attachments = byMessage[messages[i].ID]
 	}
 
-	return &ConversationWithMessages{Conversation: c, Messages: messages}, nil
+	summaries, err := activeSummaries(db, id)
+	if err != nil {
+		return nil, err
+	}
+	return &ConversationWithMessages{Conversation: c, Messages: messages, Summaries: summaries, TokenRatio: ratio}, nil
+}
+
+func activeSummaries(db *sql.DB, conversationID string) ([]Summary, error) {
+	rows, err := db.Query(
+		`SELECT id, level, first_message_id, last_message_id, content, user_notes FROM summaries WHERE conversation_id = ? AND merged = 0 ORDER BY first_message_id ASC`, conversationID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Summary
+	for rows.Next() {
+		var s Summary
+		if err := rows.Scan(&s.ID, &s.Level, &s.FirstMessageID, &s.LastMessageID, &s.Content, &s.UserNotes); err != nil {
+			return nil, err
+		}
+		out = append(out, s)
+	}
+	return out, rows.Err()
+}
+
+// saveSummary stores a new summary and marks the summaries it replaces as
+// merged, in one transaction so history never sees both or neither.
+func saveSummary(db *sql.DB, conversationID string, s Summary, replaces []Summary) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err := tx.Exec(
+		`INSERT INTO summaries (conversation_id, level, first_message_id, last_message_id, content, user_notes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		conversationID, s.Level, s.FirstMessageID, s.LastMessageID, s.Content, s.UserNotes, time.Now().UnixMilli(),
+	); err != nil {
+		return err
+	}
+	for _, r := range replaces {
+		if _, err := tx.Exec(`UPDATE summaries SET merged = 1 WHERE id = ?`, r.ID); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+func setTokenRatio(db *sql.DB, id string, ratio float64) error {
+	_, err := db.Exec(`UPDATE conversations SET token_ratio = ? WHERE id = ?`, ratio, id)
+	return err
 }
 
 func setAttachedFolder(db *sql.DB, id, folder string) error {
@@ -624,6 +705,9 @@ func truncateConversation(db *sql.DB, conversationID string, fromID, fromTime in
 		return err
 	}
 	if _, err := tx.Exec(`DELETE FROM messages WHERE conversation_id = ? AND id >= ?`, conversationID, fromID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM summaries WHERE conversation_id = ? AND last_message_id >= ?`, conversationID, fromID); err != nil {
 		return err
 	}
 	return tx.Commit()

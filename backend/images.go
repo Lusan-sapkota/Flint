@@ -4,6 +4,11 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fmt"
+	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -114,4 +119,16 @@ func loadAttachmentBase64(attachmentsDir string, a Attachment) (string, error) {
 		return "", err
 	}
 	return base64.StdEncoding.EncodeToString(data), nil
+}
+
+// imageTokens estimates what one image costs in prompt tokens. Measured on
+// qwen3.5-4b it is width*height/1024 (180px: 38, 512px: 258, 1518px: 2211);
+// other vision models differ, so this errs high with a floor, and formats
+// the stdlib can't read the size of (webp, bmp) get a flat guess.
+func imageTokens(b64 string) int {
+	cfg, _, err := image.DecodeConfig(base64.NewDecoder(base64.StdEncoding, strings.NewReader(b64)))
+	if err != nil {
+		return 1024
+	}
+	return int(math.Max(256, float64(cfg.Width*cfg.Height)/1024))
 }

@@ -54,7 +54,7 @@ func TestBuildOptimizedHistory_ProtectsGoalAndRecentWindow(t *testing.T) {
 	}
 	messages = append(messages, Message{Role: "assistant", Content: "final answer"})
 
-	result := buildOptimizedHistory(messages, "")
+	result := buildOptimizedHistory(messages, nil, "", 3000, 1)
 
 	if result[0].Role != "system" {
 		t.Fatalf("expected system message preserved first, got role %q", result[0].Role)
@@ -82,14 +82,16 @@ func TestBuildOptimizedHistory_ProtectsGoalAndRecentWindow(t *testing.T) {
 		t.Fatalf("expected condensation to significantly shrink total size, got %d chars", totalChars)
 	}
 
-	foundCondensedNote := false
+	// The protected window alone is over budget here, so the old cycles are
+	// condensed and then dropped outright - either way the model is told.
+	foundNote := false
 	for _, m := range result {
-		if m.Role == "system" && strings.Contains(m.Content, "condensed") {
-			foundCondensedNote = true
+		if m.Role == "system" && (strings.Contains(m.Content, "condensed") || strings.Contains(m.Content, "omitted")) {
+			foundNote = true
 		}
 	}
-	if !foundCondensedNote {
-		t.Fatal("expected at least one condensed tool-cycle note in the output")
+	if !foundNote {
+		t.Fatal("expected a condensed or omitted note for the old tool cycles")
 	}
 }
 
@@ -100,7 +102,7 @@ func TestBuildOptimizedHistory_NeverSplitsToolCallPair(t *testing.T) {
 		{Role: "tool", Content: "output", ToolCallID: strPtr("call1")},
 	}
 
-	result := buildOptimizedHistory(messages, "")
+	result := buildOptimizedHistory(messages, nil, "", 3000, 1)
 
 	for i, m := range result {
 		if m.Role == "tool" {
@@ -149,7 +151,7 @@ func TestBuildOptimizedHistory_OnlyFirstSystemMessageProtected(t *testing.T) {
 		messages = append(messages, Message{Role: "assistant", Content: "filler reply"})
 	}
 
-	result := buildOptimizedHistory(messages, "")
+	result := buildOptimizedHistory(messages, nil, "", 3000, 1)
 
 	if result[0].Content != "Attached folder manifest..." {
 		t.Fatalf("expected the first system message preserved verbatim, got %q", result[0].Content)
@@ -190,11 +192,77 @@ func TestOnlyLatestImageIsResent(t *testing.T) {
 		{Role: "assistant", Content: "a dog"},
 		{Role: "user", Content: "compare them"},
 	}
-	result := buildOptimizedHistory(messages, dir)
+	result := buildOptimizedHistory(messages, nil, dir, 3000, 1)
 	if len(result[0].Images) != 0 || !strings.Contains(result[0].Content, "[Earlier image: old.png") {
 		t.Errorf("old image should be replaced by a note, got images=%d content=%q", len(result[0].Images), result[0].Content)
 	}
 	if len(result[2].Images) != 1 || strings.Contains(result[2].Content, "Earlier image") {
 		t.Errorf("latest image should still be sent, got images=%d content=%q", len(result[2].Images), result[2].Content)
+	}
+}
+
+func TestBuildOptimizedHistory_SummariesReplaceCoveredMessages(t *testing.T) {
+	messages := []Message{
+		{ID: 1, Role: "system", Content: "folder manifest"},
+		{ID: 2, Role: "user", Content: "ORIGINAL GOAL"},
+		{ID: 3, Role: "assistant", Content: "old reply one"},
+		{ID: 4, Role: "user", Content: "old question"},
+		{ID: 5, Role: "assistant", Content: "old reply two"},
+		{ID: 6, Role: "user", Content: "current question"},
+	}
+	summaries := []Summary{{FirstMessageID: 1, LastMessageID: 5, Content: "- user asked X"}}
+	result := buildOptimizedHistory(messages, summaries, "", 3000, 1)
+
+	var got []string
+	for _, m := range result {
+		got = append(got, m.Content)
+	}
+	joined := strings.Join(got, "|")
+	if strings.Contains(joined, "old reply") || strings.Contains(joined, "old question") {
+		t.Fatalf("covered messages should be replaced by the summary: %q", joined)
+	}
+	if len(result) != 4 || result[0].Content != "folder manifest" || result[1].Content != "ORIGINAL GOAL" ||
+		!strings.Contains(result[2].Content, "- user asked X") || result[3].Content != "current question" {
+		t.Fatalf("expected manifest, goal, summary, current question in order, got %q", joined)
+	}
+}
+
+func TestBuildOptimizedHistory_DropsOldestToFitBudget(t *testing.T) {
+	big := strings.Repeat("x", 4000) // ~1000 tokens each
+	messages := []Message{{Role: "user", Content: "goal"}}
+	for i := 0; i < 4; i++ {
+		messages = append(messages, Message{Role: "user", Content: big}, Message{Role: "assistant", Content: big})
+	}
+	for i := 0; i < protectedWindow; i++ {
+		messages = append(messages, Message{Role: "user", Content: "recent"})
+	}
+	result := buildOptimizedHistory(messages, nil, "", 300, 1)
+
+	total := 0
+	for _, m := range result {
+		total += tokenCounter(1).text(m.Content)
+	}
+	if total > 300 {
+		t.Fatalf("history should fit the budget, got %d tokens", total)
+	}
+	if result[0].Content != "goal" || !strings.Contains(result[1].Content, "omitted") || result[len(result)-1].Content != "recent" {
+		t.Fatalf("expected goal, an omitted note, ..., recent; got first=%q second=%q", result[0].Content, result[1].Content)
+	}
+}
+
+func TestBuildOptimizedHistory_CutsProtectedToolOutputToFit(t *testing.T) {
+	messages := []Message{
+		{Role: "user", Content: "goal"},
+		makeToolCallMessage(t, "cat big.go"),
+		{Role: "tool", Content: "[exit code: 0]\n" + strings.Repeat("code line\n", 2000), ToolCallID: strPtr("call1")},
+	}
+	result := buildOptimizedHistory(messages, nil, "", 1000, 1)
+	total := 0
+	for _, m := range result {
+		total += tokenCounter(1).text(m.Content)
+	}
+	last := result[len(result)-1]
+	if total > 1000 || last.Role != "tool" || !strings.HasPrefix(last.Content, "[exit code: 0]") || !strings.Contains(last.Content, "cut to fit") {
+		t.Fatalf("protected tool output should be cut to fit, keeping its status line; total=%d", total)
 	}
 }
