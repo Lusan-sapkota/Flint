@@ -56,6 +56,20 @@ Open `http://localhost:8080`. Optional env vars: `PORT`, `DB_PATH`,
 `OLLAMA_BASE_URL` (defaults to `http://localhost:11434`),
 `ATTACHMENTS_DIR`.
 
+### Docker
+
+```bash
+docker compose up -d
+docker compose exec ollama ollama pull qwen2.5:3b
+```
+
+This runs Flint alongside its own Ollama container, with the chat
+history and the models each in a named volume. Flint is bound to
+`127.0.0.1:8080` only, because signup is open and approved shell commands
+run inside the container. Folder attach and the shell tool can only see
+files inside the container, so bind-mount any project folder you want to
+work on.
+
 ## License
 
 AGPL-3.0 — see [LICENSE](./LICENSE).
