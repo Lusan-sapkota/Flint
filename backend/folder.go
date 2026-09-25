@@ -10,7 +10,14 @@ import (
 )
 
 const maxAttachFileSize = 64 * 1024
-const maxAttachTotalSize = 40 * 1024
+
+// The manifest is protected history sent on every request, so it has to
+// fit well inside boostedNumCtx: Go source measured ~3.4 chars per token,
+// making 12 KB about 3.6k tokens, under half the window. The old 40 KB cap
+// was ~12k tokens and made Ollama reject every request outright. Files past
+// the budget are listed as not included, and the model can read them with
+// the shell tool.
+const maxAttachTotalSize = 12 * 1024
 
 func readFolderManifest(path string) (manifest string, included []string, err error) {
 	entries, err := os.ReadDir(path)
