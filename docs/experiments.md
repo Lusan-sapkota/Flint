@@ -198,6 +198,37 @@ manager and table rule word for word, after two rounds of summarizing.
 The final recall question still went to `grep` instead of being answered
 from the summary. That's the E9 nudge conflict, not missing context.
 
+## E12: Memory cost of a bigger window
+
+Each model loaded fresh at each `num_ctx`, with the size Ollama reports
+(`/api/ps`) and total GPU memory in use (`nvidia-smi`, 6 GB card, about
+0.8 GB used by the desktop):
+
+| Model | num_ctx | Model size | In VRAM | GPU used |
+|---|---|---|---|---|
+| qwen2.5-3b-instruct | 4096 | 2.45 GB | 2.45 GB | 3227 MiB |
+| qwen2.5-3b-instruct | 8192 | 2.70 GB | 2.70 GB | 3434 MiB |
+| qwen2.5-3b-instruct | 16384 | 3.02 GB | 3.02 GB | 3765 MiB |
+| qwen2.5-3b-instruct | 32768 | 3.54 GB | 3.54 GB | 4248 MiB |
+| qwen3.5-4b | 4096 | 4.23 GB | 2.87 GB | 4882 MiB |
+| qwen3.5-4b | 8192 | 4.38 GB | 2.89 GB | 4903 MiB |
+| qwen3.5-4b | 16384 | 4.17 GB | 2.90 GB | 4894 MiB |
+| qwen3.5-4b | 32768 | 4.81 GB | 2.85 GB | 4860 MiB |
+
+- qwen2.5-3b grows about 36 KB per token of window, matching the estimate
+  from its architecture. Even at 32k it fits entirely on this GPU.
+- qwen3.5-4b doesn't fit on the GPU at any window size: about 1.4-2 GB
+  of it runs on the CPU. That's why its summaries took 26-40 s (E6). Its
+  size barely changes with the window.
+
+The KV cache is allocated for the whole window when the model loads,
+however long the prompt is. So the window size is what costs memory, not
+the conversation length.
+
+**Changed:** nothing yet. Memory isn't what stops a bigger window for
+qwen2.5-3b on this machine. What's still unmeasured is how prompt
+processing time and answer quality hold up at 16k and 32k.
+
 ## Open questions
 
 - **The tool nudge vs "don't run commands".** E9. It needs a fix that
@@ -209,10 +240,7 @@ from the summary. That's the E9 nudge conflict, not missing context.
 - **qwen3.5-4b summary speed.** 26-40 s per summary. It runs in the
   background, but each one holds Ollama's only request slot, so the next
   chat message waits behind it.
-- **A bigger window.** The KV cache is allocated for the whole `num_ctx`
-  when the model loads, whatever the prompt length. From qwen2.5-3b's
-  published architecture (36 layers, 2 KV heads, head size 128, fp16),
-  that's about 36 KB per token: 0.3 GB at 8k, 0.6 GB at 16k, 1.2 GB at 32k.
-  These are calculated, not yet measured. Small models also get worse at
-  using facts buried in a long prompt, so a bigger window adds margin but
-  doesn't replace compaction.
+- **A bigger window.** Memory allows 32k for qwen2.5-3b here (E12). Still
+  unmeasured: prompt processing time and recall quality at 16k and 32k,
+  since small models get worse at using facts buried in a long prompt.
+  A bigger window adds margin but doesn't replace compaction.

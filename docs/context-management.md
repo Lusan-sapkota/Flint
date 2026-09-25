@@ -125,4 +125,6 @@ same `num_ctx`, so they never force a model reload.
   matter. The cheaper first step would be a deterministic index from file
   names in the attached folder to the messages and summaries that mention
   them, with no model calls and no embeddings.
-- **A bigger window.** See the VRAM notes in [experiments.md](experiments.md#open-questions).
+- **A bigger window.** Memory would allow 32k for qwen2.5-3b on a 6 GB
+  GPU ([E12](experiments.md#e12-memory-cost-of-a-bigger-window)). Speed and
+  quality at that size aren't measured yet.
