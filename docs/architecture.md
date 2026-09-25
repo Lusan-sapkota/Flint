@@ -47,7 +47,9 @@ backend/            Go module; run from here (asset paths are ../frontend/...)
   db.go             schema, migrations, all SQL, chat search
 frontend/
   templates/        html/template pages (base, chat, settings, login, signup, recover)
-  static/js/        chat.js (streaming chat UI), settings.js, app.js, vendored libraries
+  static/js/        chat.js (streaming chat UI, markdown/math setup), settings.js, app.js,
+                    vendored htmx, Alpine.js, marked, DOMPurify, Temml
+  static/css/temml/ Temml's stylesheet and math font (local only)
   static/css/       flint.css on top of Pico.css
 docs/               this documentation
 Dockerfile, docker-compose.yml

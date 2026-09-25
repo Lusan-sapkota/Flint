@@ -15,6 +15,17 @@ merge candidates and verbatim user notes. `memory_test.go` covers
 following edits, and the memory budget. `summary_test.go` also covers the forced chunk
 behind `@compact`.
 
+## Rendering
+
+Markdown, math and the no-remote-content rule run in the browser, so
+there's no Go test for them. They were checked by rendering these inputs
+through `renderMarkdown` on a live page, and confirming no request left
+localhost: `\(\pi r^2\)`, `$E=mc^2$`, `$$\sum…$$`, `\[…\]`, "costs $5 and
+$10, or $5-$10", `$` inside inline code and a fenced block, broken
+`\(\frac{1}{\)`, `![cat](https://…)`, raw `<img src="https://…">` next to a
+`data:` image, and `<p style="background:url(…)">`, `<svg><image href>`,
+`<video src>`. Recheck these after changing chat.js's markdown setup.
+
 ## Live checks
 
 `backend/live_test.go` is behind the `live` build tag, so `go test ./...`

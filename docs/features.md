@@ -20,8 +20,18 @@ feature change.
 
 ## Chat
 
-- **Streaming replies**, rendered as Markdown (sanitized with DOMPurify).
-  Code blocks have their own Copy button.
+- **Streaming replies**, rendered as Markdown (sanitized with DOMPurify):
+  headings, lists, tables, quotes, links, task lists and strikethrough.
+  Code blocks show their language and have their own Copy button, with no
+  syntax highlighting. Diagram code such as Mermaid shows as a code block
+  you can copy into any viewer.
+- **Math** renders offline with Temml as native MathML: `\(…\)` or `$…$`
+  inline, `\[…\]` or `$$…$$` as a block. Dollar amounts like "$5 and $10"
+  stay plain text, `$` inside code is left alone, and broken LaTeX shows an
+  error instead of breaking the reply.
+- **No remote content.** Rendering a reply never fetches anything. A
+  remote image becomes a link you can open on purpose, and raw HTML from
+  the model can't load media, styles or SVG from the network.
 - **Copy** any message.
 - **Thinking toggle** (the light-bulb button). For models with the
   thinking capability, such as qwen3.5-4b, it switches between reasoning

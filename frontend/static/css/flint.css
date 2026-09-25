@@ -2030,3 +2030,16 @@ button.flint-danger-solid:hover {
   margin-right: 0.5rem;
   background: var(--flint-border);
 }
+
+/* Wide equations scroll instead of pushing the chat sideways. */
+.flint-math-block {
+  overflow-x: auto;
+  margin: 0.75rem 0;
+}
+
+.flint-md .temml-error {
+  color: var(--flint-danger);
+  font-family: var(--pico-font-family-monospace);
+  font-size: 0.85em;
+  white-space: pre-wrap;
+}

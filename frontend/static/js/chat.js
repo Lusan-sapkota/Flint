@@ -52,10 +52,56 @@ function flintFlashCopied(el) {
 // Configured as soon as this script runs, not on DOMContentLoaded: Alpine
 // (also deferred) starts first and renders a page's saved messages before
 // that event, so they came out with marked's defaults - no code-block bar,
-// no link attributes - while streamed ones were fine. marked and DOMPurify
-// are loaded before this file.
+// no link attributes - while streamed ones were fine. marked, DOMPurify and
+// temml are loaded before this file.
+
+const isExternalURL = (url) => /^(https?:)?\/\//i.test((url || '').trim());
+
+function flintRenderMath(tex, displayMode) {
+  try {
+    return temml.renderToString(tex, { displayMode, throwOnError: false });
+  } catch (e) {
+    return `<code>${flintEscapeHTML(tex)}</code>`;
+  }
+}
+
+// Math is taken out before markdown sees it, since markdown would eat the
+// backslashes in \( \) and \[ \]. A single $...$ follows pandoc's rule -
+// no space just inside either $, and no digit right after the closing one
+// - so "costs $5 and $10" stays plain text.
+const mathExtensions = [
+  {
+    name: 'mathBlock',
+    level: 'block',
+    start: (src) => src.match(/\$\$|\\\[/)?.index,
+    tokenizer(src) {
+      const m = /^(?:\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\])[ \t]*(?:\n|$)/.exec(src);
+      if (m) return { type: 'mathBlock', raw: m[0], text: (m[1] ?? m[2]).trim() };
+    },
+    renderer: (token) => `<div class="flint-math-block">${flintRenderMath(token.text, true)}</div>`,
+  },
+  {
+    name: 'mathInline',
+    level: 'inline',
+    start: (src) => {
+      const i = src.search(/\$|\\\(/);
+      return i === -1 ? undefined : i;
+    },
+    tokenizer(src) {
+      let m = /^\\\(([\s\S]+?)\\\)/.exec(src);
+      if (m) return { type: 'mathInline', raw: m[0], text: m[1].trim(), display: false };
+      m = /^\$\$([\s\S]+?)\$\$/.exec(src);
+      if (m) return { type: 'mathInline', raw: m[0], text: m[1].trim(), display: true };
+      m = /^\$(?=\S)([^$\n]*?\S)\$(?!\d)/.exec(src);
+      if (m) return { type: 'mathInline', raw: m[0], text: m[1], display: false };
+    },
+    renderer: (token) => flintRenderMath(token.text, token.display),
+  },
+];
+
 marked.use({
   breaks: true,
+  extensions: mathExtensions,
   renderer: {
     code({ text, lang }) {
       const label = (lang || '').split(/\s/)[0];
@@ -63,12 +109,32 @@ marked.use({
         `<button type="button" class="flint-code-copy">Copy</button></div>` +
         `<pre><code>${flintEscapeHTML(text)}</code></pre></div>`;
     },
+    // Flint promises nothing leaves the machine unless asked; a remote
+    // image would be fetched just by rendering the reply. It becomes a link
+    // the user can choose to open.
+    image({ href, text }) {
+      if (!isExternalURL(href)) return false;
+      return `<a href="${flintEscapeHTML(href)}">[image: ${flintEscapeHTML(text || href)}]</a>`;
+    },
   },
 });
+
+// Raw HTML in a reply gets the same rule: no SVG (its <image> fetches), no
+// media tags or style/srcset/poster (all can fetch), and <img> keeps only a
+// local source.
+const SANITIZE_CONFIG = {
+  USE_PROFILES: { html: true, mathMl: true },
+  FORBID_TAGS: ['video', 'audio', 'source', 'track', 'picture'],
+  FORBID_ATTR: ['style', 'srcset', 'poster', 'background'],
+};
+
 DOMPurify.addHook('afterSanitizeAttributes', (node) => {
   if (node.tagName === 'A') {
     node.setAttribute('target', '_blank');
     node.setAttribute('rel', 'noopener noreferrer');
+  }
+  if (node.tagName === 'IMG' && isExternalURL(node.getAttribute('src'))) {
+    node.removeAttribute('src');
   }
 });
 
@@ -186,7 +252,7 @@ document.addEventListener('alpine:init', () => {
     // Model output is untrusted: everything marked produces goes through
     // DOMPurify before it touches the DOM.
     renderMarkdown(text) {
-      return DOMPurify.sanitize(marked.parse(text || ''));
+      return DOMPurify.sanitize(marked.parse(text || ''), SANITIZE_CONFIG);
     },
 
     async copyText(text, el) {

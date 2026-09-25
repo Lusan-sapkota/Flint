@@ -64,7 +64,12 @@ and their output is capped at 20,000 characters.
 - The UI is same-origin with the API, so no CORS headers are set.
 - Docker Compose publishes Flint on `127.0.0.1:8080` only, because of open
   signup and the shell tool.
-- Model output is rendered as Markdown through DOMPurify.
+- Model output is rendered as Markdown through DOMPurify, restricted to
+  HTML and MathML (no SVG). Rendering must never fetch from the network:
+  remote markdown images become links, `<img>` keeps only local or `data:`
+  sources, and media tags plus `style`, `srcset`, `poster` and
+  `background` are stripped, since any of them could load a remote URL
+  (for example, a tracking pixel in a reply).
 
 ## Memory
 
