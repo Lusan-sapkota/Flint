@@ -142,13 +142,33 @@ though you can:
 - Until a summary is ready, the oldest messages are left out of that
   request, and the model is told how many. Very large command output is
   cut down so every request fits.
-- **`@compact`** summarizes everything eligible right away instead of
-  waiting, and lists what it condensed. What always stays word for word
-  is unchanged: your first message, the folder context, the latest tool
-  call, your latest message and the last 6 messages. It isn't added to the
-  chat history, and it can't be used as an edit.
-
 See [context-management.md](context-management.md).
+
+### Compacting by hand (`@compact`)
+
+Send `@compact` as a message to condense the chat right away, instead of
+waiting for older messages to fill a quarter of the window.
+
+- **What it does:** summarizes everything eligible, oldest first, and
+  merges summaries up a level when one level gets too full, the same way
+  the automatic pass does.
+- **What it shows:** each step as it happens, such as "condensed 3
+  messages into a summary" or "merged 3 older summaries into one", and
+  then a closing line.
+- **What always stays word for word:** your first message, the folder
+  context, the latest tool call and its result, your latest message and
+  the last 6 messages. Your own words inside the condensed part are kept
+  word for word in the summary.
+- **Nothing to do:** if everything older is already summarized, it says
+  so and changes nothing.
+- **Already running:** if the automatic pass is working on the same chat,
+  it says so. Try again a moment later.
+- **Limits:** up to 12 steps per command. A very long chat that was never
+  compacted may need `@compact` twice.
+- **Not part of the chat:** the command and its report aren't saved to
+  the chat history, and an edit can't turn a message into `@compact`.
+- Nothing is deleted. The original messages stay in the database; the
+  summary only replaces them in what the model is sent.
 
 ## Settings
 
