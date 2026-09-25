@@ -84,7 +84,7 @@ Each step is idempotent.
 2. The message and any attachments are validated as a whole, then saved.
    An `@web` query runs its search first. An `@memory` recall adds the
    matching memories first, and `@memory save` is handled on its own with
-   no chat turn (see features.md).
+   no chat turn, and so is `@compact` (see features.md).
 3. `streamAssistantTurn` builds the budget and the fitted history,
    appends the tool nudge and folder anchor to the last message when a
    folder is attached, and streams the model's reply.

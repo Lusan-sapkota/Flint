@@ -477,10 +477,10 @@ func (s *Server) handleEditLastMessage(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "content is required")
 		return
 	}
-	// An edit replaces the last message, but a memory command never becomes
-	// one, so editing into it would just delete the original.
-	if _, _, ok := parseMemoryCommand(body.Content); ok {
-		writeError(w, http.StatusBadRequest, "send @memory as a new message instead of an edit")
+	// An edit replaces the last message, but a memory or compact command
+	// never becomes one, so editing into it would just delete the original.
+	if _, _, ok := parseMemoryCommand(body.Content); ok || isCompactCommand(body.Content) {
+		writeError(w, http.StatusBadRequest, "send @memory or @compact as a new message instead of an edit")
 		return
 	}
 
@@ -539,6 +539,10 @@ func (s *Server) runUserTurn(w http.ResponseWriter, r *http.Request, user *User,
 	}
 
 	notice := ""
+	if isCompactCommand(content) {
+		s.compactNow(w, r, user, id)
+		return
+	}
 	if save, rest, ok := parseMemoryCommand(content); ok {
 		if save {
 			s.saveMemoryFromChat(w, r, user, id, rest)

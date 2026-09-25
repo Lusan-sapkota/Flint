@@ -42,7 +42,7 @@ feature change.
   Ollama, the header says so and points you to Settings or a new chat.
 - **Last-activity time** in the chat header.
 - **Scrolling tips** under the message box: a slow marquee through
-  `@web`, `@memory save` and `@memory <words>`. It pauses on hover and
+  `@web`, `@memory save`, `@memory <words>` and `@compact`. It pauses on hover and
   shows one static tip if your system asks for reduced motion.
 - **Enter** sends, and **Shift+Enter** adds a new line.
 
@@ -133,7 +133,8 @@ things up.
 
 ## Long conversations
 
-A chat never runs out of room, and you never have to compact it yourself:
+A chat never runs out of room, and you never have to compact it yourself,
+though you can:
 
 - Older turns are summarized in the background once they add up to a
   quarter of the window. Your own messages are kept word for word inside
@@ -141,6 +142,11 @@ A chat never runs out of room, and you never have to compact it yourself:
 - Until a summary is ready, the oldest messages are left out of that
   request, and the model is told how many. Very large command output is
   cut down so every request fits.
+- **`@compact`** summarizes everything eligible right away instead of
+  waiting, and lists what it condensed. What always stays word for word
+  is unchanged: your first message, the folder context, the latest tool
+  call, your latest message and the last 6 messages. It isn't added to the
+  chat history, and it can't be used as an edit.
 
 See [context-management.md](context-management.md).
 

@@ -2,7 +2,7 @@
 <script src="/static/js/purify.min.js" defer></script>
 <script src="/static/js/chat.js" defer></script>{{end}}
 {{/* Shown twice in a row so the marquee loops without a jump. */}}
-{{define "input-tips"}}<span>Tip: start with <code>@web</code> to search the web (needs a Brave key in Settings)</span><span>Tip: <code>@memory save</code> keeps what matters from this chat for later ones</span><span>Tip: <code>@memory &lt;words&gt;</code> recalls a saved memory in any chat</span>{{end}}
+{{define "input-tips"}}<span>Tip: start with <code>@web</code> to search the web (needs a Brave key in Settings)</span><span>Tip: <code>@memory save</code> keeps what matters from this chat for later ones</span><span>Tip: <code>@memory &lt;words&gt;</code> recalls a saved memory in any chat</span><span>Tip: <code>@compact</code> condenses older messages now instead of waiting</span>{{end}}
 {{define "content"}}
 {{/* Runs before first paint, while Alpine (deferred) hasn't applied any
      x-show yet: marks the saved sidebar state on <html> so CSS can render

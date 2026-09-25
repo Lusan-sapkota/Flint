@@ -47,7 +47,7 @@ func liveConversation(t *testing.T) (*Server, *User, *ConversationWithMessages) 
 func TestLiveSummarizeChunk(t *testing.T) {
 	srv, user, convo := liveConversation(t)
 	numCtx := numCtxFor(convo.Conversation)
-	chunk, ok := nextChunk(convo.Messages, nil, tokenCounter(convo.TokenRatio), numCtx/4)
+	chunk, ok := nextChunk(convo.Messages, nil, tokenCounter(convo.TokenRatio), numCtx/4, numCtx/4)
 	if !ok {
 		t.Skip("conversation is too short to have a summarizable chunk")
 	}

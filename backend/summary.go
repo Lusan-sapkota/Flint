@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -88,9 +89,9 @@ func summarizableEnd(messages []Message) int {
 	return max(end, 0)
 }
 
-// nextChunk picks the oldest run of not-yet-summarized messages worth at
-// least chunkTokens, or ok=false if there isn't that much yet.
-func nextChunk(messages []Message, summaries []Summary, count tokenCounter, chunkTokens int) (chunk []Message, ok bool) {
+// nextChunk picks the oldest run of not-yet-summarized messages, up to
+// about maxTokens, or ok=false if there's less than minTokens of it.
+func nextChunk(messages []Message, summaries []Summary, count tokenCounter, minTokens, maxTokens int) (chunk []Message, ok bool) {
 	var after int64 = -1
 	if len(summaries) > 0 {
 		after = summaries[len(summaries)-1].LastMessageID
@@ -104,9 +105,12 @@ func nextChunk(messages []Message, summaries []Summary, count tokenCounter, chun
 		}
 		chunk = append(chunk, messages[i])
 		total += count.text(messages[i].Content)
-		if total >= chunkTokens && messages[i+1].Role != "tool" {
+		if total >= maxTokens && messages[i+1].Role != "tool" {
 			return chunk, true
 		}
+	}
+	if len(chunk) > 0 && total >= minTokens {
+		return chunk, true
 	}
 	return nil, false
 }
@@ -174,7 +178,7 @@ func (s *Server) summarizeInBackground(user *User, convoID string) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()
 		for range maxSummariesPerRun {
-			done, err := s.summarizeStep(ctx, user, convoID)
+			done, _, err := s.summarizeStep(ctx, user, convoID, false)
 			if err != nil {
 				log.Printf("warning: summarizing conversation %s: %v", convoID, err)
 				return
@@ -187,11 +191,13 @@ func (s *Server) summarizeInBackground(user *User, convoID string) {
 }
 
 // summarizeStep does one unit of work - a merge if one is due, else one
-// new chunk - and reports done when there was nothing to do.
-func (s *Server) summarizeStep(ctx context.Context, user *User, convoID string) (bool, error) {
+// new chunk - and reports done when there was nothing to do, plus what it
+// did. force summarizes whatever is eligible instead of waiting for a
+// quarter of the window to build up.
+func (s *Server) summarizeStep(ctx context.Context, user *User, convoID string, force bool) (done bool, did string, err error) {
 	convo, err := getConversation(s.db, convoID, user.ID)
 	if err != nil || convo == nil {
-		return true, err
+		return true, "", err
 	}
 	numCtx := numCtxFor(convo.Conversation)
 	target := summaryTokens(numCtx)
@@ -205,7 +211,7 @@ func (s *Server) summarizeStep(ctx context.Context, user *User, convoID string) 
 		}
 		out, err := s.condense(ctx, user, convo, fmt.Sprintf(mergePrompt, target/20), "Notes:\n"+notes.String(), target)
 		if err != nil {
-			return true, err
+			return true, "", err
 		}
 		// Verbatim until it outgrows its share of the window; only then is
 		// it condensed, alone, which a small model does far more reliably
@@ -213,24 +219,75 @@ func (s *Server) summarizeStep(ctx context.Context, user *User, convoID string) 
 		userSaid := said.String()
 		if count.text(userSaid) > numCtx/16 {
 			if userSaid, err = s.condense(ctx, user, convo, fmt.Sprintf(userNotesPrompt, target/10), userSaid, numCtx/16); err != nil {
-				return true, err
+				return true, "", err
 			}
 			userSaid += "\n"
 		}
 		merged := Summary{Level: group[0].Level + 1, FirstMessageID: group[0].FirstMessageID, LastMessageID: group[len(group)-1].LastMessageID, Content: out, UserNotes: userSaid}
-		return false, saveSummary(s.db, convoID, merged, group)
+		return false, fmt.Sprintf("merged %d older summaries into one", len(group)), saveSummary(s.db, convoID, merged, group)
 	}
 
-	chunk, ok := nextChunk(convo.Messages, convo.Summaries, count, numCtx/4)
+	minTokens := numCtx / 4
+	if force {
+		minTokens = 1
+	}
+	chunk, ok := nextChunk(convo.Messages, convo.Summaries, count, minTokens, numCtx/4)
 	if !ok {
-		return true, nil
+		return true, "", nil
 	}
 	out, err := s.condense(ctx, user, convo, fmt.Sprintf(summarizePrompt, target/20), "Transcript:\n"+formatTranscript(chunk), target)
 	if err != nil {
-		return true, err
+		return true, "", err
 	}
 	sm := Summary{Level: 0, FirstMessageID: chunk[0].ID, LastMessageID: chunk[len(chunk)-1].ID, Content: out, UserNotes: userNotes(chunk)}
-	return false, saveSummary(s.db, convoID, sm, nil)
+	return false, fmt.Sprintf("condensed %d messages into a summary", len(chunk)), saveSummary(s.db, convoID, sm, nil)
+}
+
+// isCompactCommand reports whether a message is the `@compact` command.
+func isCompactCommand(content string) bool {
+	return strings.EqualFold(strings.TrimSpace(content), "@compact")
+}
+
+// compactNow handles `@compact`: it summarizes everything eligible right
+// away, reporting each step, instead of waiting for the automatic
+// threshold. The same messages stay verbatim as always (see
+// summarizableEnd). It shares the background guard, so it never runs
+// alongside an automatic pass on the same conversation.
+func (s *Server) compactNow(w http.ResponseWriter, r *http.Request, user *User, convoID string) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	if _, busy := s.summarizing.LoadOrStore(convoID, true); busy {
+		w.Write([]byte("[Already compacting this chat in the background. Try again in a moment.]"))
+		return
+	}
+	defer s.summarizing.Delete(convoID)
+
+	flush := func() {
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+	}
+	steps := 0
+	// ponytail: a hard cap on steps per command; a huge old chat may need
+	// @compact twice, which is cheaper than an unbounded request.
+	for range 3 * maxSummariesPerRun {
+		done, did, err := s.summarizeStep(r.Context(), user, convoID, true)
+		if err != nil {
+			fmt.Fprintf(w, "[Compacting stopped: %v]", err)
+			return
+		}
+		if done {
+			break
+		}
+		steps++
+		fmt.Fprintf(w, "- %s\n", did)
+		flush()
+	}
+	if steps == 0 {
+		w.Write([]byte("[Nothing to compact: older messages are already summarized, and the most recent ones always stay word for word.]"))
+		return
+	}
+	w.Write([]byte("\nCompacted. Your first message, the folder context, the latest tool call and the last few messages stay word for word."))
 }
 
 func (s *Server) condense(ctx context.Context, user *User, convo *ConversationWithMessages, system, input string, target int) (string, error) {

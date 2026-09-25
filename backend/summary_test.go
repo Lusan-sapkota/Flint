@@ -21,7 +21,7 @@ func TestNextChunk_StopsBeforeCurrentTurnAndKeepsToolPairs(t *testing.T) {
 	}
 	add(Message{Role: "user", Content: "current turn"})
 
-	chunk, ok := nextChunk(messages, nil, 1, 300)
+	chunk, ok := nextChunk(messages, nil, 1, 300, 300)
 	if !ok {
 		t.Fatal("expected a chunk")
 	}
@@ -32,12 +32,17 @@ func TestNextChunk_StopsBeforeCurrentTurnAndKeepsToolPairs(t *testing.T) {
 		t.Fatal("a chunk must not end between a tool call and its result")
 	}
 
-	all, ok := nextChunk(messages, nil, 1, 1<<30)
+	all, ok := nextChunk(messages, nil, 1, 1<<30, 1<<30)
 	if ok || all != nil {
 		t.Fatal("no chunk should be returned until there is enough to summarize")
 	}
+	// @compact: take whatever is eligible, however little.
+	forced, ok := nextChunk(messages, nil, 1, 1, 1<<30)
+	if !ok || forced[len(forced)-1].ID >= messages[len(messages)-protectedWindow].ID {
+		t.Fatal("a forced chunk should take the eligible remainder and still stop before the recent window")
+	}
 	summaries := []Summary{{FirstMessageID: 2, LastMessageID: messages[len(messages)-protectedWindow-1].ID}}
-	if _, ok := nextChunk(messages, summaries, 1, 1); ok {
+	if _, ok := nextChunk(messages, summaries, 1, 1, 1); ok {
 		t.Fatal("nothing inside the recent window should be summarized")
 	}
 }
@@ -73,5 +78,13 @@ func TestUserNotesAreVerbatimAndReachHistory(t *testing.T) {
 	got := formatSummaries([]Summary{{Content: "- found X", UserNotes: notes}})
 	if !strings.Contains(got, "port 9123") || !strings.Contains(got, "- found X") {
 		t.Fatalf("both user notes and model notes should reach the history: %q", got)
+	}
+}
+
+func TestIsCompactCommand(t *testing.T) {
+	for in, want := range map[string]bool{"@compact": true, "  @Compact \n": true, "@compact now": false, "please @compact": false} {
+		if got := isCompactCommand(in); got != want {
+			t.Errorf("%q: got %v", in, got)
+		}
 	}
 }

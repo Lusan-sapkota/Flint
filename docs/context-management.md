@@ -91,6 +91,11 @@ separates a tool call from its result. Editing a message only ever
 truncates from the latest user message, so an edit can't invalidate a
 summary.
 
+**Manual.** `@compact` (`compactNow`) runs the same steps right away,
+with no minimum chunk size, until nothing eligible is left, up to 12
+steps per command. It shares the one-pass-per-conversation guard with the
+background summarizer, so the two never run together.
+
 **Layers.** When a level holds more than 3 summaries (`summaryFanout`),
 its oldest 3 merge into one summary a level up. Old content therefore gets
 condensed again only a logarithmic number of times, instead of on every

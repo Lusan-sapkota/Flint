@@ -12,7 +12,8 @@ These need no Ollama and no network. `context_test.go` and
 replacing the messages they cover, drop and cut to fit, chunk boundaries,
 merge candidates and verbatim user notes. `memory_test.go` covers
 `@memory` parsing, per-account scoping, any-word search, the index
-following edits, and the memory budget.
+following edits, and the memory budget. `summary_test.go` also covers the forced chunk
+behind `@compact`.
 
 ## Live checks
 
