@@ -49,24 +49,27 @@ function flintFlashCopied(el) {
   setTimeout(() => el.classList.remove('copied'), 1500);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  marked.use({
-    breaks: true,
-    renderer: {
-      code({ text, lang }) {
-        const label = (lang || '').split(/\s/)[0];
-        return `<div class="flint-code"><div class="flint-code-bar"><span>${flintEscapeHTML(label || 'code')}</span>` +
-          `<button type="button" class="flint-code-copy">Copy</button></div>` +
-          `<pre><code>${flintEscapeHTML(text)}</code></pre></div>`;
-      },
+// Configured as soon as this script runs, not on DOMContentLoaded: Alpine
+// (also deferred) starts first and renders a page's saved messages before
+// that event, so they came out with marked's defaults - no code-block bar,
+// no link attributes - while streamed ones were fine. marked and DOMPurify
+// are loaded before this file.
+marked.use({
+  breaks: true,
+  renderer: {
+    code({ text, lang }) {
+      const label = (lang || '').split(/\s/)[0];
+      return `<div class="flint-code"><div class="flint-code-bar"><span>${flintEscapeHTML(label || 'code')}</span>` +
+        `<button type="button" class="flint-code-copy">Copy</button></div>` +
+        `<pre><code>${flintEscapeHTML(text)}</code></pre></div>`;
     },
-  });
-  DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-    if (node.tagName === 'A') {
-      node.setAttribute('target', '_blank');
-      node.setAttribute('rel', 'noopener noreferrer');
-    }
-  });
+  },
+});
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  if (node.tagName === 'A') {
+    node.setAttribute('target', '_blank');
+    node.setAttribute('rel', 'noopener noreferrer');
+  }
 });
 
 document.addEventListener('click', async (e) => {
