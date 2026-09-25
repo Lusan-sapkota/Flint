@@ -125,7 +125,8 @@ document.addEventListener('alpine:init', () => {
   const STATS_MARKER = '<<<STATS>>>';
   const THINK_MARKER = '<<<THINK>>>';
   const LOADING_MARKER = '<<<LOADING>>>';
-  const MARKERS = [TOOL_CALL_MARKER, STATS_MARKER, THINK_MARKER, LOADING_MARKER];
+  const CONTEXT_MARKER = '<<<CONTEXT>>>';
+  const MARKERS = [TOOL_CALL_MARKER, STATS_MARKER, THINK_MARKER, LOADING_MARKER, CONTEXT_MARKER];
   // Mirrors imageMimeExtensions in images.go.
   const SUPPORTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/bmp'];
   const firstMarker = (s) => {
@@ -604,8 +605,9 @@ document.addEventListener('alpine:init', () => {
         this.scrollToBottom();
       };
 
-      // Thinking lines are consumed in place and streaming continues; a
-      // tool-call or stats marker ends the visible text for this response.
+      // Thinking and context lines are consumed in place and streaming
+      // continues; a tool-call or stats marker ends the visible text for
+      // this response.
       const drain = () => {
         while (!markerFound) {
           const idx = firstMarker(pending);
@@ -622,16 +624,24 @@ document.addEventListener('alpine:init', () => {
             pending = pending.slice(LOADING_MARKER.length).replace(/^\n/, '');
             continue;
           }
-          if (!pending.startsWith(THINK_MARKER)) {
+          const isContext = pending.startsWith(CONTEXT_MARKER);
+          if (!isContext && !pending.startsWith(THINK_MARKER)) {
             markerFound = true;
             return;
           }
           const nl = pending.indexOf('\n');
-          if (nl === -1) return; // rest of this thinking line hasn't arrived yet
+          if (nl === -1) return; // rest of this line hasn't arrived yet
           try {
-            ensureBubble().thinking += JSON.parse(pending.slice(THINK_MARKER.length, nl));
+            if (isContext) {
+              const obj = JSON.parse(pending.slice(CONTEXT_MARKER.length, nl));
+              this.contextUsed = obj.used;
+              this.contextMax = obj.max;
+            } else {
+              ensureBubble().thinking += JSON.parse(pending.slice(THINK_MARKER.length, nl));
+            }
           } catch (e) {
-            // a malformed thinking line only loses that fragment of reasoning
+            // a malformed line only loses that fragment of reasoning or one
+            // context-bar update
           }
           pending = pending.slice(nl + 1);
         }
@@ -652,10 +662,6 @@ document.addEventListener('alpine:init', () => {
         try {
           const obj = JSON.parse(pending.slice(STATS_MARKER.length).trim());
           if (bubble) bubble.tokensPerSec = obj.tokensPerSec;
-          if (obj.contextMax) {
-            this.contextUsed = obj.contextUsed;
-            this.contextMax = obj.contextMax;
-          }
         } catch (e) {
           // stats are cosmetic - a malformed line just means none are shown
         }
