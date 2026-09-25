@@ -387,11 +387,60 @@ body Ollama 0.34.2 sends.
 
 **How far this goes:**
 
-- **The first estimate is still wrong.** A new chat's first oversized
-  request is still rejected; Flint now recovers from it. That costs one
-  wasted round trip, which is cheap, since Ollama rejects before
-  generating anything. A better first guess for number-dense text would
-  avoid it, but it isn't worth the complexity yet.
+- **The first estimate is still wrong, and that's accepted, not fixed.**
+  This is what happens and why.
+
+  *What the estimate is.* Flint can't count tokens exactly before sending
+  a request. The only exact count comes back from Ollama, afterwards. So it
+  estimates: characters / 4, multiplied by a per-chat correction ratio
+  that's measured from Ollama's real count after every successful reply. A
+  new chat has no measurement yet, so its ratio starts at 1.0, which means
+  plain characters / 4.
+
+  *Why characters / 4 is wrong here.* Four characters per token is roughly
+  right for English prose. Go code runs about 3.4. A log of timestamps and
+  numbers runs about 2, because the tokenizer splits digits and punctuation
+  into many small tokens. So on dense text, characters / 4 counts about
+  half the real tokens.
+
+  *What happened before the fix, in numbers.* The model ran
+  `cat large_log.txt`. The output was capped at 20,000 characters, which
+  characters / 4 counts as about 5,000 tokens. Together with the folder
+  manifest, the fitting step thought the request fit the budget (8192 minus
+  the 1024 reply reserve and the tool overhead, about 7,000 estimated
+  tokens). Ollama counted 12,628 real tokens and rejected it. The ratio was
+  never corrected, because only a successful reply corrects it, so the next
+  request was estimated the same way and rejected again, every time.
+
+  *What happens now, step by step:*
+
+  1. The request is built with the uncorrected estimate and sent.
+  2. Ollama rejects it and reports `n_prompt_tokens: 12628`.
+  3. Flint divides that by its own estimate of the same request, about
+     1.8, and stores it as the chat's ratio.
+  4. The history is rebuilt with that ratio. The same log now counts as
+     roughly 10,000 tokens instead of 5,000, so the fitting step cuts it
+     down until the real size is under the window.
+  5. The request is sent again and succeeds. Nothing had been streamed, so
+     you never see the first attempt. In the check run, the retried
+     request peaked at 7,090 of 8,192 tokens.
+
+  *What it costs.* One rejected request. Ollama rejects while counting the
+  prompt, before generating anything, so the wasted time is small next to
+  the reply itself.
+
+  *When it happens.* On the first oversized request of a new chat, and
+  again whenever a chat's text suddenly gets much denser than what the
+  ratio was measured on. For example, a ratio measured on prose, followed
+  by a log dump. Each time, one retry corrects it.
+
+  *Why the estimate itself isn't fixed.* A better first guess would need
+  a per-content estimator, for example one that counts digits and
+  punctuation. That could shrink the error but not remove it, since only
+  Ollama knows the real count, and the retry already covers whatever error
+  is left. If the rejected requests ever become a measurable cost, a
+  density-aware first guess is the next step.
+
 - **One retry only.** If the refit still doesn't fit, for example because
   the protected messages alone exceed the window, the error shows as
   before. Cutting tool output to fit makes that rare.
