@@ -122,6 +122,28 @@
     </section>
 
     <section class="flint-settings-section">
+      <h3>Memories</h3>
+      <p>Facts you saved with <code>@memory save</code>. Recall them in any chat with
+        <code>@memory &lt;words&gt;</code>; memories saved from a folder chat also load
+        automatically whenever that folder is attached.</p>
+      <p class="flint-error" x-text="memoriesError"></p>
+      <template x-if="!memoriesLoading && memories.length === 0 && !memoriesError">
+        <p class="flint-empty-state">No memories saved yet.</p>
+      </template>
+      <template x-for="m in memories" :key="m.id">
+        <div class="flint-memory-row">
+          <textarea x-model="m.content" rows="3" aria-label="Memory"></textarea>
+          <div class="flint-memory-meta">
+            <span class="flint-memory-folder" x-text="m.folder ? 'Folder: ' + m.folder : 'Any chat'"></span>
+            <span x-text="m.status"></span>
+            <button type="button" class="secondary" @click="saveMemory(m)">Save</button>
+            <button type="button" class="secondary" @click="deleteMemory(m)">Delete</button>
+          </div>
+        </div>
+      </template>
+    </section>
+
+    <section class="flint-settings-section">
       <h3>Security questions</h3>
       <p>Used to recover your account without email. Answers are never shown back to you once
         saved. Saving this form replaces <strong>all</strong> questions and requires re-entering

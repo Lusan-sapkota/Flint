@@ -477,6 +477,12 @@ func (s *Server) handleEditLastMessage(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "content is required")
 		return
 	}
+	// An edit replaces the last message, but a memory command never becomes
+	// one, so editing into it would just delete the original.
+	if _, _, ok := parseMemoryCommand(body.Content); ok {
+		writeError(w, http.StatusBadRequest, "send @memory as a new message instead of an edit")
+		return
+	}
 
 	if convo, err := getConversation(s.db, id, user.ID); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
@@ -532,16 +538,33 @@ func (s *Server) runUserTurn(w http.ResponseWriter, r *http.Request, user *User,
 		return
 	}
 
-	webNotice := ""
-	if isWeb, query := stripWebFlag(content); isWeb {
+	notice := ""
+	if save, rest, ok := parseMemoryCommand(content); ok {
+		if save {
+			s.saveMemoryFromChat(w, r, user, id, rest)
+			return
+		}
+		if rest == "" {
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			w.Write([]byte("[Use @memory <words> to recall saved memories, or @memory save to save one.]"))
+			return
+		}
+		convo, err := getConversation(s.db, id, user.ID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		notice = s.recallMemories(user, convo.Conversation, rest)
+		content = rest
+	} else if isWeb, query := stripWebFlag(content); isWeb {
 		content = query
 		switch {
 		case user.BraveAPIKey == nil || *user.BraveAPIKey == "":
-			webNotice = "[Web search isn't configured — add a Brave Search API key in Settings to enable it. Answering without web results.]\n\n"
+			notice = "[Web search isn't configured — add a Brave Search API key in Settings to enable it. Answering without web results.]\n\n"
 		default:
 			if err := s.injectWebSearchResults(r.Context(), id, user, query); err != nil {
 				log.Printf("web search error: %v", err)
-				webNotice = "[Web search failed, answering without web results.]\n\n"
+				notice = "[Web search failed, answering without web results.]\n\n"
 			}
 		}
 	}
@@ -574,8 +597,8 @@ func (s *Server) runUserTurn(w http.ResponseWriter, r *http.Request, user *User,
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	if webNotice != "" {
-		w.Write([]byte(webNotice))
+	if notice != "" {
+		w.Write([]byte(notice))
 	}
 	s.streamAssistantTurn(w, r, user, convo)
 
@@ -792,6 +815,12 @@ func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, use
 		if anchor := buildAnchorHeader(*convo.AttachedFolder); anchor != "" {
 			suffix = anchor + "\n\n" + suffix
 		}
+	}
+	// Folder memories go with the anchor, next to the generation point: as
+	// a system message after the manifest, qwen2.5-3b ignored them (the same
+	// dilution as the tool nudge).
+	if memories := s.folderMemoryBlock(user.ID, convo.Conversation); memories != "" {
+		suffix = strings.TrimLeft(memories+"\n\n"+suffix, "\n")
 	}
 	toolsJSON, _ := json.Marshal(tools)
 	toolsTokens := estimateTokens(string(toolsJSON))

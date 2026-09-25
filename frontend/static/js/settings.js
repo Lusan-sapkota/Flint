@@ -33,8 +33,58 @@ document.addEventListener('alpine:init', () => {
     pullPercent: null,
     pullError: '',
 
+    memories: [],
+    memoriesLoading: true,
+    memoriesError: '',
+
     init() {
       this.refreshRunning();
+      this.loadMemories();
+    },
+
+    async loadMemories() {
+      try {
+        const res = await fetch('/api/memories');
+        if (!res.ok) throw new Error(res.statusText);
+        this.memories = (await res.json()).map((m) => ({ ...m, status: '' }));
+      } catch (e) {
+        this.memoriesError = 'Could not load memories.';
+      } finally {
+        this.memoriesLoading = false;
+      }
+    },
+
+    async saveMemory(m) {
+      m.status = 'Saving…';
+      try {
+        const res = await fetch(`/api/memories/${m.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: m.content }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          m.status = data.error || res.statusText;
+          return;
+        }
+        m.status = 'Saved';
+      } catch (e) {
+        m.status = 'Could not reach the server.';
+      }
+    },
+
+    async deleteMemory(m) {
+      if (!(await flintConfirmDelete('Delete memory?', 'It will no longer be recalled in any chat. This cannot be undone.'))) return;
+      try {
+        const res = await fetch(`/api/memories/${m.id}`, { method: 'DELETE' });
+        if (!res.ok && res.status !== 404) {
+          m.status = res.statusText;
+          return;
+        }
+        this.memories = this.memories.filter((x) => x.id !== m.id);
+      } catch (e) {
+        m.status = 'Could not reach the server.';
+      }
     },
 
     async refreshRunning() {

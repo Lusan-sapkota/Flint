@@ -310,6 +310,11 @@ button.flint-btn-icon {
   color: var(--flint-accent);
 }
 
+.flint-search-icon-btn {
+  margin-top: 0.5rem;
+  color: var(--flint-text-dim);
+}
+
 .flint-new-chat-icon-btn:hover {
   background: var(--flint-accent);
   border-color: var(--flint-accent);
@@ -325,7 +330,9 @@ button.flint-btn-icon {
   padding: 0 var(--flint-side-gutter) 0.5rem;
 }
 
+/* Pico makes type=search a 5rem pill; match the select and button above. */
 .flint-search input {
+  --pico-border-radius: 0.25rem;
   height: var(--flint-side-control-h);
   margin: 0;
   padding: 0 0.75rem;
@@ -1093,6 +1100,11 @@ details.flint-thinking > summary:focus {
   white-space: pre-wrap;
   word-break: break-word;
   margin-bottom: 0.75rem;
+}
+
+.flint-memory-card textarea {
+  margin: 0.25rem 0 0.75rem;
+  font-size: 0.9rem;
 }
 
 .flint-command-actions {
@@ -1913,4 +1925,31 @@ button.flint-danger-solid:hover {
   .flint-settings-section {
     padding: 1rem;
   }
+}
+
+.flint-memory-row textarea {
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.flint-memory-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+  font-size: 0.8rem;
+  color: var(--flint-text-dim);
+}
+
+.flint-memory-meta button {
+  margin: 0;
+  width: auto;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.85rem;
+}
+
+.flint-memory-folder {
+  margin-right: auto;
+  overflow-wrap: anywhere;
 }

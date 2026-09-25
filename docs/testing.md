@@ -10,7 +10,9 @@ go test ./...
 These need no Ollama and no network. `context_test.go` and
 `summary_test.go` cover the context pipeline: the budget, summaries
 replacing the messages they cover, drop and cut to fit, chunk boundaries,
-merge candidates and verbatim user notes.
+merge candidates and verbatim user notes. `memory_test.go` covers
+`@memory` parsing, per-account scoping, any-word search, the index
+following edits, and the memory budget.
 
 ## Live checks
 

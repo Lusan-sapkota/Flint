@@ -30,6 +30,18 @@
          } catch (e) {}
        },
        get rail() { return this.collapsed && !this.mobile },
+       openSearch() {
+         this.toggleSidebar();
+         // The expanded sidebar isn't shown until a few ms after the click,
+         // and focusing a hidden input silently does nothing.
+         let tries = 10;
+         const focus = () => {
+           const input = this.$refs.chatSearch;
+           if (input.offsetParent) input.focus();
+           else if (tries-- > 0) requestAnimationFrame(focus);
+         };
+         focus();
+       },
        toggleSidebar() {
          if (this.mobile) { this.navOpen = false; return }
          this.collapsed = !this.collapsed;
@@ -75,12 +87,16 @@
       {{if .ModelsErr}}<p class="flint-error">Couldn't reach Ollama: {{.ModelsErr}}</p>{{end}}
       <div class="flint-search">
         <input type="search" placeholder="Search chats" aria-label="Search chats"
-               x-model="q" @input.debounce.200ms="search()"
+               x-ref="chatSearch" x-model="q" @input.debounce.200ms="search()"
                @keydown.escape.stop="q = ''; results = null">
       </div>
     </div>
     <button type="button" class="flint-new-chat-icon-btn" x-show="rail" @click="collapsed = false" title="New chat">
       {{template "icon-plus"}}
+    </button>
+    <button type="button" class="flint-new-chat-icon-btn flint-search-icon-btn" x-show="rail"
+            @click="openSearch()" title="Search chats" aria-label="Search chats">
+      {{template "icon-search"}}
     </button>
 
     <div class="flint-conversations" x-show="!rail && q.trim()" x-cloak>
@@ -223,6 +239,23 @@
             </details>
           </template>
 
+          <template x-if="item.kind === 'memory'">
+            <div class="flint-command-card flint-memory-card">
+              <header>
+                <span>Memory draft</span>
+                <span class="flint-command-status" x-text="{ draft: 'Review before saving', saving: 'Saving…', saved: 'Saved', discarded: 'Discarded' }[item.memoryStatus]"></span>
+              </header>
+              <textarea x-model="item.memoryText" rows="6" :readonly="item.memoryStatus !== 'draft'" aria-label="Memory draft"></textarea>
+              <p class="flint-error" x-show="item.memoryError" x-text="item.memoryError"></p>
+              <template x-if="item.memoryStatus === 'draft'">
+                <div class="flint-command-actions">
+                  <button type="button" @click="saveMemory(item)" :disabled="!item.memoryText.trim()">Save memory</button>
+                  <button type="button" class="secondary" @click="item.memoryStatus = 'discarded'">Discard</button>
+                </div>
+              </template>
+            </div>
+          </template>
+
           <template x-if="item.kind === 'command'">
             <div class="flint-command-card">
               <header>
@@ -281,7 +314,15 @@
           <span class="flint-context-bar"><span :style="`width: ${Math.min(100, contextUsed / contextMax * 100)}%`"></span></span>
           <span x-text="`Context ${formatTokens(contextUsed)} / ${formatTokens(contextMax)}`"></span>
         </div>
-        <p class="flint-input-hint">Tip: start with <code>@web</code> to search the web (needs a Brave key in Settings)</p>
+        <p class="flint-input-hint" aria-live="off"
+           x-data="{ tip: 0, tips: [
+             ['@web', ' to search the web (needs a Brave key in Settings)'],
+             ['@memory save', ' to keep what matters from this chat for later ones'],
+             ['@memory <words>', ' to recall a saved memory in any chat'],
+           ] }"
+           x-init="setInterval(() => tip = (tip + 1) % tips.length, 6000)">
+          Tip: start with <code x-text="tips[tip][0]">@web</code><span x-text="tips[tip][1]"> to search the web (needs a Brave key in Settings)</span>
+        </p>
       </div>
       <template x-if="folderError"><p class="flint-error" x-text="folderError"></p></template>
 

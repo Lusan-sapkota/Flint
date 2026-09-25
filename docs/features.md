@@ -1,91 +1,161 @@
 # Features
 
+Everything Flint does, grouped by area. Update this page with every
+feature change.
+
 ## Accounts
 
-- Open signup: full name, email, and a password of at least 8 characters.
-  Sessions last 30 days.
-- Each account sees only its own conversations, attachments and commands.
+- **Open signup**: full name, email, and a password of at least 8
+  characters. Sessions last 30 days.
+- **Log in and log out.** Logging out ends the session on the server.
+- **Private per account.** Each account sees only its own conversations,
+  attachments, commands and memories. Another account's items answer
+  "not found".
 - **Password recovery without email.** Set 2-5 security questions in
   Settings. To recover, enter your email, answer the questions, and choose
   a new password. Answers are compared case- and whitespace-insensitively.
   A reset signs out every session of that account.
+- **Rate limiting** on login, signup and recovery (see
+  [security.md](security.md)).
 
 ## Chat
 
-- Streaming replies, with Markdown rendered through DOMPurify.
-- **Thinking.** For models that report the capability (such as
-  qwen3.5-4b), a toggle shows or hides the model's thinking, separately
-  from its answer.
-- **Stop.** A stopped reply keeps what was already shown, so the history
-  matches the screen. A tool call cut off mid-stream is dropped, so it can
-  never be approved.
+- **Streaming replies**, rendered as Markdown (sanitized with DOMPurify).
+  Code blocks have their own Copy button.
+- **Copy** any message.
+- **Thinking toggle** (the light-bulb button). For models with the
+  thinking capability, such as qwen3.5-4b, it switches between reasoning
+  first and answering directly. The model's thinking is shown separately
+  from its answer. The toggle is disabled for models without thinking.
+- **Stop generating.** A stopped reply keeps what was already shown, so
+  the history matches the screen. A tool call cut off mid-stream is
+  dropped, so it can never be approved.
 - **Edit the last message.** This resends it and discards everything
   after it, including a pending command. Its attachments carry over.
-- **Titles.** The first message sets a placeholder right away. After the
-  first reply, the model writes a 2-6 word title, unless you've already
-  renamed the chat.
-- **Search across chats** from the sidebar. It matches titles and your
-  and the model's messages, as you type.
+- **Generation speed** (tokens per second) under each reply.
 - **Context bar.** Shows how much of the model's window the last request
-  used. It updates after every response, including tool steps.
-- **Model loading hint.** Shows when a model is being loaded rather than
-  thinking.
-- Rename and delete chats. Deleting removes the attachment files too.
+  used, and turns highlighted above 80%. It updates after every response,
+  including tool steps.
+- **Model loading notice.** Shown while Ollama loads a model, instead of
+  bare dots.
+- **Missing-model badge.** If a chat's model has been removed from
+  Ollama, the header says so and points you to Settings or a new chat.
+- **Last-activity time** in the chat header.
+- **Rotating tips** under the message box. Every 6 seconds they cycle
+  through `@web`, `@memory save` and `@memory <words>`.
+- **Enter** sends, and **Shift+Enter** adds a new line.
+
+## Conversations
+
+- **New chat** with a model picker. It defaults to the model you used
+  most recently.
+- **Automatic titles.** The first message sets a placeholder right away.
+  After the first reply, the model writes a 2-6 word title, unless you've
+  already renamed the chat.
+- **Rename and delete.** Deleting also removes the chat's attachment
+  files.
+- **Search across chats** from the sidebar. It matches titles and your
+  and the model's messages as you type, and shows a snippet of the match.
+- **Sidebar.** It collapses to a narrow rail and remembers that choice.
+  The rail has New chat and Search buttons; Search opens the sidebar with
+  the cursor in the search box. On phones the sidebar becomes a slide-over
+  menu.
 
 ## Attachments
 
-- Up to 4 files per message, 8 MB each. Every file is validated before
-  any part of the message is saved.
-- Images (PNG, JPEG, GIF, WebP, BMP) go to vision models. Only the most
-  recent message with images keeps sending them. Older ones become a note
-  telling the model to ask for a re-send, because a single large image
-  can use half a small window.
-- Other files are stored for you to see and download. The model only
+- **Files and images** from the attach button or by pasting. Up to 4
+  files per message, 8 MB each. Every file is validated before any part
+  of the message is saved.
+- **Images** (PNG, JPEG, GIF, WebP, BMP) go to vision models. Only the
+  most recent message with images keeps sending them. Older ones become a
+  note telling the model to ask for a re-send, because one large image can
+  use half a small window.
+- **Other files** are stored for you to see and download. The model only
   gets a note that a file was attached, and the UI warns that the model
   can't see it.
 
 ## Folder attach and the shell tool
 
-- Attach a folder, typed or picked with the server-side folder browser
-  (subfolder names only, starting at the server user's home). Flint reads
+- **Attach a folder**, typed or picked with the folder browser (it lists
+  subfolder names only, starting at the server user's home). Flint reads
   the files directly inside it (not subfolders), skips binaries and large
-  files, and includes up to 12 KB of text as the conversation's standing
-  context. Files past that are listed as not included.
-- With a folder attached, the model can propose shell commands through
-  Ollama's native tool calling. **Every command waits for you to approve
-  or deny it.** Nothing runs automatically. The command runs with the
-  folder as its working directory, which is a convenience, not a sandbox.
-- Before a command reaches you, the shield blocks a short list of
-  catastrophic patterns outright, and the precondition check rejects
-  commands whose program or read target doesn't exist. See
-  [security.md](security.md).
-- Results always state success or failure with the exit code. After 3
-  tool steps since your last message, the model has to answer in text.
-- Each turn, a fresh listing of the folder's top level goes next to the
-  model's reply point, so it knows what exists.
+  files, and includes up to 12 KB of text as the chat's standing context.
+  Files past that are listed as not included.
+- **Shell commands with approval.** With a folder attached, the model can
+  propose shell commands through Ollama's native tool calling. **Every
+  command waits for you to approve or deny it.** Nothing runs
+  automatically. The command text is shown exactly as proposed, and it
+  runs with the folder as its working directory, which is a convenience,
+  not a sandbox.
+- **Safety shield.** Catastrophic patterns (`rm -rf /`, `sudo`, piping a
+  download into a shell, and so on) are blocked before you ever see them.
+- **Precondition check.** A command whose program or read target doesn't
+  exist goes back to the model without asking you.
+- **Clear results.** Every result states success or failure with the
+  exit code, and the output is shown in the chat.
+- **Bounded retries.** After 3 tool steps since your last message, the
+  model has to answer in text.
+- **Live folder listing.** Each turn, a fresh listing of the folder's top
+  level goes next to the model's reply point, so it knows what exists.
 
 ## Web search (`@web`)
 
-- Starting a message with `@web <query>` searches the web through the
-  Brave Search API with your own key (set in Settings). The search is
-  triggered by Flint, not decided by the model, and it only sends the
-  query text.
-- The top 10 results are re-ranked by similarity to the query using
-  Ollama's `nomic-embed-text`, and the best 3 go into the conversation.
-- With no key configured, the `@web` flag is stripped from the saved
-  message and you're shown a notice. The request doesn't fail.
+- Start a message with `@web <query>` to search the web through the Brave
+  Search API, using your own key from Settings. Flint runs the search,
+  not the model, and it sends only the query text.
+- The top 10 results are re-ranked by similarity to the query with
+  Ollama's `nomic-embed-text`, and the best 3 go into the chat.
+- With no key configured, the flag is stripped from the saved message and
+  you're shown a notice. The request still goes through.
 
-## Settings
+## Memory (`@memory`)
 
-- Your own Ollama URL, falling back to the server default.
-- Preferred models, to limit which models the new-chat picker shows.
-- Pull, inspect and delete Ollama models, and see which are loaded.
-- Your Brave Search API key.
-- Security questions for recovery.
+Facts you choose to keep across chats. Like `@web`, memory is only used
+when you ask for it. The model never decides on its own to save or look
+things up.
+
+- **`@memory save <text>`** saves that text exactly as written.
+- **`@memory save`** on its own asks the model to draft the lasting facts
+  from this chat. The draft appears as a card you can edit, then **Save
+  memory** or **Discard**. Nothing is saved until you approve it, because
+  a small model's draft can be wrong, and a wrong memory would come back
+  in every later chat.
+- **`@memory <words>`** searches your memories (any word can match) and
+  adds the best matches to this chat, within an eighth of the model's
+  window. If nothing matches, you're told.
+- **Folder memories.** A memory saved in a chat with a folder attached
+  belongs to that folder. It loads automatically in every chat that
+  attaches the same folder, newest first, within an eighth of the window.
+- **Manage memories** in Settings: read, edit or delete them.
+- Memory commands aren't added to the chat history. An edit can't turn a
+  message into a memory command.
 
 ## Long conversations
 
-Flint keeps a conversation inside the model's window without losing its
-thread. It summarizes older turns in the background, keeps your own
-words verbatim, and drops or cuts only what matters least. See
-[context-management.md](context-management.md).
+A chat never runs out of room, and you never have to compact it yourself:
+
+- Older turns are summarized in the background once they add up to a
+  quarter of the window. Your own messages are kept word for word inside
+  the summaries.
+- Until a summary is ready, the oldest messages are left out of that
+  request, and the model is told how many. Very large command output is
+  cut down so every request fits.
+
+See [context-management.md](context-management.md).
+
+## Settings
+
+- **Ollama URL**: your own, falling back to the server default.
+- **Preferred models**, to limit which models the new-chat picker shows.
+- **Model management**: see which models are loaded, inspect their
+  details, pull new ones with a progress bar, and delete them.
+- **Brave Search API key** for `@web`.
+- **Memories**: edit and delete.
+- **Security questions** for password recovery.
+
+## Running it
+
+- One static binary with SQLite, no build step, no CDN. The frontend
+  libraries ship with it.
+- Docker Compose setup with its own Ollama. See [deployment.md](deployment.md).
+- `/healthz` checks the database and Ollama.

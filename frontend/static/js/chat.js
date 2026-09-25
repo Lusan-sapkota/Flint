@@ -126,7 +126,9 @@ document.addEventListener('alpine:init', () => {
   const THINK_MARKER = '<<<THINK>>>';
   const LOADING_MARKER = '<<<LOADING>>>';
   const CONTEXT_MARKER = '<<<CONTEXT>>>';
-  const MARKERS = [TOOL_CALL_MARKER, STATS_MARKER, THINK_MARKER, LOADING_MARKER, CONTEXT_MARKER];
+  const MEMORY_DRAFT_MARKER = '<<<MEMORY_DRAFT>>>';
+  const MARKERS = [TOOL_CALL_MARKER, STATS_MARKER, THINK_MARKER, LOADING_MARKER, CONTEXT_MARKER, MEMORY_DRAFT_MARKER];
+  const LONGEST_MARKER = Math.max(...MARKERS.map((m) => m.length));
   // Mirrors imageMimeExtensions in images.go.
   const SUPPORTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/bmp'];
   const firstMarker = (s) => {
@@ -136,7 +138,7 @@ document.addEventListener('alpine:init', () => {
   // Only a tail that could still grow into a marker is held back, so
   // ordinary text shows the moment it arrives instead of lagging behind.
   const partialMarkerAt = (s) => {
-    for (let i = Math.max(0, s.length - TOOL_CALL_MARKER.length); i < s.length; i++) {
+    for (let i = Math.max(0, s.length - LONGEST_MARKER); i < s.length; i++) {
       const tail = s.slice(i);
       if (MARKERS.some((m) => m.startsWith(tail))) return i;
     }
@@ -504,6 +506,30 @@ document.addEventListener('alpine:init', () => {
       await this.decide(cmd, 'approve');
     },
 
+    // A drafted memory is only saved once the user approves it here, since
+    // a small model's draft can be wrong and would resurface in later chats.
+    async saveMemory(item) {
+      item.memoryError = '';
+      item.memoryStatus = 'saving';
+      try {
+        const res = await fetch('/api/memories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: item.memoryText, conversation_id: this.conversationId }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          item.memoryError = data.error || res.statusText;
+          item.memoryStatus = 'draft';
+          return;
+        }
+        item.memoryStatus = 'saved';
+      } catch (e) {
+        item.memoryError = 'Could not reach the server.';
+        item.memoryStatus = 'draft';
+      }
+    },
+
     async deny(cmd) {
       await this.decide(cmd, 'deny');
     },
@@ -658,7 +684,17 @@ document.addEventListener('alpine:init', () => {
 
       this.streamingBubble = null;
 
-      if (markerFound && pending.startsWith(STATS_MARKER)) {
+      if (markerFound && pending.startsWith(MEMORY_DRAFT_MARKER)) {
+        try {
+          const obj = JSON.parse(pending.slice(MEMORY_DRAFT_MARKER.length).trim());
+          if (bubble && bubble.content.trim() === '' && !bubble.thinking) {
+            this.timeline.splice(this.timeline.indexOf(bubble), 1);
+          }
+          this.timeline.push({ kind: 'memory', memoryText: obj.text, memoryStatus: 'draft', memoryError: '' });
+        } catch (e) {
+          appendVisible('\n[Could not read the memory draft.]');
+        }
+      } else if (markerFound && pending.startsWith(STATS_MARKER)) {
         try {
           const obj = JSON.parse(pending.slice(STATS_MARKER.length).trim());
           if (bubble) bubble.tokensPerSec = obj.tokensPerSec;

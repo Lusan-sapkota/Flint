@@ -204,6 +204,29 @@ CREATE TABLE IF NOT EXISTS summaries (
 );
 
 CREATE INDEX IF NOT EXISTS idx_summaries_conversation_id ON summaries(conversation_id);
+
+CREATE TABLE IF NOT EXISTS memories (
+	id         INTEGER PRIMARY KEY AUTOINCREMENT,
+	user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	folder     TEXT,
+	content    TEXT NOT NULL,
+	created_at INTEGER NOT NULL,
+	updated_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_memories_user_id ON memories(user_id);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts USING fts5(content, content='memories', content_rowid='id');
+CREATE TRIGGER IF NOT EXISTS memories_fts_insert AFTER INSERT ON memories BEGIN
+	INSERT INTO memories_fts(rowid, content) VALUES (new.id, new.content);
+END;
+CREATE TRIGGER IF NOT EXISTS memories_fts_delete AFTER DELETE ON memories BEGIN
+	INSERT INTO memories_fts(memories_fts, rowid, content) VALUES ('delete', old.id, old.content);
+END;
+CREATE TRIGGER IF NOT EXISTS memories_fts_update AFTER UPDATE OF content ON memories BEGIN
+	INSERT INTO memories_fts(memories_fts, rowid, content) VALUES ('delete', old.id, old.content);
+	INSERT INTO memories_fts(rowid, content) VALUES (new.id, new.content);
+END;
 CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
 CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id);
@@ -874,4 +897,95 @@ func resolveCommand(db *sql.DB, id, status, output string, exitCode *int) error 
 		status, output, exitCode, time.Now().UnixMilli(), id,
 	)
 	return err
+}
+
+type Memory struct {
+	ID        int64   `json:"id"`
+	Folder    *string `json:"folder,omitempty"`
+	Content   string  `json:"content"`
+	CreatedAt int64   `json:"created_at"`
+	UpdatedAt int64   `json:"updated_at"`
+}
+
+func scanMemories(rows *sql.Rows) ([]Memory, error) {
+	defer rows.Close()
+	out := []Memory{}
+	for rows.Next() {
+		var m Memory
+		if err := rows.Scan(&m.ID, &m.Folder, &m.Content, &m.CreatedAt, &m.UpdatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, m)
+	}
+	return out, rows.Err()
+}
+
+func createMemory(db *sql.DB, userID string, folder *string, content string) (Memory, error) {
+	now := time.Now().UnixMilli()
+	m := Memory{Folder: folder, Content: content, CreatedAt: now, UpdatedAt: now}
+	res, err := db.Exec(`INSERT INTO memories (user_id, folder, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+		userID, m.Folder, m.Content, m.CreatedAt, m.UpdatedAt)
+	if err != nil {
+		return m, err
+	}
+	m.ID, err = res.LastInsertId()
+	return m, err
+}
+
+func listMemories(db *sql.DB, userID string) ([]Memory, error) {
+	rows, err := db.Query(`SELECT id, folder, content, created_at, updated_at FROM memories WHERE user_id = ? ORDER BY updated_at DESC`, userID)
+	if err != nil {
+		return nil, err
+	}
+	return scanMemories(rows)
+}
+
+func folderMemories(db *sql.DB, userID, folder string) ([]Memory, error) {
+	rows, err := db.Query(`SELECT id, folder, content, created_at, updated_at FROM memories WHERE user_id = ? AND folder = ? ORDER BY updated_at DESC`, userID, folder)
+	if err != nil {
+		return nil, err
+	}
+	return scanMemories(rows)
+}
+
+// searchMemories ranks by any matching word, not all of them: a recall
+// like "@memory astra deadline" should find a memory that only mentions
+// astra.
+func searchMemories(db *sql.DB, userID, q string) ([]Memory, error) {
+	var terms []string
+	for _, w := range strings.Fields(q) {
+		if len([]rune(w)) >= 3 {
+			terms = append(terms, `"`+strings.ReplaceAll(w, `"`, `""`)+`"*`)
+		}
+	}
+	if len(terms) == 0 {
+		return []Memory{}, nil
+	}
+	rows, err := db.Query(`
+SELECT m.id, m.folder, m.content, m.created_at, m.updated_at
+FROM memories_fts JOIN memories m ON m.id = memories_fts.rowid
+WHERE memories_fts MATCH ? AND m.user_id = ?
+ORDER BY rank LIMIT 20`, strings.Join(terms, " OR "), userID)
+	if err != nil {
+		return nil, err
+	}
+	return scanMemories(rows)
+}
+
+func updateMemory(db *sql.DB, id int64, userID, content string) (bool, error) {
+	res, err := db.Exec(`UPDATE memories SET content = ?, updated_at = ? WHERE id = ? AND user_id = ?`, content, time.Now().UnixMilli(), id, userID)
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	return n > 0, err
+}
+
+func deleteMemory(db *sql.DB, id int64, userID string) (bool, error) {
+	res, err := db.Exec(`DELETE FROM memories WHERE id = ? AND user_id = ?`, id, userID)
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	return n > 0, err
 }

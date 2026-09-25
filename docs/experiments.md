@@ -229,6 +229,52 @@ the conversation length.
 qwen2.5-3b on this machine. What's still unmeasured is how prompt
 processing time and answer quality hold up at 16k and 32k.
 
+## E13: Drafting a memory from a chat
+
+`@memory save` on a two-message chat: *"We're planning Project Astra.
+Decision: we use Postgres 16, not MySQL. I prefer answers under 100
+words."* (qwen2.5-3b-instruct). Two drafts:
+
+```
+- User plans Project Astra
+- User decides to use Postgres 16 instead of MySQL
+- User prefers Postgres 16 for the project
+```
+```
+- Postgres 16 chosen for Project Astra
+- User prefers Postgres 16 over MySQL
+```
+
+Both kept the decision. Both dropped the stated preference for short
+answers, and both recast the decision as a "preference".
+
+**Changed:** drafts are never saved without review. The draft appears as
+an editable card, and only **Save memory** stores it. `@memory save
+<text>` skips the model entirely.
+
+Recall worked in a separate chat. `@memory astra which database did we
+pick and when does it ship?` answered with both saved facts (Postgres 16,
+Friday the 3rd), though it wrongly credited the decision to "you and Tom
+Okafor".
+
+## E14: Where folder memories go
+
+A memory saved in one folder chat (*"always run go vet before tagging a
+release"*), then *"Without running any commands: what is the deploy rule
+for this repo?"* in fresh chats on the same folder:
+
+| Placement | Stated the rule |
+|---|---|
+| system message right after the folder manifest | 0 of 2 (both guessed at files to grep) |
+| next to the folder anchor, at the end of the last message | 2 of 3 |
+
+The misses still reached for a tool, which is the E9 nudge conflict.
+
+**Changed:** folder memories go with the anchor. This is the same
+finding as the nudge placement in CLAUDE.md: text far from where the
+model starts writing loses its effect once a long manifest sits in
+between.
+
 ## Open questions
 
 - **The tool nudge vs "don't run commands".** E9. It needs a fix that

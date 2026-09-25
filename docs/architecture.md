@@ -35,6 +35,7 @@ backend/            Go module; run from here (asset paths are ../frontend/...)
   handlers.go       conversations, messages, streaming turns, tool approval
   context.go        request budget and history fitting (see context-management.md)
   summary.go        background layered summaries
+  memory.go         `@memory` save, draft, recall, folder memories, memory API
   ollama.go         Ollama client: chat (streaming and not), models, embeddings
   tools.go          the run_shell tool definition and reasoning nudge
   shield.go         hard block list for catastrophic commands
@@ -64,6 +65,8 @@ Dockerfile, docker-compose.yml
 | `attachments` | metadata; the file itself lives under `ATTACHMENTS_DIR` |
 | `commands` | every model-proposed shell command, its status, output and exit code |
 | `summaries` | layered summaries covering message id ranges (see context-management.md) |
+| `memories` | facts a user saved with `@memory`, optionally tied to a folder |
+| `memories_fts` | FTS5 index over memories, kept in sync by triggers |
 | `messages_fts` | FTS5 index over message text, kept in sync by triggers |
 
 Deleting a conversation cascades to all of these. Rows are never shared
@@ -79,7 +82,9 @@ Each step is idempotent.
    (`lockConversation`), so overlapping requests to one conversation run
    in arrival order.
 2. The message and any attachments are validated as a whole, then saved.
-   An `@web` query runs its search first (see features.md).
+   An `@web` query runs its search first. An `@memory` recall adds the
+   matching memories first, and `@memory save` is handled on its own with
+   no chat turn (see features.md).
 3. `streamAssistantTurn` builds the budget and the fitted history,
    appends the tool nudge and folder anchor to the last message when a
    folder is attached, and streams the model's reply.
@@ -103,6 +108,7 @@ client consumes:
 | `<<<TOOL_RESULT>>>{"status":..,"output":..}` | what an approved or denied command produced, for display |
 | `<<<TOOL_CALL>>>{"id":..,"command":..}` | a pending command awaiting approval; ends the stream |
 | `<<<STATS>>>{"tokensPerSec":N}` | generation speed; ends a final text reply |
+| `<<<MEMORY_DRAFT>>>{"text":..}` | a drafted memory for the user to review; ends the stream |
 
 ## Fixed decisions
 

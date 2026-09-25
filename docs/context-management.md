@@ -21,7 +21,7 @@ makes Ollama reload the model at its server default, and the budget needs
 to know the real window.
 
 ```
-budget = num_ctx - responseReserve (1024) - tool schema - tool nudge and anchor
+budget = num_ctx - responseReserve (1024) - tool schema - tool nudge, anchor and folder memories
 ```
 
 Token counts are estimated as characters / 4, then corrected by a
@@ -116,6 +116,16 @@ message, not in a system prompt. With a 2k-token transcript ahead of it,
 qwen2.5-3b ignored a system prompt (E6), the same effect CLAUDE.md records
 for the tool nudge. Summaries use the conversation's own model and the
 same `num_ctx`, so they never force a model reload.
+
+## Memories in the request
+
+- **Folder memories** go into the text appended to the last message,
+  together with the folder anchor and the tool nudge, and they take at
+  most an eighth of the window. As a system message after the manifest,
+  the model ignored them ([E14](experiments.md#e14-where-folder-memories-go)).
+- **`@memory <words>` recalls** are saved as a system message before the
+  user's message, like `@web` results. After that they decay like any
+  later system message.
 
 ## Not built yet
 

@@ -11,8 +11,8 @@ it to a network you don't trust.
 - Sessions are random ids stored in SQLite and sent as an `HttpOnly`,
   `SameSite=Lax` cookie. They last 30 days. Logging out deletes the
   session, and a password reset deletes all of that user's sessions.
-- Every conversation, message, attachment and command is scoped to its
-  owner. Another account's resources return **404, not 403**, so their
+- Every conversation, message, attachment, command and memory is scoped
+  to its owner. Another account's resources return **404, not 403**, so their
   existence isn't revealed.
 - Recovery lookups answer the same way whether or not the email exists.
 
@@ -65,3 +65,10 @@ and their output is capped at 20,000 characters.
 - Docker Compose publishes Flint on `127.0.0.1:8080` only, because of open
   signup and the shell tool.
 - Model output is rendered as Markdown through DOMPurify.
+
+## Memory
+
+A saved memory is sent back to the model in later chats, so a wrong one
+keeps misleading it. That's why a model-drafted memory is only saved after
+the user has read and approved it, and why memories are only written or
+searched on an explicit `@memory` command.
