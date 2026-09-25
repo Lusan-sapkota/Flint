@@ -40,7 +40,7 @@ Layers, in order:
    text is shown unchanged. Nothing runs without an explicit approve.
    This is the real safety net.
 2. **Shield** (`shield.go`). Blocked when proposed and again when run:
-   `rm -rf` aimed at `/` or `~`, fork bombs, `sudo`, piping `curl`/`wget`
+   `rm -rf` aimed at `/`, `~`, or the whole current directory (`.`, `*`), fork bombs, `sudo`, piping `curl`/`wget`
    into a shell, `mkfs`, `dd` to `/dev/*`, and reading `/etc/shadow` or
    SSH private keys. The model is told to ask you to run a genuinely
    needed blocked command yourself, not to work around the block. This is
