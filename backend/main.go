@@ -52,6 +52,7 @@ func handleHealthz(srv *Server) http.HandlerFunc {
 }
 
 func main() {
+	loadAblations()
 	port := getenv("PORT", "8080")
 	dbPath := getenv("DB_PATH", "data/chat.db")
 	ollamaBaseURL := getenv("OLLAMA_BASE_URL", "http://localhost:11434")

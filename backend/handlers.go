@@ -815,9 +815,11 @@ func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, use
 	var suffix string
 	if convo.AttachedFolder != nil && *convo.AttachedFolder != "" && consecutiveToolCycles(convo.Messages) < maxToolAttemptsPerTurn {
 		tools = []OllamaTool{runShellTool}
-		suffix = toolReasoningPrompt
-		if anchor := buildAnchorHeader(*convo.AttachedFolder); anchor != "" {
-			suffix = anchor + "\n\n" + suffix
+		if !ablated["nudge"] {
+			suffix = toolReasoningPrompt
+		}
+		if anchor := buildAnchorHeader(*convo.AttachedFolder); anchor != "" && !ablated["anchor"] {
+			suffix = strings.TrimLeft(anchor+"\n\n"+suffix, "\n")
 		}
 	}
 	// Folder memories go with the anchor, next to the generation point: as
@@ -832,6 +834,9 @@ func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, use
 	budget := numCtx - responseReserve - int(float64(overhead)*float64(count))
 
 	history := buildOptimizedHistory(convo.Messages, convo.Summaries, s.attachmentsDir, budget, count)
+	if ablated["fit"] {
+		history = rawHistory(convo.Messages, s.attachmentsDir)
+	}
 	if suffix != "" && len(history) > 0 {
 		last := &history[len(history)-1]
 		last.Content = strings.TrimRight(last.Content, "\n") + "\n\n" + suffix
@@ -924,7 +929,7 @@ func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, use
 			return
 		}
 
-		if ok, reason := checkCommandPreconditions(args.Command, *convo.AttachedFolder); !ok {
+		if ok, reason := checkCommandPreconditions(args.Command, *convo.AttachedFolder); !ok && !ablated["preconditions"] {
 			msg := fmt.Sprintf("[PRECONDITION FAILED: %s]\nThis command was not run. Check your assumptions and try a different command, or ask the user for clarification.", reason)
 			if err := insertToolResultMessage(s.db, convo.ID, tc.ID, msg); err != nil {
 				log.Printf("warning: failed to save precondition-failed tool result: %v", err)

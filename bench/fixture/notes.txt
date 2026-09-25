@@ -1,0 +1,2 @@
+Deploy freeze every Friday after 14:00.
+On-call this week: Omar.

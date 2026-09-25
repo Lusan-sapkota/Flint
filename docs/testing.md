@@ -1,5 +1,7 @@
 # Testing
 
+For the scored benchmark, see [benchmark.md](benchmark.md).
+
 ## Unit tests
 
 ```bash

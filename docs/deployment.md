@@ -26,6 +26,7 @@ cd backend && CGO_ENABLED=0 go build -o flint .
 | `DB_PATH` | `data/chat.db` | SQLite file, relative to `backend/` |
 | `ATTACHMENTS_DIR` | `data/attachments` | uploaded files |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | server default; each user can override it in Settings |
+| `FLINT_ABLATE` | empty | benchmark only: switches scaffolding off, see [benchmark.md](benchmark.md). Leave unset. |
 
 ## Docker
 

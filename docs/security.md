@@ -1,8 +1,10 @@
 # Security
 
-Flint runs model-proposed shell commands on the machine it's installed on,
-and signup is open. Treat it as a local, single-machine tool. Don't expose
-it to a network you don't trust.
+Flint is a personal tool for your own machine. It runs model-proposed shell
+commands as the user it runs as, and anyone who can reach the page can sign
+up, so keep it on localhost (the default, and what Docker Compose publishes).
+Accounts exist to keep your own conversations and settings organized, not
+to make it safe to share with other people.
 
 ## Accounts and sessions
 

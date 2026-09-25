@@ -1,80 +1,104 @@
-# Flint
+<p align="center">
+  <img src="frontend/static/image/flint-512.png" alt="Flint" width="120">
+</p>
 
-A small, fully offline chat UI for local Ollama models.
+<h1 align="center">Flint</h1>
 
-No CDN calls, no telemetry, no cloud dependency of any kind by default.
-Every asset the frontend needs (htmx, Alpine.js, Pico.css) is vendored
-locally, and the backend only ever talks to your local Ollama daemon.
+<p align="center">A small, fully offline chat UI for local Ollama models, built to get the most out of small models.</p>
 
-The one deliberate exception: typing `@web <query>` triggers a real web
-search (via the Brave Search API, your own API key configured in Settings)
-— it only fires on explicit request, only sends the literal query text, and
-is a no-op if you haven't configured a key.
-
-## Stack
-
-- **Backend:** Go, single static binary, SQLite for persistence (pure-Go
-  driver, no cgo)
-- **Frontend:** htmx + Alpine.js + Pico.css, vendored under
-  `frontend/static/`, no build step
-- **Model runtime:** [Ollama](https://ollama.com), running locally
+No CDN calls, no telemetry, no cloud dependency. Everything the frontend
+needs is vendored, and the backend only talks to your local Ollama. The one
+deliberate exception is `@web <query>`, which searches the web through the
+Brave Search API with your own key, only when you ask, sending only the
+query text.
 
 ## Why
 
-Existing local-LLM web UIs are either too heavy for what they need to do
-(bundled RAG/Whisper/torch stacks pulling multi-GB images for plain chat)
-or too minimal to keep any history (browser-only, no persistence). Flint
-sits in between: a tiny Go service that proxies chat requests to Ollama
-and logs conversations to an indexed SQLite database, with a lightweight
-server-rendered frontend on top.
+Local-LLM web UIs tend to be either too heavy (bundled RAG, Whisper and
+torch stacks in a multi-GB image, just to chat) or too minimal (no history
+at all). Flint sits in between: one small Go binary, SQLite, and a light
+server-rendered UI.
 
-The bet underneath that: a well-guided 3-4B local model is not an inferior
-model, it's an under-scaffolded one. The usual bottleneck isn't the model's
-own capability, it's naive unbounded context, no tool-calling discipline,
-and no real persistence around it. Flint's job is to be the best possible
-scaffolding for a small model — careful context management, structured
-tool-calling with human approval, durable history — without becoming heavy
-itself. Not the biggest, not the smallest: the best-guided.
+The bet underneath: a well-guided 3-4B model isn't an inferior model, it's
+an under-scaffolded one. The usual bottleneck isn't the model, it's naive
+unbounded context, no discipline around tool calls, and no memory. Flint's
+job is to be the best possible scaffolding around a small model without
+becoming heavy itself.
 
-## Status
+## Highlights
 
-Functional: auth (signup/login/security-question recovery), chat with
-streaming responses, image and folder attachments, human-approved shell
-tool calls, and a settings page are all in place end to end.
+- **Long chats that never overflow.** A real context budget per request,
+  background layered summaries that keep your own words verbatim, and
+  `@compact` to condense on demand.
+  ([context management](docs/context-management.md))
+- **Shell tools you stay in control of.** Attach a folder and the model can
+  propose commands through Ollama's native tool calling. Every command
+  waits for your approval, a shield blocks catastrophic ones outright, and
+  commands that can't work are caught before they reach you.
+  ([security](docs/security.md))
+- **Memory across chats.** `@memory save` keeps what matters (drafts are
+  reviewed before saving), `@memory <words>` recalls it, and memories tied
+  to a folder load whenever that folder is attached.
+- **Web search on request.** `@web <query>`, re-ranked locally with
+  Ollama embeddings.
+- **Everything a chat UI needs:** streaming, thinking toggle, images and
+  file attachments, chat search, offline math rendering, editable last
+  message, automatic titles, model management.
+  ([all features](docs/features.md))
+- **Tested against real models, and written down.** Every design decision
+  in the context pipeline comes with the measurement behind it, including
+  the attempts that failed. ([experiments](docs/experiments.md))
 
-## Running
+## Who it's for
 
-Make sure [Ollama](https://ollama.com) is running locally first
-(`ollama serve`), then:
+Flint is a personal tool, built for one person on one machine: mine, a
+laptop with a 6 GB GPU running 3-4B models. Everything is sized and tested
+for that: the context budgets, the prompts, the models it's tuned on. It
+runs on your own computer, listens on localhost, and isn't meant to be
+exposed to a network or shared with other people. If you run it on a bigger
+rig and something breaks or behaves oddly, please open an issue: that's
+exactly the feedback I can't get from my own hardware.
+
+## Quick start
+
+With [Ollama](https://ollama.com) running and a model pulled (for example
+`ollama pull qwen2.5:3b`):
 
 ```bash
 cd backend
 go run .
 ```
 
-Open `http://localhost:8080`. Optional env vars: `PORT`, `DB_PATH`,
-`OLLAMA_BASE_URL` (defaults to `http://localhost:11434`),
-`ATTACHMENTS_DIR`.
-
-### Docker
+Open `http://localhost:8080` and sign up. Or with Docker, which runs its
+own Ollama alongside Flint:
 
 ```bash
 docker compose up -d
 docker compose exec ollama ollama pull qwen2.5:3b
 ```
 
-This runs Flint alongside its own Ollama container, with the chat
-history and the models each in a named volume. Flint is bound to
-`127.0.0.1:8080` only, because signup is open and approved shell commands
-run inside the container. Folder attach and the shell tool can only see
-files inside the container, so bind-mount any project folder you want to
-work on.
+Environment variables, Docker notes and which models need which
+capabilities: [deployment](docs/deployment.md).
 
 ## Docs
 
-How it works, features, security, deployment and the experiments behind
-the design: see [docs/](./docs/README.md).
+| | |
+|---|---|
+| [Features](docs/features.md) | everything Flint does |
+| [Architecture](docs/architecture.md) | layout, data model, a chat turn, the streaming protocol |
+| [Context management](docs/context-management.md) | how a chat fits a small window |
+| [Security](docs/security.md) | accounts, the shell-command safety layers, what leaves the machine |
+| [Deployment](docs/deployment.md) | running from source or Docker |
+| [Experiments](docs/experiments.md) | the measurements behind the design |
+| [Benchmark](docs/benchmark.md) | scored tasks, with and without each piece of scaffolding |
+| [Testing](docs/testing.md) | unit tests, live checks, the long-chat run |
+
+## Stack
+
+Go and SQLite (pure-Go driver, no cgo) in a single static binary; htmx,
+Alpine.js and Pico.css with no build step; [Ollama](https://ollama.com) for
+the models.
 
 ## License
 
-AGPL-3.0 — see [LICENSE](./LICENSE).
+AGPL-3.0, see [LICENSE](./LICENSE).

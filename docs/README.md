@@ -14,6 +14,8 @@ Every change to Flint updates the pages it affects, in the same commit.
   fit into a small model's window.
 - [experiments.md](experiments.md): the measurements behind each design
   decision, including what failed and was rejected.
+- [benchmark.md](benchmark.md): the scored benchmark, with and without
+  each piece of scaffolding.
 - [testing.md](testing.md): unit tests, live checks against Ollama, and
   the long-chat run.
 - [tools/long_chat.py](tools/long_chat.py): the scripted 19-turn chat used

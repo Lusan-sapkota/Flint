@@ -170,6 +170,9 @@ func mergeCandidates(summaries []Summary) []Summary {
 // goroutine, so it never delays or holds open a response; history built
 // before it finishes just falls back to dropping the oldest messages.
 func (s *Server) summarizeInBackground(user *User, convoID string) {
+	if ablated["summaries"] {
+		return
+	}
 	if _, busy := s.summarizing.LoadOrStore(convoID, true); busy {
 		return
 	}

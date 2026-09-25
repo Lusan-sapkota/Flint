@@ -36,6 +36,7 @@ backend/            Go module; run from here (asset paths are ../frontend/...)
   context.go        request budget and history fitting (see context-management.md)
   summary.go        background layered summaries
   memory.go         `@memory` save, draft, recall, folder memories, memory API
+  ablate.go         FLINT_ABLATE: switch scaffolding off for the benchmark
   ollama.go         Ollama client: chat (streaming and not), models, embeddings
   tools.go          the run_shell tool definition and reasoning nudge
   shield.go         hard block list for catastrophic commands
@@ -51,6 +52,7 @@ frontend/
                     vendored htmx, Alpine.js, marked, DOMPurify, Temml
   static/css/temml/ Temml's stylesheet and math font (local only)
   static/css/       flint.css on top of Pico.css
+bench/              scored benchmark: run.py, tasks.py, fixture/
 docs/               this documentation
 Dockerfile, docker-compose.yml
 ```

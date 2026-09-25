@@ -1,0 +1,5 @@
+database:
+  engine: postgres
+  max_connections: 25
+cache:
+  ttl_seconds: 300
