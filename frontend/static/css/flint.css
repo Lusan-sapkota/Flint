@@ -1596,21 +1596,22 @@ details.flint-thinking > summary:focus {
   cursor: help;
 }
 
-/* A dotted track with a solid fill for the used part. */
+/* Thin vertical bars: grey for the whole window, bright for the used part.
+   Both layers use the same stripes from the left edge, so they line up. */
 .flint-context-bar {
+  --bar: 2px;
+  --gap: 2px;
   position: relative;
   width: 6rem;
-  height: 0.75rem;
-  background-image: radial-gradient(circle, var(--flint-text-dim) 0.6px, transparent 0.9px);
-  background-size: 3px 3px;
-  opacity: 0.9;
+  height: 0.8rem;
+  background: repeating-linear-gradient(to right, var(--flint-border) 0 var(--bar), transparent var(--bar) calc(var(--bar) + var(--gap)));
 }
 
 .flint-context-bar span {
   position: absolute;
   inset: 0 auto 0 0;
-  min-width: 2px;
-  background: var(--flint-text);
+  min-width: var(--bar);
+  background: repeating-linear-gradient(to right, var(--flint-text) 0 var(--bar), transparent var(--bar) calc(var(--bar) + var(--gap)));
   transition: width 0.3s;
 }
 
@@ -1620,7 +1621,7 @@ details.flint-thinking > summary:focus {
 }
 
 .flint-context-high .flint-context-bar span {
-  background: var(--flint-accent);
+  background: repeating-linear-gradient(to right, var(--flint-accent) 0 var(--bar), transparent var(--bar) calc(var(--bar) + var(--gap)));
 }
 
 /* The folder chip and context meter sit side by side; one height for both. */
