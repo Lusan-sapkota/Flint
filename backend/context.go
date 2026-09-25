@@ -103,7 +103,16 @@ func decayTruncate(content string, weight float64) string {
 	return content[:keep] + "...[truncated]"
 }
 
-func toOllamaMessage(m Message, attachmentsDir string) OllamaMessage {
+func hasImage(m Message) bool {
+	for _, a := range m.Attachments {
+		if isImageMime(a.MimeType) {
+			return true
+		}
+	}
+	return false
+}
+
+func toOllamaMessage(m Message, attachmentsDir string, sendImages bool) OllamaMessage {
 	om := OllamaMessage{Role: m.Role, Content: m.Content}
 	if m.ToolCalls != nil {
 		_ = json.Unmarshal([]byte(*m.ToolCalls), &om.ToolCalls)
@@ -120,6 +129,10 @@ func toOllamaMessage(m Message, attachmentsDir string) OllamaMessage {
 			om.Content = strings.TrimRight(om.Content, "\n") + fmt.Sprintf("\n[Attached file: %s - not visible to you, only the user can see it]", a.Filename)
 			continue
 		}
+		if !sendImages {
+			om.Content = strings.TrimRight(om.Content, "\n") + fmt.Sprintf("\n[Earlier image: %s - no longer attached, to save context. If you need to look at it again, ask the user to re-send it]", a.Filename)
+			continue
+		}
 		encoded, err := loadAttachmentBase64(attachmentsDir, a)
 		if err != nil {
 			continue
@@ -133,6 +146,10 @@ func buildOptimizedHistory(messages []Message, attachmentsDir string) []OllamaMe
 	n := len(messages)
 	protected := make([]bool, n)
 
+	// Only the most recent image-bearing message keeps its images: each
+	// image costs hundreds of prompt tokens, and resending every old one on
+	// every turn would crowd out the conversation itself.
+	lastImage := -1
 	firstSystem := -1
 	firstUser := -1
 	for i, m := range messages {
@@ -140,13 +157,16 @@ func buildOptimizedHistory(messages []Message, attachmentsDir string) []OllamaMe
 			firstSystem = i
 			protected[i] = true
 		}
-		if len(m.Attachments) > 0 {
-			protected[i] = true
+		if hasImage(m) {
+			lastImage = i
 		}
 		if firstUser == -1 && m.Role == "user" {
 			firstUser = i
 			protected[i] = true
 		}
+	}
+	if lastImage != -1 {
+		protected[lastImage] = true
 	}
 	for i := n - protectedWindow; i < n; i++ {
 		if i >= 0 {
@@ -193,7 +213,7 @@ func buildOptimizedHistory(messages []Message, attachmentsDir string) []OllamaMe
 			i += 2
 			continue
 		}
-		result = append(result, toOllamaMessage(shrunk[i], attachmentsDir))
+		result = append(result, toOllamaMessage(shrunk[i], attachmentsDir, i == lastImage))
 		i++
 	}
 	return result

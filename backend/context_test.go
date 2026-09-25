@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -172,3 +174,27 @@ func TestDecayWeight_MonotonicallyDecreasing(t *testing.T) {
 }
 
 func strPtr(s string) *string { return &s }
+
+func TestOnlyLatestImageIsResent(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "a.png"), []byte("img"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	img := func(name string) []Attachment {
+		return []Attachment{{MimeType: "image/png", Filename: name, FilePath: "a.png"}}
+	}
+	messages := []Message{
+		{Role: "user", Content: "look at this", Attachments: img("old.png")},
+		{Role: "assistant", Content: "a cat"},
+		{Role: "user", Content: "and this", Attachments: img("new.png")},
+		{Role: "assistant", Content: "a dog"},
+		{Role: "user", Content: "compare them"},
+	}
+	result := buildOptimizedHistory(messages, dir)
+	if len(result[0].Images) != 0 || !strings.Contains(result[0].Content, "[Earlier image: old.png") {
+		t.Errorf("old image should be replaced by a note, got images=%d content=%q", len(result[0].Images), result[0].Content)
+	}
+	if len(result[2].Images) != 1 || strings.Contains(result[2].Content, "Earlier image") {
+		t.Errorf("latest image should still be sent, got images=%d content=%q", len(result[2].Images), result[2].Content)
+	}
+}
