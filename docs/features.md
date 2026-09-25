@@ -33,7 +33,7 @@ feature change.
 - **Edit the last message.** This resends it and discards everything
   after it, including a pending command. Its attachments carry over.
 - **Generation speed** (tokens per second) under each reply.
-- **Context meter.** Next to the folder chip: a row of thin bars, grey
+- **Context meter.** Next to the folder chip, after a thin divider: a row of thin bars, grey
   for the whole window and bright for how much of it the last request used, and
   the token count ("192 / 4.1k") to its right. Hover it for details. It
   turns the accent color above 80%. It updates after every response,

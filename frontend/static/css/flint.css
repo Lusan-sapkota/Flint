@@ -2012,3 +2012,21 @@ button.flint-danger-solid:hover {
   margin-right: auto;
   overflow-wrap: anywhere;
 }
+
+/* In the input bar, the folder chip and context meter sit as plain text,
+   split by a thin divider, rather than as boxed chips. */
+.flint-inputbar-top .flint-folder-indicator,
+.flint-inputbar-top .flint-context {
+  border: none;
+  background: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+.flint-inputbar-top .flint-context::before {
+  content: "";
+  align-self: center;
+  width: 1px;
+  height: 1rem;
+  margin-right: 0.5rem;
+  background: var(--flint-border);
+}
