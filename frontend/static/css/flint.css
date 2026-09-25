@@ -167,9 +167,10 @@ html.flint-rail-pre .flint-shell {
 }
 
 /* Before Alpine starts, show only the pieces matching the saved state
-   (see the inline script at the top of chat.html). */
+   (see the inline script at the top of chat.html). ^= because some
+   expanded-only pieces add conditions, like "!rail && !q.trim()". */
 html.flint-pre:not(.flint-rail-pre) .flint-sidebar [x-show="rail"],
-html.flint-rail-pre .flint-sidebar [x-show="!rail"] {
+html.flint-rail-pre .flint-sidebar [x-show^="!rail"] {
   display: none !important;
 }
 
