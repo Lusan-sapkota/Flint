@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -807,6 +808,10 @@ func thinkParam(r *http.Request) *bool {
 }
 
 func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, user *User, convo *ConversationWithMessages) {
+	s.streamAssistantTurnAttempt(w, r, user, convo, false)
+}
+
+func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Request, user *User, convo *ConversationWithMessages, retried bool) {
 	numCtx := numCtxFor(convo.Conversation)
 	options := map[string]any{"num_ctx": numCtx}
 	count := tokenCounter(convo.TokenRatio)
@@ -880,6 +885,21 @@ func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, use
 			log.Printf("warning: failed to touch conversation: %v", err)
 		}
 		return
+	}
+	// An overflow means the token estimate was off, which it always is on a
+	// new chat whose text is denser than chars/4 (a cat of a log of
+	// timestamps ran ~2 chars per token and overflowed an 8192 window by
+	// half). The rejection states the real size: recalibrate from it, refit
+	// and retry once. Nothing has been streamed yet, so the retry is
+	// invisible. Before this, a chat stayed stuck because only a successful
+	// reply ever recalibrated.
+	var overflow *contextOverflowError
+	if errors.As(err, &overflow) && !retried && r.Context().Err() == nil {
+		s.calibrateTokenRatio(convo.ID, history, toolsTokens, overflow.promptTokens)
+		if refreshed, rerr := getConversation(s.db, convo.ID, user.ID); rerr == nil && refreshed != nil {
+			s.streamAssistantTurnAttempt(w, r, user, refreshed, true)
+			return
+		}
 	}
 	if err != nil {
 		log.Printf("ollama stream error: %v", err)

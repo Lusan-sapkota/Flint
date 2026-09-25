@@ -164,6 +164,9 @@ def main():
     subprocess.run(["go", "build", "-o", str(binary), "."], cwd=ROOT / "backend", check=True)
 
     results = {"model": args.model, "runs": args.runs, "started": time.strftime("%Y-%m-%d %H:%M"), "configs": {}}
+    out_dir = Path(__file__).resolve().parent / "results"
+    out_dir.mkdir(exist_ok=True)
+    out = out_dir / (time.strftime("%Y%m%d-%H%M%S") + ".json")
     for ci, config in enumerate(configs):
         workdir = tmp / config
         workdir.mkdir()
@@ -179,17 +182,15 @@ def main():
                 for run in range(args.runs):
                     rec = run_task(client, args.model, task)
                     per_task[task["id"]].append(rec)
+                    results["configs"][config] = per_task
+                    # Saved after every task, so a stopped run keeps what it did.
+                    out.write_text(json.dumps(results, indent=1))
                     mark = "PASS" if rec["pass"] else "FAIL"
                     print(f"[{config}] {task['id']:<22} run {run + 1}: {mark}  {rec['why']}  ({rec['seconds']}s)", flush=True)
-            results["configs"][config] = per_task
         finally:
             proc.terminate()
             proc.wait()
 
-    out_dir = Path(__file__).resolve().parent / "results"
-    out_dir.mkdir(exist_ok=True)
-    out = out_dir / (time.strftime("%Y%m%d-%H%M%S") + ".json")
-    out.write_text(json.dumps(results, indent=1))
     shutil.rmtree(tmp, ignore_errors=True)
 
     print_summary(results, tasks, configs)

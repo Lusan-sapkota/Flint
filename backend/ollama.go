@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"slices"
+	"strconv"
 	"sync"
 )
 
@@ -332,7 +334,12 @@ func (c *OllamaClient) StreamChat(ctx context.Context, baseURL, model string, me
 
 	if resp.StatusCode != http.StatusOK {
 		buf, _ := readAll(resp.Body, 4096)
-		return ChatResult{}, fmt.Errorf("ollama returned status %d: %s", resp.StatusCode, buf)
+		err := fmt.Errorf("ollama returned status %d: %s", resp.StatusCode, buf)
+		if m := nPromptTokens.FindSubmatch(buf); m != nil {
+			n, _ := strconv.Atoi(string(m[1]))
+			return ChatResult{}, &contextOverflowError{promptTokens: n, err: err}
+		}
+		return ChatResult{}, err
 	}
 
 	scanner := bufio.NewScanner(resp.Body)
@@ -390,3 +397,16 @@ func readAll(r interface{ Read([]byte) (int, error) }, max int) ([]byte, error) 
 	}
 	return nil, err
 }
+
+// contextOverflowError is Ollama rejecting a prompt bigger than num_ctx.
+// Its body states the prompt's real size, the one exact token count Flint
+// can get for a prompt that never ran.
+type contextOverflowError struct {
+	promptTokens int
+	err          error
+}
+
+func (e *contextOverflowError) Error() string { return e.err.Error() }
+
+// The body nests JSON inside a JSON string, so the quotes may be escaped.
+var nPromptTokens = regexp.MustCompile(`n_prompt_tokens\\?"\s*:\s*(\d+)`)

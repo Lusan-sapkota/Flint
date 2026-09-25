@@ -47,7 +47,9 @@ becoming heavy itself.
   ([all features](docs/features.md))
 - **Tested against real models, and written down.** Every design decision
   in the context pipeline comes with the measurement behind it, including
-  the attempts that failed. ([experiments](docs/experiments.md))
+  the attempts that failed, and a scored benchmark measures each piece of
+  scaffolding by switching it off. ([experiments](docs/experiments.md),
+  [benchmark](docs/benchmark.md))
 
 ## Who it's for
 

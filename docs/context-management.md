@@ -32,6 +32,12 @@ estimate and stores the result, clamped to 0.5-4. Characters / 4 was off by
 settled at 1.14-1.21. Turns that send images skip calibration, since
 images have their own estimate.
 
+The one gap is a new chat, which has no measurement yet. If its first
+estimate undercounts and Ollama rejects the request as too big, the
+rejection states the real size. Flint recalibrates from that, refits and
+retries once, before anything has streamed
+([E16](experiments.md#e16-a-new-chat-couldnt-recover-from-one-big-command-output)).
+
 Images are estimated from their pixel size, width x height / 1024 tokens
 with a floor of 256, which matches qwen3.5-4b (E3). Formats whose size the
 Go standard library can't read (webp, bmp) count as 1024. Only the latest
