@@ -58,4 +58,4 @@ Open `http://localhost:8080`. Optional env vars: `PORT`, `DB_PATH`,
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+AGPL-3.0 — see [LICENSE](./LICENSE).
