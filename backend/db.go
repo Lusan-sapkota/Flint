@@ -217,8 +217,95 @@ func migrate(db *sql.DB) error {
 			return err
 		}
 	}
-	return nil
+	return migrateSearchIndex(db)
 }
+
+// An external-content FTS5 index over message text, kept in step by
+// triggers. Created here rather than in schema so a database from before
+// search existed gets its old messages indexed exactly once.
+func migrateSearchIndex(db *sql.DB) error {
+	var exists int
+	if err := db.QueryRow(`SELECT count(*) FROM sqlite_master WHERE name = 'messages_fts'`).Scan(&exists); err != nil || exists > 0 {
+		return err
+	}
+	_, err := db.Exec(`
+CREATE VIRTUAL TABLE messages_fts USING fts5(content, content='messages', content_rowid='id');
+CREATE TRIGGER messages_fts_insert AFTER INSERT ON messages BEGIN
+	INSERT INTO messages_fts(rowid, content) VALUES (new.id, new.content);
+END;
+CREATE TRIGGER messages_fts_delete AFTER DELETE ON messages BEGIN
+	INSERT INTO messages_fts(messages_fts, rowid, content) VALUES ('delete', old.id, old.content);
+END;
+CREATE TRIGGER messages_fts_update AFTER UPDATE OF content ON messages BEGIN
+	INSERT INTO messages_fts(messages_fts, rowid, content) VALUES ('delete', old.id, old.content);
+	INSERT INTO messages_fts(rowid, content) VALUES (new.id, new.content);
+END;
+INSERT INTO messages_fts(messages_fts) VALUES ('rebuild');`)
+	return err
+}
+
+type ChatSearchResult struct {
+	ID      string `json:"id"`
+	Title   string `json:"title"`
+	Snippet string `json:"snippet"`
+}
+
+// ftsQuery turns free text into a safe FTS5 query: every word is quoted (so
+// punctuation is never parsed as FTS syntax) and prefix-matched, so results
+// appear while a word is still being typed.
+func ftsQuery(q string) string {
+	var terms []string
+	for _, w := range strings.Fields(q) {
+		terms = append(terms, `"`+strings.ReplaceAll(w, `"`, `""`)+`"*`)
+	}
+	return strings.Join(terms, " ")
+}
+
+const maxSearchResults = 20
+
+// Only user and assistant text is searched: tool output and system messages
+// (folder manifests, web results) would match nearly any query and bury
+// the conversation the user is actually looking for.
+func searchConversations(db *sql.DB, userID, q string) ([]ChatSearchResult, error) {
+	match := ftsQuery(q)
+	out := []ChatSearchResult{}
+	if match == "" {
+		return out, nil
+	}
+	rows, err := db.Query(`
+SELECT id, title, '' FROM conversations
+WHERE user_id = ? AND title LIKE '%' || ? || '%' ESCAPE '\'
+UNION ALL
+SELECT * FROM (
+	SELECT c.id, c.title, snippet(messages_fts, 0, '', '', '…', 12)
+	FROM messages_fts
+	JOIN messages m ON m.id = messages_fts.rowid
+	JOIN conversations c ON c.id = m.conversation_id
+	WHERE messages_fts MATCH ? AND c.user_id = ? AND m.role IN ('user', 'assistant')
+	ORDER BY rank
+	LIMIT 200
+)`, userID, likeEscaper.Replace(strings.TrimSpace(q)), match, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	seen := map[string]bool{}
+	for rows.Next() {
+		var r ChatSearchResult
+		if err := rows.Scan(&r.ID, &r.Title, &r.Snippet); err != nil {
+			return nil, err
+		}
+		if seen[r.ID] || len(out) >= maxSearchResults {
+			continue
+		}
+		seen[r.ID] = true
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}
+
+var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
 
 func createUser(db *sql.DB, id, fullName, email, passwordHash string) (User, error) {
 	now := time.Now().UnixMilli()

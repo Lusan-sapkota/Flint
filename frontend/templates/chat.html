@@ -19,6 +19,16 @@
        collapsed: localStorage.getItem('flint-sidebar-collapsed') === '1',
        mobile: matchMedia('(max-width: 767px)').matches,
        navOpen: false,
+       q: '',
+       results: null,
+       async search() {
+         const q = this.q.trim();
+         if (!q) { this.results = null; return }
+         try {
+           const res = await fetch('/api/conversations/search?q=' + encodeURIComponent(q));
+           if (res.ok && this.q.trim() === q) this.results = await res.json();
+         } catch (e) {}
+       },
        get rail() { return this.collapsed && !this.mobile },
        toggleSidebar() {
          if (this.mobile) { this.navOpen = false; return }
@@ -63,12 +73,27 @@
         <button type="submit" class="flint-new-chat-btn" {{if not .Models}}disabled{{end}}>{{template "icon-plus"}} New chat</button>
       </form>
       {{if .ModelsErr}}<p class="flint-error">Couldn't reach Ollama: {{.ModelsErr}}</p>{{end}}
+      <div class="flint-search">
+        <input type="search" placeholder="Search chats" aria-label="Search chats"
+               x-model="q" @input.debounce.200ms="search()"
+               @keydown.escape.stop="q = ''; results = null">
+      </div>
     </div>
     <button type="button" class="flint-new-chat-icon-btn" x-show="rail" @click="collapsed = false" title="New chat">
       {{template "icon-plus"}}
     </button>
 
-    <div class="flint-conversations" x-show="!rail">
+    <div class="flint-conversations" x-show="!rail && q.trim()" x-cloak>
+      <template x-for="r in results || []" :key="r.id">
+        <a :href="`/c/${r.id}`" class="flint-search-result">
+          <span class="flint-search-title" x-text="r.title"></span>
+          <span class="flint-search-snippet" x-show="r.snippet" x-text="r.snippet"></span>
+        </a>
+      </template>
+      <p class="flint-empty-state" x-show="results && !results.length">No matching chats.</p>
+    </div>
+
+    <div class="flint-conversations" x-show="!rail && !q.trim()">
       {{range .Conversations}}
         <div class="flint-conversation-row{{if eq .ID $.CurrentID}} active{{end}}">
           <a href="/c/{{.ID}}" class="flint-conversation-link" data-conversation-link="{{.ID}}">{{.Title}}</a>

@@ -321,6 +321,44 @@ button.flint-btn-icon {
   height: 1.1rem;
 }
 
+.flint-search {
+  padding: 0 var(--flint-side-gutter) 0.5rem;
+}
+
+.flint-search input {
+  height: var(--flint-side-control-h);
+  margin: 0;
+  padding: 0 0.75rem;
+  font-size: 0.9rem;
+}
+
+.flint-search-result {
+  display: block;
+  padding: 0.4rem 0.75rem;
+  border-radius: 0.4rem;
+  margin-bottom: 0.15rem;
+  color: var(--flint-text);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.flint-search-result:hover {
+  background: var(--flint-surface-raised);
+}
+
+.flint-search-title,
+.flint-search-snippet {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.flint-search-snippet {
+  font-size: 0.8rem;
+  color: var(--flint-text-dim);
+}
+
 .flint-conversations {
   flex: 1;
   overflow-y: auto;

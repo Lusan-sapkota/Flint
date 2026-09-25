@@ -94,6 +94,7 @@ func main() {
 	mux.HandleFunc("DELETE /api/models", srv.requireAuth(srv.handleDeleteModel))
 	mux.HandleFunc("GET /api/conversations", srv.requireAuth(srv.handleListConversations))
 	mux.HandleFunc("POST /api/conversations", srv.requireAuth(srv.handleCreateConversation))
+	mux.HandleFunc("GET /api/conversations/search", srv.requireAuth(srv.handleSearchConversations))
 	mux.HandleFunc("GET /api/conversations/{id}", srv.requireAuth(srv.handleGetConversation))
 	mux.HandleFunc("PATCH /api/conversations/{id}", srv.requireAuth(srv.handleRenameConversation))
 	mux.HandleFunc("DELETE /api/conversations/{id}", srv.requireAuth(srv.handleDeleteConversation))

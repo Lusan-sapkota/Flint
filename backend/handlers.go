@@ -211,6 +211,16 @@ func (s *Server) handleListConversations(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, http.StatusOK, convos)
 }
 
+func (s *Server) handleSearchConversations(w http.ResponseWriter, r *http.Request) {
+	user := userFromContext(r)
+	results, err := searchConversations(s.db, user.ID, r.URL.Query().Get("q"))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, results)
+}
+
 func (s *Server) handleCreateConversation(w http.ResponseWriter, r *http.Request) {
 	user := userFromContext(r)
 
