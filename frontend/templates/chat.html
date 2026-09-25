@@ -1,6 +1,8 @@
 {{define "scripts"}}<script src="/static/js/marked.min.js" defer></script>
 <script src="/static/js/purify.min.js" defer></script>
 <script src="/static/js/chat.js" defer></script>{{end}}
+{{/* Shown twice in a row so the marquee loops without a jump. */}}
+{{define "input-tips"}}<span>Tip: start with <code>@web</code> to search the web (needs a Brave key in Settings)</span><span>Tip: <code>@memory save</code> keeps what matters from this chat for later ones</span><span>Tip: <code>@memory &lt;words&gt;</code> recalls a saved memory in any chat</span>{{end}}
 {{define "content"}}
 {{/* Runs before first paint, while Alpine (deferred) hasn't applied any
      x-show yet: marks the saved sidebar state on <html> so CSS can render
@@ -314,14 +316,11 @@
           <span class="flint-context-bar"><span :style="`width: ${Math.min(100, contextUsed / contextMax * 100)}%`"></span></span>
           <span x-text="`Context ${formatTokens(contextUsed)} / ${formatTokens(contextMax)}`"></span>
         </div>
-        <p class="flint-input-hint" aria-live="off"
-           x-data="{ tip: 0, tips: [
-             ['@web', ' to search the web (needs a Brave key in Settings)'],
-             ['@memory save', ' to keep what matters from this chat for later ones'],
-             ['@memory <words>', ' to recall a saved memory in any chat'],
-           ] }"
-           x-init="setInterval(() => tip = (tip + 1) % tips.length, 6000)">
-          Tip: start with <code x-text="tips[tip][0]">@web</code><span x-text="tips[tip][1]"> to search the web (needs a Brave key in Settings)</span>
+        <p class="flint-input-hint">
+          <span class="flint-tips-track">
+            <span class="flint-tips-set">{{template "input-tips"}}</span>
+            <span class="flint-tips-set" aria-hidden="true">{{template "input-tips"}}</span>
+          </span>
         </p>
       </div>
       <template x-if="folderError"><p class="flint-error" x-text="folderError"></p></template>

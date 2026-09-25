@@ -1747,8 +1747,50 @@ details.flint-thinking > summary:focus {
 
 .flint-input-hint {
   margin: 0 0 0 auto;
+  flex: 0 1 30rem;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
   font-size: 0.75rem;
   color: var(--flint-text-dim);
+  mask-image: linear-gradient(to right, transparent, #000 1.5rem, #000 calc(100% - 1.5rem), transparent);
+}
+
+.flint-tips-track {
+  display: inline-flex;
+  animation: flint-tips-scroll 45s linear infinite;
+}
+
+.flint-input-hint:hover .flint-tips-track {
+  animation-play-state: paused;
+}
+
+.flint-tips-set {
+  display: inline-flex;
+}
+
+.flint-tips-set > span {
+  padding-right: 3rem;
+}
+
+@keyframes flint-tips-scroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flint-tips-track {
+    animation: none;
+  }
+
+  .flint-tips-set[aria-hidden] {
+    display: none;
+  }
+
+  .flint-tips-set > span:not(:first-child) {
+    display: none;
+  }
 }
 
 .flint-input-hint code {

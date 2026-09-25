@@ -41,8 +41,9 @@ feature change.
 - **Missing-model badge.** If a chat's model has been removed from
   Ollama, the header says so and points you to Settings or a new chat.
 - **Last-activity time** in the chat header.
-- **Rotating tips** under the message box. Every 6 seconds they cycle
-  through `@web`, `@memory save` and `@memory <words>`.
+- **Scrolling tips** under the message box: a slow marquee through
+  `@web`, `@memory save` and `@memory <words>`. It pauses on hover and
+  shows one static tip if your system asks for reduced motion.
 - **Enter** sends, and **Shift+Enter** adds a new line.
 
 ## Conversations
