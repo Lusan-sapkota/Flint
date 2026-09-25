@@ -33,8 +33,9 @@ feature change.
 - **Edit the last message.** This resends it and discards everything
   after it, including a pending command. Its attachments carry over.
 - **Generation speed** (tokens per second) under each reply.
-- **Context bar.** Shows how much of the model's window the last request
-  used, and turns highlighted above 80%. It updates after every response,
+- **Context meter.** A 10-segment meter next to the folder chip showing
+  how much of the model's window the last request used, with the token
+  count. It turns highlighted above 80%. It updates after every response,
   including tool steps.
 - **Model loading notice.** Shown while Ollama loads a model, instead of
   bare dots.
