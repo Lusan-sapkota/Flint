@@ -96,18 +96,6 @@ cd backend && CGO_ENABLED=0 go build -o flint .
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | server default; each user can override it in Settings |
 | `FLINT_ABLATE` | empty | benchmark only: switches scaffolding off, see [benchmark.md](benchmark.md). Leave unset. |
 
-## Building the image yourself
-
-From a clone of the repository:
-
-```bash
-docker build -t ghcr.io/lusan-sapkota/flint:latest .
-```
-
-The compose files then use that local image instead of downloading one.
-Remove it (`docker rmi ghcr.io/lusan-sapkota/flint:latest`) to go back to
-the published image, since otherwise the local copy keeps shadowing it.
-
 ## Image tags
 
 A new image is published for every release, for `linux/amd64` and

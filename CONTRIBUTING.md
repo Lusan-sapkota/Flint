@@ -39,6 +39,18 @@ Then open `http://localhost:8080`. The frontend in `frontend/` is plain
 HTML, htmx, Alpine.js and Pico.css, vendored locally, with nothing to
 build. Don't add CDN links or a build step.
 
+### Building the Docker image
+
+From the repository root:
+
+```bash
+docker build -t ghcr.io/lusan-sapkota/flint:latest .
+```
+
+The compose files then use that local image instead of downloading one.
+Remove it (`docker rmi ghcr.io/lusan-sapkota/flint:latest`) to go back to
+the published image, since otherwise the local copy keeps shadowing it.
+
 ## Before you open a pull request
 
 - **Branch from `dev` and target `dev`.** `main` only gets releases.
