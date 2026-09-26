@@ -24,6 +24,8 @@ Notable changes in each release. The measurements behind a change are in
 
 ### Changed
 
+- `@web` picks more relevant results: its re-ranking now sends
+  `nomic-embed-text` the search prefixes it was trained with (E20).
 - Logging out asks "Are you sure you want to log out?" first.
 - The `@web` sources card spans the chat's full width too, and no longer
   jumps wider as it opens.

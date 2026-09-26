@@ -650,6 +650,7 @@ is the grade sum of the kept 3, out of 6 per query.
 | nomic + `search_query: ` / `search_document: ` | 70/90 | 0.836 | 323 MB |
 | snowflake-arctic-embed:33m | 66/90 | 0.773 | 60 MB |
 | arctic 33m + its query prefix | 66/90 | 0.781 | 60 MB |
+| arctic m (110M) + its query prefix | 65/90 | 0.783 | 180 MB |
 
 - nomic was trained with those task prefixes and Flint sends none. Adding
   them fixed the worst misses: "ollama keep_alive default" went 2 -> 5,
@@ -661,11 +662,14 @@ is the grade sum of the kept 3, out of 6 per query.
   embeddings now unload right after the call, nomic's larger footprint
   is held for about that long; it matters only if it pushes the chat
   model out of a full GPU.
+- snowflake-arctic-embed:m (110M, 218 MB, 180 MB loaded), close to
+  nomic's size, did worse: 65/90 (nDCG 0.783) with its query prefix,
+  57/90 (0.671) without, below Brave's own order.
 - One labeler and 15 queries, so a 4-point gap is modest evidence.
 
-**Changed:** nothing in Flint yet; nomic stays the model. The prefixes
-are the recommended next change. Not tried: bigger embedding models
-(mxbai-embed-large, embeddinggemma, bge-m3), arctic's 110M `m` size and
+**Changed:** nomic stays the model, and `rankByRelevance` now sends it
+the `search_query: ` / `search_document: ` prefixes. Not tried: bigger
+embedding models (mxbai-embed-large, embeddinggemma, bge-m3) and
 arctic-embed2.
 
 ## Open questions

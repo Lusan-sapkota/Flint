@@ -31,10 +31,12 @@ LABELS = {
 ARCTIC_Q = "Represent this sentence for searching relevant passages: "
 CONFIGS = {
  "brave order (no model)": None,
- "nomic, as Flint does now": ("nomic-embed-text", "", ""),
- "nomic + search_query/document prefixes": ("nomic-embed-text", "search_query: ", "search_document: "),
+ "nomic, no prefix (before E20)": ("nomic-embed-text", "", ""),
+ "nomic + prefixes (what Flint sends)": ("nomic-embed-text", "search_query: ", "search_document: "),
  "arctic 33m, no prefix": ("snowflake-arctic-embed:33m", "", ""),
  "arctic 33m + query prefix": ("snowflake-arctic-embed:33m", ARCTIC_Q, ""),
+ "arctic m (110M), no prefix": ("snowflake-arctic-embed:m", "", ""),
+ "arctic m (110M) + query prefix": ("snowflake-arctic-embed:m", ARCTIC_Q, ""),
 }
 def post(path, body):
     r = urllib.request.urlopen(urllib.request.Request(OLLAMA + path, json.dumps(body).encode(), {"Content-Type": "application/json"}))

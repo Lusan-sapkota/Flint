@@ -98,9 +98,11 @@ func rankByRelevance(ctx context.Context, ollama *OllamaClient, baseURL, query s
 	}
 
 	inputs := make([]string, 0, len(results)+1)
-	inputs = append(inputs, query)
+	// nomic-embed-text was trained with these task prefixes; without them
+	// it ranked 62/90 instead of 70/90 on the E20 set.
+	inputs = append(inputs, "search_query: "+query)
 	for _, r := range results {
-		inputs = append(inputs, r.Title+" "+r.Snippet)
+		inputs = append(inputs, "search_document: "+r.Title+" "+r.Snippet)
 	}
 
 	vectors, err := ollama.Embed(ctx, baseURL, embeddingModel, inputs)
