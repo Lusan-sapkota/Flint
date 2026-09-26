@@ -170,7 +170,7 @@ turns. Most answers became guesses ("ratelimit.go is likely used to..."),
 and some claimed the user had asked for no commands.
 
 **Changed:** nothing. The original nudge stays. This conflict is still
-open (see below).
+open (see below). Resolved for explicit "don't run" requests in E17.
 
 ## E10: Protected messages can overflow on their own
 
@@ -357,7 +357,7 @@ shield.
 
 **Next:** run `no-nudge` against `full` with `--runs 3`. It's the most
 likely single cause of the gap, and it decides whether the nudge should be
-reworded, made conditional, or dropped.
+reworded, made conditional, or dropped. Done in E17.
 
 ## E16: A new chat couldn't recover from one big command output
 
@@ -455,12 +455,94 @@ body Ollama 0.34.2 sends.
 - **One run before, one after.** The difference is clear-cut, but it's
   n=1.
 
+## E17: The tool nudge is left off when the user says not to run commands
+
+E15 pointed at the tool nudge as the cause of the restraint failures. This
+is the `--runs 3` measurement, on qwen2.5-3b-instruct with the fixture
+folder attached (so the real manifest is in context), over 8 tasks: 3
+restraint, 1 grounding, 4 tool use.
+
+```
+python3 bench/run.py --configs full,no-nudge --runs 3 \
+  --tasks no-cmd-port,no-cmd-oncall,no-cmd-math,max-connections,list-data,log-lines,price-lookup,run-check
+```
+
+**Baseline:**
+
+| Task | full | no-nudge |
+|---|---|---|
+| max-connections | 2/3 | 3/3 |
+| list-data | 3/3 | 1/3 |
+| price-lookup | 2/3 | 1/3 |
+| log-lines | 1/3 | 1/3 |
+| run-check | 3/3 | 3/3 |
+| no-cmd-port | 0/3 | 3/3 |
+| no-cmd-oncall | 0/3 | 3/3 |
+| no-cmd-math | 0/3 | 0/3 |
+| grounding | 2/3 | 3/3 |
+| restraint | 0/9 | 6/9 |
+| tool use | 9/12 | 6/12 |
+| **total** | **11/24** | **15/24** |
+
+The nudge is the cause of the restraint failures, and it also earns its
+place. With it, every "without running any commands" question went to
+`grep` or `cat`. Without it, those were all answered, but tool use fell:
+twice the model said the `data/` folder "wasn't attached" instead of
+running `ls data/`, and once it counted a log's lines by eye (2,019; the
+answer is 400). `no-cmd-math` failed the same in both (`echo '12 * 12' |
+bc`), so the nudge isn't what causes that one. Dropping the nudge was ruled
+out here.
+
+**Candidates**, each measured as `full` with the same command and tasks:
+
+| Task | baseline full | a: conditional wording | b: skip on "don't run" |
+|---|---|---|---|
+| max-connections | 2/3 | 3/3 | 3/3 |
+| list-data | 3/3 | 3/3 | 3/3 |
+| price-lookup | 2/3 | 2/3 | 3/3 |
+| log-lines | 1/3 | 2/3 | 2/3 |
+| run-check | 3/3 | 3/3 | 3/3 |
+| no-cmd-port | 0/3 | 0/3 | 3/3 |
+| no-cmd-oncall | 0/3 | 0/3 | 3/3 |
+| no-cmd-math | 0/3 | 0/3 | 1/3 |
+| grounding | 2/3 | 3/3 | 3/3 |
+| restraint | 0/9 | 0/9 | 7/9 |
+| tool use | 9/12 | 10/12 | 11/12 |
+| **total** | **11/24** | **13/24** | **21/24** |
+
+- **a (rejected):** "If you need to run a command, first briefly think
+  through…". Restraint stayed at 0/9. Making the sentence conditional
+  didn't stop the model reading it as an instruction to use the tool.
+  The grounding and tool-use gains are within noise.
+- **b (adopted):** the original nudge, left off in Go when the latest user
+  message contains a phrase like "without running", "don't run" or "no
+  commands" (`forbidsCommands` in tools.go). The tool is still offered;
+  only the nudge goes. Every other message still gets the nudge, so tool use
+  is kept (11/12 vs 9/12, within noise). The model makes the same choices
+  as with no nudge on the two tasks that name the restriction. This follows
+  `@web` and `@memory`: the decision is made from the user's literal words,
+  not by the model.
+
+**Changed:** candidate b. Commit on `dev`, see git log.
+
+**How far this goes:**
+
+- The phrase list is narrow on purpose. A user who says "just from what
+  you can see" or "from memory" still gets the nudge. The two restraint
+  tasks this fixes use phrases the list was written to match, so the 6/6
+  there shows the mechanism works, not how often real users phrase it
+  this way.
+- `no-cmd-math` isn't fixed. Nothing in "What is 12 times 12?" says not to
+  run a command, and the model reaches for `bc` with or without the nudge.
+  The 1/3 is noise. Deciding in Go that a question needs no command would
+  be a classifier, and wrong classifications would cost tool use.
+- 3 runs per task, one model.
+
 ## Open questions
 
-- **The tool nudge vs "don't run commands".** E9, now counted in E15:
-  restraint 1/4 with the nudge, 3/4 without. Next step: `no-nudge` vs
-  `full` with `--runs 3`, then a fix that keeps the tool use working. Per
-  CLAUDE.md, it has to be tested with the real folder manifest in context.
+- **Commands for questions that don't need one.** E17 fixed explicit
+  "don't run commands". Simple arithmetic still goes to `bc` or
+  `python3 -c`, with or without the nudge.
 - **Summary accuracy on 3B.** Counts are sometimes wrong (E6). User facts
   no longer depend on the model (E7/E11). Its notes on files and commands
   still do.

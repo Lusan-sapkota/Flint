@@ -92,7 +92,9 @@ Each step is idempotent.
    no chat turn, and so is `@compact` (see features.md).
 3. `streamAssistantTurn` builds the budget and the fitted history,
    appends the tool nudge and folder anchor to the last message when a
-   folder is attached, and streams the model's reply.
+   folder is attached (the nudge is left off when the user's message says
+   not to run commands, see experiments.md E17), and streams the model's
+   reply.
 4. A tool call is checked by the shield, then by the preconditions, then
    saved as a pending command. The stream ends, and the user approves or
    denies it with a separate request, which runs the command and continues

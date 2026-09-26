@@ -844,7 +844,7 @@ func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Reque
 	var suffix string
 	if convo.AttachedFolder != nil && *convo.AttachedFolder != "" && consecutiveToolCycles(convo.Messages) < maxToolAttemptsPerTurn {
 		tools = []OllamaTool{runShellTool}
-		if !ablated["nudge"] {
+		if !ablated["nudge"] && !forbidsCommands(convo.Messages) {
 			suffix = toolReasoningPrompt
 		}
 		if anchor := buildAnchorHeader(*convo.AttachedFolder); anchor != "" && !ablated["anchor"] {
