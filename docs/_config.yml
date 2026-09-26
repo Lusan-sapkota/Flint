@@ -26,3 +26,4 @@ nav:
   - title: Project
     pages:
       - {title: Changelog, url: /changelog.html}
+      - {title: Contributing, url: "https://github.com/Lusan-sapkota/Flint/blob/main/CONTRIBUTING.md"}

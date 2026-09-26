@@ -122,6 +122,8 @@ A new image is published for every release, for `linux/amd64` and
 The compose files use `latest`. To stay on one version, change the tag
 in the compose file. A published version always means the same code: a
 broken release is fixed by the next version, never by republishing one.
+How a release is made (for maintainers) is in
+[CONTRIBUTING.md](https://github.com/Lusan-sapkota/Flint/blob/main/CONTRIBUTING.md#releasing-maintainers).
 
 ## Health
 

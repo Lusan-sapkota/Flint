@@ -75,6 +75,9 @@ Then open `http://localhost:8080` and sign up.
 **Project**
 
 - [Changelog](changelog.md): what changed in each release.
+- [Contributing](https://github.com/Lusan-sapkota/Flint/blob/main/CONTRIBUTING.md)
+  (on GitHub): for anyone working on the code. What fits, setup, what a
+  pull request needs, and, for maintainers, how a release is made.
 
 ## Screenshots
 
