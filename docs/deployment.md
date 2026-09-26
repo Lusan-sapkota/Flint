@@ -123,6 +123,14 @@ After the first publish, check the package's visibility on GitHub (profile
 or nobody else can pull it. The workflow file has to exist in the tagged
 commit, so tag a commit that includes it.
 
+The repository has two rulesets, which apply to the owner too:
+
+- **`main`** can't be force-pushed or deleted, since it's what people
+  clone and what the download links point at.
+- **`v*` tags** can't be deleted or moved once pushed, so a published
+  version always means the same code. A broken release is fixed by
+  tagging the next version (`v0.1.1`), not by re-tagging.
+
 ## Health
 
 `GET /healthz` checks the database and Ollama's `/api/version`. It returns

@@ -79,3 +79,10 @@ A saved memory is sent back to the model in later chats, so a wrong one
 keeps misleading it. That's why a model-drafted memory is only saved after
 the user has read and approved it, and why memories are only written or
 searched on an explicit `@memory` command.
+
+## Reporting a vulnerability
+
+Please report security problems privately through the repository's
+**Security → Report a vulnerability** on GitHub, not in a public issue.
+That matters especially for anything that gets around the shell-command
+safety layers.
