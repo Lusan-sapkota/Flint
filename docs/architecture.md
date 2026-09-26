@@ -111,7 +111,7 @@ client consumes:
 |---|---|
 | `<<<LOADING>>>` | the model isn't loaded yet; a cold start can take a while |
 | `<<<THINK>>>"..."` | one JSON-string chunk of thinking, shown apart from the answer |
-| `<<<CONTEXT>>>{"used":N,"max":M}` | context use for this response, sent after every model response |
+| `<<<CONTEXT>>>{"used":N,"max":M,"condensed":C}` | context use for this response, sent after every model response; `condensed` is how many messages a summary replaced in the request |
 | `<<<TOOL_RESULT>>>{"status":..,"output":..}` | what an approved or denied command produced, for display |
 | `<<<TOOL_CALL>>>{"id":..,"command":..}` | a pending command awaiting approval; ends the stream |
 | `<<<STATS>>>{"tokensPerSec":N}` | generation speed; ends a final text reply |

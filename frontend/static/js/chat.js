@@ -235,6 +235,7 @@ document.addEventListener('alpine:init', () => {
     lastActive: config.lastActive,
     contextUsed: config.contextUsed,
     contextMax: config.contextMax,
+    condensed: config.condensed,
     thinkOn: localStorage.getItem('flint-think') !== '0',
     editingIndex: null,
     editText: '',
@@ -753,6 +754,7 @@ document.addEventListener('alpine:init', () => {
             if (lineMarker === CONTEXT_MARKER) {
               this.contextUsed = value.used;
               this.contextMax = value.max;
+              this.condensed = value.condensed;
             } else if (lineMarker === SEARCHING_MARKER) {
               this.searchingQuery = value.query;
             } else if (lineMarker === SOURCES_MARKER) {

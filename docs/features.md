@@ -47,7 +47,9 @@ feature change.
   for the whole window and bright for how much of it the last request used, and
   the token count ("192 / 4.1k") to its right. Hover it for details. It
   turns the accent color above 80%. It updates after every response,
-  including tool steps.
+  including tool steps. Once older messages have been condensed into a
+  summary, it says how many ("192 / 4.1k · 12 condensed"), so a model
+  losing an early detail isn't a mystery.
 - **Model loading notice.** Shown while Ollama loads a model, instead of
   bare dots.
 - **Missing-model badge.** If a chat's model has been removed from

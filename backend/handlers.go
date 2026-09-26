@@ -940,7 +940,7 @@ func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Reque
 		if err := setContextUsage(s.db, convo.ID, result.ContextUsed, numCtx); err != nil {
 			log.Printf("warning: failed to save context usage: %v", err)
 		}
-		line, _ := json.Marshal(map[string]int{"used": result.ContextUsed, "max": numCtx})
+		line, _ := json.Marshal(map[string]int{"used": result.ContextUsed, "max": numCtx, "condensed": condensedCount(convo.Messages, convo.Summaries)})
 		fmt.Fprintf(w, "<<<CONTEXT>>>%s\n", line)
 		flush()
 	}

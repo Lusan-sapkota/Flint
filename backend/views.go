@@ -206,6 +206,7 @@ type chatViewData struct {
 	CurrentUpdatedAt    int64
 	ContextUsed         int
 	ContextMax          int
+	Condensed           int
 	CurrentFolder       string
 	TimelineJSON        string
 	Models              []OllamaModelInfo
@@ -239,6 +240,7 @@ func (s *Server) handleChatPage(w http.ResponseWriter, r *http.Request, user *Us
 		data.CurrentUpdatedAt = full.UpdatedAt
 		data.ContextUsed = full.ContextUsed
 		data.ContextMax = full.ContextMax
+		data.Condensed = condensedCount(full.Messages, full.Summaries)
 		if full.AttachedFolder != nil {
 			data.CurrentFolder = *full.AttachedFolder
 		}

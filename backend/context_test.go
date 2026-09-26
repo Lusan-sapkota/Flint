@@ -225,6 +225,9 @@ func TestBuildOptimizedHistory_SummariesReplaceCoveredMessages(t *testing.T) {
 		!strings.Contains(result[2].Content, "- user asked X") || result[3].Content != "current question" {
 		t.Fatalf("expected manifest, goal, summary, current question in order, got %q", joined)
 	}
+	if n := condensedCount(messages, summaries); n != 3 {
+		t.Fatalf("condensedCount = %d, want 3: the manifest and goal stay verbatim", n)
+	}
 }
 
 func TestBuildOptimizedHistory_DropsOldestToFitBudget(t *testing.T) {

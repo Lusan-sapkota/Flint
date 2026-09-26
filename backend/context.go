@@ -190,19 +190,50 @@ type historyEntry struct {
 // an oversized prompt either silently loses its middle messages or, when
 // the system messages alone overflow, is rejected outright (both verified);
 // dropping here tells the model and keeps the goal and folder context.
-func buildOptimizedHistory(messages []Message, summaries []Summary, attachmentsDir string, budget int, count tokenCounter) []OllamaMessage {
-	n := len(messages)
-	protected := make([]bool, n)
-
-	lastImage, firstSystem, firstUser := protectedAnchors(messages)
+// coveredBySummaries marks the messages a summary replaces in the request.
+func coveredBySummaries(messages []Message, summaries []Summary) (covered []bool, first int) {
+	_, firstSystem, firstUser := protectedAnchors(messages)
 	// The latest tool call and its result stay verbatim even once a summary
 	// covers them: they are the model's only in-context example of a real
 	// structured tool call. With every call summarized away, qwen2.5-3b fell
 	// back to writing commands as plain text, then kept copying that.
 	lastCall, lastResult := lastToolExchange(messages)
-	keepRaw := func(i int) bool {
-		return i != -1 && (i == firstSystem || i == firstUser || i == lastCall || i == lastResult)
+	covered = make([]bool, len(messages))
+	first = -1
+	for i, m := range messages {
+		if i == firstSystem || i == firstUser || i == lastCall || i == lastResult {
+			continue
+		}
+		for _, sm := range summaries {
+			if m.ID >= sm.FirstMessageID && m.ID <= sm.LastMessageID {
+				covered[i] = true
+				if first == -1 {
+					first = i
+				}
+				break
+			}
+		}
 	}
+	return covered, first
+}
+
+func condensedCount(messages []Message, summaries []Summary) int {
+	covered, _ := coveredBySummaries(messages, summaries)
+	n := 0
+	for _, c := range covered {
+		if c {
+			n++
+		}
+	}
+	return n
+}
+
+func buildOptimizedHistory(messages []Message, summaries []Summary, attachmentsDir string, budget int, count tokenCounter) []OllamaMessage {
+	n := len(messages)
+	protected := make([]bool, n)
+
+	lastImage, firstSystem, firstUser := protectedAnchors(messages)
+	lastCall, lastResult := lastToolExchange(messages)
 	for _, i := range []int{lastImage, firstSystem, firstUser, lastCall, lastResult} {
 		if i != -1 {
 			protected[i] = true
@@ -219,22 +250,7 @@ func buildOptimizedHistory(messages []Message, summaries []Summary, attachmentsD
 		}
 	}
 
-	covered := make([]bool, n)
-	firstCovered := -1
-	for i, m := range messages {
-		if keepRaw(i) {
-			continue
-		}
-		for _, sm := range summaries {
-			if m.ID >= sm.FirstMessageID && m.ID <= sm.LastMessageID {
-				covered[i] = true
-				if firstCovered == -1 {
-					firstCovered = i
-				}
-				break
-			}
-		}
-	}
+	covered, firstCovered := coveredBySummaries(messages, summaries)
 
 	// Only tool output and later system messages decay. Truncating the
 	// dialogue itself taught the model to imitate it: qwen2.5-3b, shown its

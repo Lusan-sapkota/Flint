@@ -149,6 +149,7 @@
          lastActive: {{.CurrentUpdatedAt}},
          contextUsed: {{.ContextUsed}},
          contextMax: {{.ContextMax}},
+         condensed: {{.Condensed}},
          timeline: {{.TimelineJSON}}
        })"
        x-cloak>
@@ -335,9 +336,9 @@
           </form>
         </template>
         <div class="flint-context" x-show="contextMax" :class="{ 'flint-context-high': contextUsed / contextMax > 0.8 }"
-             :title="`The last request used ${contextUsed} of the ${contextMax} tokens this model was loaded with. Flint trims and condenses older messages to stay inside it.`">
+             :title="`The last request used ${contextUsed} of the ${contextMax} tokens this model was loaded with. Flint trims and condenses older messages to stay inside it.` + (condensed ? ` ${condensed} older ${condensed === 1 ? 'message is' : 'messages are'} condensed into a summary, so the model sees their gist, not their exact wording.` : '')">
           <span class="flint-context-bar" aria-hidden="true"><span :style="`width: ${Math.min(100, contextUsed / contextMax * 100)}%`"></span></span>
-          <span x-text="`${formatTokens(contextUsed)} / ${formatTokens(contextMax)}`" :aria-label="`Context ${contextUsed} of ${contextMax} tokens`"></span>
+          <span x-text="`${formatTokens(contextUsed)} / ${formatTokens(contextMax)}` + (condensed ? ` · ${condensed} condensed` : '')" :aria-label="`Context ${contextUsed} of ${contextMax} tokens` + (condensed ? `, ${condensed} older messages condensed` : '')"></span>
         </div>
         <p class="flint-input-hint">
           <span class="flint-tips-track">
