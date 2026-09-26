@@ -40,6 +40,10 @@ Notable changes in each release. The measurements behind a change are in
   in the Settings page and in `/api/me`, where the eye button or the page
   source showed it in full. Settings now shows only its last four
   characters, with Replace and Remove.
+- After a reload, messages keep their `@web` / `@memory` tags as typed,
+  and recalled memories show as "Recalled memories for …" after the
+  message that asked, instead of the instruction text meant for the
+  model. Collapsible headers keep their arrow on the same line.
 - A denied command card shows just "Denied", not the instructions Flint
   writes for the model.
 - Collapsible headers (sources, system messages) and link hovers no

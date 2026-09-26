@@ -985,6 +985,19 @@ details.flint-thinking > summary:focus {
   width: min(90ch, 100%);
 }
 
+/* Pico floats the arrow right, so a header long enough to fill the row
+   pushed it down onto a line of its own. */
+.flint-msg-system > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.flint-msg-system > summary::after {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
 .flint-msg-attachment {
   display: flex;
   flex-wrap: wrap;

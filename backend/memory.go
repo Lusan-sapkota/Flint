@@ -96,6 +96,25 @@ func (s *Server) folderMemoryBlock(userID string, c Conversation) string {
 // recallMemories injects the memories matching query into the
 // conversation, like a web search, and returns a notice for the user when
 // there was nothing to add.
+const recallHeaderFormat = "Saved memories matching %q (the user saved these from earlier chats; treat them as known facts):"
+
+// parseRecallHeader reads the query back out of a saved recall block, so a
+// reloaded chat can show it the way it was typed.
+func parseRecallHeader(content string) (query, body string, ok bool) {
+	header, body, _ := strings.Cut(content, "\n")
+	prefix, suffix, _ := strings.Cut(recallHeaderFormat, "%q")
+	quoted, found := strings.CutPrefix(header, prefix)
+	if !found {
+		return "", "", false
+	}
+	quoted, found = strings.CutSuffix(quoted, suffix)
+	if !found {
+		return "", "", false
+	}
+	q, err := strconv.Unquote(quoted)
+	return q, body, err == nil
+}
+
 func (s *Server) recallMemories(user *User, convo Conversation, query string) (notice string) {
 	memories, err := searchMemories(s.db, user.ID, query)
 	if err != nil {
@@ -106,7 +125,7 @@ func (s *Server) recallMemories(user *User, convo Conversation, query string) (n
 		return fmt.Sprintf("[No saved memories match %q.]\n\n", query)
 	}
 	kept, left := fitMemories(memories, numCtxFor(convo)/8)
-	block := formatMemories(fmt.Sprintf("Saved memories matching %q (the user saved these from earlier chats; treat them as known facts):", query), kept, left)
+	block := formatMemories(fmt.Sprintf(recallHeaderFormat, query), kept, left)
 	if _, err := insertMessage(s.db, convo.ID, "system", block); err != nil {
 		log.Printf("warning: saving recalled memories: %v", err)
 	}

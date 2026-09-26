@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"log"
 	"math"
@@ -78,6 +79,7 @@ type timelineItem struct {
 	Thinking      string           `json:"thinking,omitempty"`
 	Query         string           `json:"query,omitempty"`
 	Sources       []sourceLink     `json:"sources,omitempty"`
+	recall        bool
 }
 
 type timelineAttach struct {
@@ -117,12 +119,19 @@ func buildTimeline(messages []Message, pending *Command) []timelineItem {
 		switch m.Role {
 		case "user":
 			item := timelineItem{Kind: "user", Content: m.Content}
+			// The tags are stripped before saving so the model sees plain
+			// text; show them again the way the user typed them.
+			if n := len(out); n > 0 && out[n-1].Kind == "sources" {
+				item.Content = "@web " + m.Content
+			} else if n > 0 && out[n-1].Kind == "system" && out[n-1].recall {
+				item.Content = "@memory " + m.Content
+			}
 			for _, a := range m.Attachments {
 				item.Attachments = append(item.Attachments, timelineAttach{ID: a.ID, MimeType: a.MimeType, Filename: a.Filename, IsImage: isImageMime(a.MimeType)})
 			}
-			// A search is saved just before the message that asked for it;
-			// show it after, where it appeared live.
-			if n := len(out); n > 0 && out[n-1].Kind == "sources" {
+			// A search or recall is saved just before the message that asked
+			// for it; show it after.
+			if n := len(out); n > 0 && (out[n-1].Kind == "sources" || out[n-1].recall) {
 				out = append(out[:n-1], item, out[n-1])
 			} else {
 				out = append(out, item)
@@ -131,6 +140,10 @@ func buildTimeline(messages []Message, pending *Command) []timelineItem {
 			if query, results, ok := parseSearchResults(m.Content); ok {
 				view := sourcesView(query, results)
 				out = append(out, timelineItem{Kind: "sources", Query: view.Query, Sources: view.Sources})
+				continue
+			}
+			if query, body, ok := parseRecallHeader(m.Content); ok {
+				out = append(out, timelineItem{Kind: "system", Content: fmt.Sprintf("Recalled memories for %q\n%s", query, body), recall: true})
 				continue
 			}
 			out = append(out, timelineItem{Kind: "system", Content: m.Content})
