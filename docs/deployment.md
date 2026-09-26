@@ -90,8 +90,11 @@ Then open `http://localhost:3141`. Notes:
   network.
 
 - **Updating:** `docker compose pull && docker compose up -d` fetches the
-  newest `latest`. To stay on one version, change the tag in the compose
-  file, for example `ghcr.io/lusan-sapkota/flint:0.1.0`.
+  newest `latest`, and `./data` is kept. `latest` only moves for normal
+  releases, not pre-releases like `v0.2.0-beta`. To stay on one version,
+  change the tag in the compose file, for example
+  `ghcr.io/lusan-sapkota/flint:0.1` (patch releases of 0.1) or `:0.1.0`
+  (exactly that one). Nothing updates automatically.
 
 ### Building the image yourself
 

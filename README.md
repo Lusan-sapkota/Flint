@@ -89,6 +89,19 @@ docker compose -f docker-compose.desktop.yml up -d
 Then open `http://localhost:3141`, a deliberately uncommon port so it
 doesn't collide with other dev servers (set `FLINT_PORT` to change it).
 
+To update to a new release, run this in the same folder (add
+`-f docker-compose.desktop.yml` on Mac and Windows). Your data in `./data`
+is kept:
+
+```bash
+docker compose pull && docker compose up -d
+docker image prune -f   # optional: remove the old image
+```
+
+`latest` only moves for normal releases, not pre-releases like
+`v0.2.0-beta`. To stay on one version, pin its tag in the compose file,
+for example `ghcr.io/lusan-sapkota/flint:0.1`.
+
 Environment variables, Docker notes and which models need which
 capabilities: [deployment](docs/deployment.md).
 
