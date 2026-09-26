@@ -2,3 +2,17 @@ title: Flint
 description: A small, fully offline chat UI for local Ollama models, built to get the most out of small models.
 theme: jekyll-theme-minimal
 logo: /images/logo.png
+repository_url: https://github.com/Lusan-sapkota/Flint
+
+# The sidebar menu (_layouts/default.html), in order.
+nav:
+  - {title: Home, url: /}
+  - {title: Features, url: /features.html}
+  - {title: Deployment, url: /deployment.html}
+  - {title: Architecture, url: /architecture.html}
+  - {title: Security, url: /security.html}
+  - {title: Context management, url: /context-management.html}
+  - {title: Experiments, url: /experiments.html}
+  - {title: Benchmark, url: /benchmark.html}
+  - {title: Testing, url: /testing.html}
+  - {title: Changelog, url: /changelog.html}

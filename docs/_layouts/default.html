@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="{{ site.lang | default: "en-US" }}">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+{% seo %}
+    <link rel="stylesheet" href="{{ "/assets/css/style.css?v=" | append: site.github.build_revision | relative_url }}">
+    <style>
+      nav.pages ul { list-style: none; padding: 0; margin: 0 0 20px; }
+      nav.pages li { margin: 0; }
+      nav.pages a { display: block; padding: 3px 0; color: #555; }
+      nav.pages a:hover { color: #069; }
+      nav.pages a.current { color: #222; font-weight: 700; }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1><a href="{{ "/" | relative_url }}">{{ site.title }}</a></h1>
+
+        {% if site.logo %}
+          <img src="{{ site.logo | relative_url }}" alt="Flint logo" width="120" />
+        {% endif %}
+
+        <p>{{ site.description }}</p>
+
+        <nav class="pages" aria-label="Pages">
+          <ul>
+            {% for item in site.nav %}
+              {% assign href = item.url | relative_url %}
+              <li><a href="{{ href }}"{% if page.url == item.url %} class="current" aria-current="page"{% endif %}>{{ item.title }}</a></li>
+            {% endfor %}
+          </ul>
+        </nav>
+
+        <p class="view"><a href="{{ site.repository_url }}">View the source on GitHub</a></p>
+      </header>
+      <section>
+
+      {{ content }}
+
+      </section>
+      <footer>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="{{ "/assets/js/scale.fix.js" | relative_url }}"></script>
+  </body>
+</html>

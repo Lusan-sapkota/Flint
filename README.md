@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://github.com/Lusan-sapkota/Flint/releases"><img src="https://img.shields.io/github/v/tag/Lusan-sapkota/Flint?sort=semver&label=version" alt="Latest version"></a>
   <a href="https://flint.lusansapkota.com.np">Docs</a> ·
-  <a href="CHANGELOG.md">Changelog</a>
+  <a href="docs/changelog.md">Changelog</a>
 </p>
 
 No CDN calls, no telemetry, no cloud dependency. Everything the frontend
@@ -152,7 +152,7 @@ on GitHub:
 | [Experiments](docs/experiments.md) | the measurements behind the design |
 | [Benchmark](docs/benchmark.md) | scored tasks, with and without each piece of scaffolding |
 | [Testing](docs/testing.md) | unit tests, live checks, the long-chat run |
-| [Changelog](CHANGELOG.md) | what changed in each release |
+| [Changelog](docs/changelog.md) | what changed in each release |
 | [Contributing](CONTRIBUTING.md) | what fits, setup, what a pull request needs |
 
 ## Stack

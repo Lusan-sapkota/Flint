@@ -44,6 +44,7 @@ compose files, environment variables and model requirements are in
   each piece of scaffolding.
 - [Testing](testing.md): unit tests, live checks against Ollama, the
   long-chat run and the web re-ranking set.
+- [Changelog](changelog.md): what changed in each release.
 
 Tools used in the experiments:
 [tools/long_chat.py](tools/long_chat.py), the scripted 19-turn chat, and
@@ -60,7 +61,6 @@ re-ranking on saved, hand-graded searches.
 
 - [Source code](https://github.com/Lusan-sapkota/Flint) and
   [releases](https://github.com/Lusan-sapkota/Flint/releases)
-- [Changelog](https://github.com/Lusan-sapkota/Flint/blob/main/CHANGELOG.md)
 - [Report a bug](https://github.com/Lusan-sapkota/Flint/issues), or a
   security problem privately through the repository's Security tab.
 
