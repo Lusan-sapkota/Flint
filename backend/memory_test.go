@@ -38,9 +38,9 @@ func TestMemoriesAreScopedSearchableAndFit(t *testing.T) {
 		createUser(db, u, u, u+"@x.io", "h")
 	}
 	folder := "/work/astra"
-	createMemory(db, "alice", &folder, "Project Astra ships on Friday the 3rd")
-	createMemory(db, "alice", nil, "Prefers short answers")
-	createMemory(db, "bob", &folder, "Bob's astra note")
+	createMemory(db, "alice", &folder, nil, "Project Astra ships on Friday the 3rd")
+	createMemory(db, "alice", nil, nil, "Prefers short answers")
+	createMemory(db, "bob", &folder, nil, "Bob's astra note")
 
 	got, err := searchMemories(db, "alice", "astra deadline")
 	if err != nil || len(got) != 1 || !strings.Contains(got[0].Content, "Friday") {
@@ -66,5 +66,26 @@ func TestMemoriesAreScopedSearchableAndFit(t *testing.T) {
 	kept, left := fitMemories([]Memory{{Content: strings.Repeat("a", 400)}, {Content: strings.Repeat("b", 400)}}, 150)
 	if len(kept) != 1 || left != 1 {
 		t.Errorf("expected one memory kept and one left out, got %d kept %d left", len(kept), left)
+	}
+}
+
+func TestChatMemoriesOutliveTheirChat(t *testing.T) {
+	db, err := openDB(filepath.Join(t.TempDir(), "t.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	createUser(db, "alice", "alice", "a@x.io", "h")
+	createConversation(db, "c1", "alice", "m")
+	chat := "c1"
+	createMemory(db, "alice", nil, &chat, "from the chat")
+	createMemory(db, "alice", nil, nil, "from settings")
+
+	if got, _ := chatMemories(db, "alice", "c1"); len(got) != 1 || got[0].Content != "from the chat" {
+		t.Fatalf("want only the chat's memory, got %+v", got)
+	}
+	deleteConversation(db, "c1", "alice")
+	if all, _ := listMemories(db, "alice"); len(all) != 2 {
+		t.Fatalf("deleting the chat must keep its memories, got %d", len(all))
 	}
 }

@@ -265,6 +265,9 @@ func migrate(db *sql.DB) error {
 		`ALTER TABLE conversations ADD COLUMN context_used INTEGER NOT NULL DEFAULT 0`,
 		`ALTER TABLE conversations ADD COLUMN context_max INTEGER NOT NULL DEFAULT 0`,
 		`ALTER TABLE conversations ADD COLUMN token_ratio REAL NOT NULL DEFAULT 1`,
+		// The chat a memory was saved from, so that chat can show where it
+		// happened. A memory outlives its chat, hence SET NULL.
+		`ALTER TABLE memories ADD COLUMN conversation_id TEXT REFERENCES conversations(id) ON DELETE SET NULL`,
 	} {
 		if _, err := db.Exec(stmt); err != nil && !strings.Contains(err.Error(), "duplicate column") {
 			return err
@@ -951,16 +954,25 @@ func scanMemories(rows *sql.Rows) ([]Memory, error) {
 	return out, rows.Err()
 }
 
-func createMemory(db *sql.DB, userID string, folder *string, content string) (Memory, error) {
+func createMemory(db *sql.DB, userID string, folder, conversationID *string, content string) (Memory, error) {
 	now := time.Now().UnixMilli()
 	m := Memory{Folder: folder, Content: content, CreatedAt: now, UpdatedAt: now}
-	res, err := db.Exec(`INSERT INTO memories (user_id, folder, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
-		userID, m.Folder, m.Content, m.CreatedAt, m.UpdatedAt)
+	res, err := db.Exec(`INSERT INTO memories (user_id, folder, conversation_id, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`,
+		userID, m.Folder, conversationID, m.Content, m.CreatedAt, m.UpdatedAt)
 	if err != nil {
 		return m, err
 	}
 	m.ID, err = res.LastInsertId()
 	return m, err
+}
+
+// chatMemories are the memories saved from one conversation, oldest first.
+func chatMemories(db *sql.DB, userID, conversationID string) ([]Memory, error) {
+	rows, err := db.Query(`SELECT id, folder, content, created_at, updated_at FROM memories WHERE user_id = ? AND conversation_id = ? ORDER BY created_at`, userID, conversationID)
+	if err != nil {
+		return nil, err
+	}
+	return scanMemories(rows)
 }
 
 func listMemories(db *sql.DB, userID string) ([]Memory, error) {

@@ -150,12 +150,13 @@ func (s *Server) saveMemoryFromChat(w http.ResponseWriter, r *http.Request, user
 			writeError(w, http.StatusBadRequest, fmt.Sprintf("a memory can be at most %d characters", maxMemoryChars))
 			return
 		}
-		if _, err := createMemory(s.db, user.ID, folderOf(convo.Conversation), text); err != nil {
+		if _, err := createMemory(s.db, user.ID, folderOf(convo.Conversation), &convo.ID, text); err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "Saved to memory: %s", text)
+		line, _ := json.Marshal(map[string]string{"content": text})
+		fmt.Fprintf(w, "<<<MEMORY_SAVED>>>%s\n", line)
 		return
 	}
 
@@ -249,7 +250,7 @@ func (s *Server) handleCreateMemory(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	var folder *string
+	var folder, source *string
 	if conversationID != "" {
 		convo, err := getConversation(s.db, conversationID, user.ID)
 		if err != nil {
@@ -261,8 +262,9 @@ func (s *Server) handleCreateMemory(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		folder = folderOf(convo.Conversation)
+		source = &conversationID
 	}
-	m, err := createMemory(s.db, user.ID, folder, content)
+	m, err := createMemory(s.db, user.ID, folder, source, content)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return

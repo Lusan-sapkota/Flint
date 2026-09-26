@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -44,7 +45,7 @@ func TestTimelineShowsTagsAndRecallAsTyped(t *testing.T) {
 		{Role: "assistant", Content: "noted"},
 		{Role: "user", Content: "plain question"},
 	}
-	got := buildTimeline(messages, nil)
+	got := buildTimeline(messages, nil, nil)
 	want := []struct{ kind, content string }{
 		{"user", "@web latest ollama"},
 		{"sources", ""},
@@ -61,5 +62,22 @@ func TestTimelineShowsTagsAndRecallAsTyped(t *testing.T) {
 		if got[i].Kind != w.kind || (w.content != "" && got[i].Content != w.content) {
 			t.Errorf("item %d: got %s %q, want %s %q", i, got[i].Kind, got[i].Content, w.kind, w.content)
 		}
+	}
+}
+
+func TestSavedMemoriesArePlacedWhereTheyWereSaved(t *testing.T) {
+	messages := []Message{
+		{Role: "user", Content: "first", CreatedAt: 100},
+		{Role: "assistant", Content: "reply", CreatedAt: 200},
+		{Role: "user", Content: "second", CreatedAt: 400},
+	}
+	saved := []Memory{{Content: "mid", CreatedAt: 300}, {Content: "end", CreatedAt: 500}}
+	var got []string
+	for _, it := range buildTimeline(messages, nil, saved) {
+		got = append(got, it.Kind+":"+it.Content)
+	}
+	want := "user:first,assistant:reply,memorySaved:mid,user:second,memorySaved:end"
+	if strings.Join(got, ",") != want {
+		t.Fatalf("got %s\nwant %s", strings.Join(got, ","), want)
 	}
 }

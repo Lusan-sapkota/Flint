@@ -257,6 +257,13 @@
             </details>
           </template>
 
+          <template x-if="item.kind === 'memorySaved'">
+            <details class="flint-msg flint-msg-system flint-memory-saved">
+              <summary>Saved to memory</summary>
+              <pre x-text="item.content"></pre>
+            </details>
+          </template>
+
           <template x-if="item.kind === 'system'">
             <details class="flint-msg flint-msg-system">
               <summary x-text="item.content.split('\n')[0]"></summary>

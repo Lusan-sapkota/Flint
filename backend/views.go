@@ -106,7 +106,9 @@ func classifyCommandResult(result string) string {
 	}
 }
 
-func buildTimeline(messages []Message, pending *Command) []timelineItem {
+// buildTimeline also places memories saved from this chat at the point they
+// were saved, by time: they're not messages, so the model never sees them.
+func buildTimeline(messages []Message, pending *Command, saved []Memory) []timelineItem {
 	toolResults := map[string]string{}
 	for _, m := range messages {
 		if m.Role == "tool" && m.ToolCallID != nil {
@@ -115,7 +117,14 @@ func buildTimeline(messages []Message, pending *Command) []timelineItem {
 	}
 
 	out := []timelineItem{}
+	flushSaved := func(before int64) {
+		for len(saved) > 0 && saved[0].CreatedAt < before {
+			out = append(out, timelineItem{Kind: "memorySaved", Content: saved[0].Content})
+			saved = saved[1:]
+		}
+	}
 	for _, m := range messages {
+		flushSaved(m.CreatedAt)
 		switch m.Role {
 		case "user":
 			item := timelineItem{Kind: "user", Content: m.Content}
@@ -181,6 +190,7 @@ func buildTimeline(messages []Message, pending *Command) []timelineItem {
 			out = append(out, item)
 		}
 	}
+	flushSaved(math.MaxInt64)
 	return out
 }
 
@@ -265,7 +275,11 @@ func (s *Server) handleChatPage(w http.ResponseWriter, r *http.Request, user *Us
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		timeline = buildTimeline(full.Messages, pending)
+		saved, err := chatMemories(s.db, user.ID, full.ID)
+		if err != nil {
+			log.Printf("warning: loading this chat's memories: %v", err)
+		}
+		timeline = buildTimeline(full.Messages, pending, saved)
 
 		data.Title = full.Title
 	} else {

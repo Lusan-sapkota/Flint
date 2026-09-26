@@ -10,6 +10,8 @@ Notable changes in each release. The measurements behind a change are in
 - Change a chat's attached folder with the Change link on the folder
   chip. The new folder replaces the old one as the chat's standing
   context.
+- A "Saved to memory" card where you saved a memory from a chat, which
+  expands to show what was saved and stays after a reload.
 - **Reply instead** on a waiting shell command: tell the model what to do
   rather than just denying it. Your reply is an ordinary message, so
   `@web` and `@memory` work in it.

@@ -186,6 +186,11 @@ things up.
   belongs to that folder. It loads automatically in every chat that
   attaches the same folder, newest first, within an eighth of the window.
 - **Manage memories** in Settings: read, edit or delete them.
+- **A "Saved to memory" card** marks where a memory was saved from a chat,
+  and expands to show what was saved. It's there live and after a reload
+  (placed by the time it was saved), shows the memory's current text if
+  you edit it in Settings, and goes away if you delete it. It's never
+  sent to the model.
 - Memory commands aren't added to the chat history. An edit can't turn a
   message into a memory command.
 

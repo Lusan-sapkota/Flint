@@ -74,7 +74,7 @@ func TestSavedSearchShowsAsSourcesAfterTheQuestion(t *testing.T) {
 		{Role: "system", Content: saved},
 		{Role: "user", Content: "who is PM of Nepal"},
 		{Role: "assistant", Content: "answer"},
-	}, nil)
+	}, nil, nil)
 	kinds := []string{}
 	for _, it := range timeline {
 		kinds = append(kinds, it.Kind)

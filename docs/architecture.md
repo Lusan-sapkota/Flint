@@ -70,7 +70,7 @@ Dockerfile, docker-compose.yml (Linux), docker-compose.desktop.yml (Mac/Windows)
 | `attachments` | metadata; the file itself lives under `ATTACHMENTS_DIR` |
 | `commands` | every model-proposed shell command, its status, output and exit code |
 | `summaries` | layered summaries covering message id ranges (see context-management.md) |
-| `memories` | facts a user saved with `@memory`, optionally tied to a folder |
+| `memories` | facts a user saved with `@memory`, optionally tied to a folder and to the chat it was saved from (`conversation_id`, cleared if that chat is deleted) |
 | `memories_fts` | FTS5 index over memories, kept in sync by triggers |
 | `messages_fts` | FTS5 index over message text, kept in sync by triggers |
 

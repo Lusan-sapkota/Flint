@@ -189,9 +189,10 @@ document.addEventListener('alpine:init', () => {
   const MEMORY_DRAFT_MARKER = '<<<MEMORY_DRAFT>>>';
   const SEARCHING_MARKER = '<<<SEARCHING>>>';
   const SOURCES_MARKER = '<<<SOURCES>>>';
-  const MARKERS = [TOOL_CALL_MARKER, STATS_MARKER, THINK_MARKER, LOADING_MARKER, CONTEXT_MARKER, MEMORY_DRAFT_MARKER, SEARCHING_MARKER, SOURCES_MARKER];
+  const MEMORY_SAVED_MARKER = '<<<MEMORY_SAVED>>>';
+  const MARKERS = [TOOL_CALL_MARKER, STATS_MARKER, THINK_MARKER, LOADING_MARKER, CONTEXT_MARKER, MEMORY_DRAFT_MARKER, SEARCHING_MARKER, SOURCES_MARKER, MEMORY_SAVED_MARKER];
   // One JSON value per line, consumed in place while the stream continues.
-  const LINE_MARKERS = [CONTEXT_MARKER, THINK_MARKER, SEARCHING_MARKER, SOURCES_MARKER];
+  const LINE_MARKERS = [CONTEXT_MARKER, THINK_MARKER, SEARCHING_MARKER, SOURCES_MARKER, MEMORY_SAVED_MARKER];
   const LONGEST_MARKER = Math.max(...MARKERS.map((m) => m.length));
   // Mirrors imageMimeExtensions in images.go.
   const SUPPORTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/bmp'];
@@ -621,7 +622,9 @@ document.addEventListener('alpine:init', () => {
           item.memoryStatus = 'draft';
           return;
         }
-        item.memoryStatus = 'saved';
+        // Becomes the same card a reload shows at this spot.
+        item.kind = 'memorySaved';
+        item.content = item.memoryText;
       } catch (e) {
         item.memoryError = 'Could not reach the server.';
         item.memoryStatus = 'draft';
@@ -766,6 +769,9 @@ document.addEventListener('alpine:init', () => {
               this.condensed = value.condensed;
             } else if (lineMarker === SEARCHING_MARKER) {
               this.searchingQuery = value.query;
+            } else if (lineMarker === MEMORY_SAVED_MARKER) {
+              this.timeline.push({ kind: 'memorySaved', content: value.content });
+              this.scrollToBottom();
             } else if (lineMarker === SOURCES_MARKER) {
               this.searchingQuery = '';
               this.timeline.push({ kind: 'sources', query: value.query, sources: value.sources });
