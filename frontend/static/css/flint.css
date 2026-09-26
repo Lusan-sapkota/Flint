@@ -1068,9 +1068,10 @@ details.flint-thinking > summary:focus {
   }
 }
 
+/* Full width: command output is fixed-width text that needs the room, and
+   a 70ch cap hid its right-hand columns behind a scrollbar. */
 .flint-command-card {
   align-self: flex-start;
-  max-width: 70ch;
   width: 100%;
   background: var(--flint-surface);
   border: 1px solid var(--flint-accent);
@@ -1113,6 +1114,10 @@ details.flint-thinking > summary:focus {
   white-space: pre-wrap;
   word-break: break-word;
   margin-bottom: 0.75rem;
+}
+
+.flint-memory-card {
+  max-width: 70ch;
 }
 
 .flint-memory-card textarea {

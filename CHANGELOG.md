@@ -18,6 +18,8 @@ Notable changes in each release. The measurements behind a change are in
 ### Changed
 
 - Logging out asks "Are you sure you want to log out?" first.
+- Shell command cards span the chat's full width, so command output like
+  `df -h` shows every column instead of scrolling sideways.
 - Deleting a chat asks Yes / No instead of making you type DELETE. Typing
   DELETE stays for deleting a model, a memory or your account.
 
