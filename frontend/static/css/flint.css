@@ -1626,6 +1626,26 @@ details.flint-thinking > summary:focus {
   color: #1c1c1e;
 }
 
+.flint-saved-key {
+  margin-bottom: var(--pico-spacing);
+}
+
+.flint-saved-key p {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 0.9rem;
+  color: var(--flint-text-dim);
+}
+
+.flint-saved-key-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.flint-saved-key-actions button {
+  width: auto;
+  padding: 0 1rem;
+}
+
 .flint-notice {
   margin: 0 0 1rem;
   padding: 0.75rem 1rem;

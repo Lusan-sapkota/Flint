@@ -37,7 +37,9 @@ document.addEventListener('alpine:init', () => {
     tabs: TABS,
     tab: tabFromHash(),
     ollamaBaseURL: config.ollamaBaseURL || '',
-    braveApiKey: config.braveApiKey || '',
+    braveKeyHint: config.braveKeyHint,
+    braveApiKey: '',
+    replacingBraveKey: false,
     preferredModels: config.preferredModels || [],
     existingQuestions: config.questions || [],
     rankingModel: config.rankingModel,
@@ -347,23 +349,29 @@ document.addEventListener('alpine:init', () => {
       else this.preferredModels.splice(i, 1);
     },
 
+    // The saved key never comes back to the page, so it's only sent when the
+    // user typed a new one; an empty box means "keep the current key".
     async saveGeneral() {
       this.savingGeneral = true;
       this.generalStatus = '';
+      const newKey = this.braveApiKey.trim();
+      const body = { ollama_base_url: this.ollamaBaseURL.trim() || null, preferred_models: this.preferredModels };
+      if (newKey) body.brave_api_key = newKey;
       try {
         const res = await fetch('/api/me/settings', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ollama_base_url: this.ollamaBaseURL.trim() || null,
-            preferred_models: this.preferredModels,
-            brave_api_key: this.braveApiKey.trim() || null,
-          }),
+          body: JSON.stringify(body),
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           this.generalStatus = `Error: ${data.error || res.statusText}`;
           return;
+        }
+        if (newKey) {
+          this.braveKeyHint = newKey.slice(-4);
+          this.braveApiKey = '';
+          this.replacingBraveKey = false;
         }
         this.generalStatus = 'Saved.';
       } catch (e) {
@@ -415,6 +423,27 @@ document.addEventListener('alpine:init', () => {
         this.questionsError = 'Could not reach the server.';
       } finally {
         this.savingQuestions = false;
+      }
+    },
+
+    async removeBraveKey() {
+      if (!(await flintAsk('Remove your Brave Search key? @web stops working until you add one.'))) return;
+      this.generalStatus = '';
+      try {
+        const res = await fetch('/api/me/settings', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ brave_api_key: null }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          this.generalStatus = `Error: ${data.error || res.statusText}`;
+          return;
+        }
+        this.braveKeyHint = '';
+        this.generalStatus = 'Key removed.';
+      } catch (e) {
+        this.generalStatus = 'Could not reach the server.';
       }
     },
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -140,5 +141,13 @@ func TestProfileAndPasswordChanges(t *testing.T) {
 	}
 	if other, _ := getSessionUser(db, "other-device"); other != nil {
 		t.Error("other devices should be signed out")
+	}
+}
+
+func TestUserJSONNeverIncludesTheBraveKey(t *testing.T) {
+	key := "BSA-secret-key-1234"
+	out, _ := json.Marshal(User{ID: "u", BraveAPIKey: &key})
+	if strings.Contains(string(out), key) {
+		t.Fatalf("the key leaked into the user JSON: %s", out)
 	}
 }

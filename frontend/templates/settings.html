@@ -2,7 +2,7 @@
 {{define "content"}}
 <div class="flint-settings-shell" x-data="settingsForm({
     ollamaBaseURL: '{{.OllamaBaseURL | jsStr}}',
-    braveApiKey: '{{.BraveAPIKey | jsStr}}',
+    braveKeyHint: '{{.BraveKeyHint | jsStr}}',
     preferredModels: {{.PreferredModelsJSON}},
     questions: {{.QuestionsJSON}},
     rankingModel: '{{.RankingModel | jsStr}}',
@@ -40,13 +40,26 @@
         <label for="ollama_base_url">Base URL override
           <input type="text" id="ollama_base_url" x-model="ollamaBaseURL" placeholder="http://localhost:11434 (leave blank for server default)">
         </label>
-        <label for="brave_api_key">Brave Search API key
-          <div class="flint-password-wrap" x-data="{ show: false }">
-            <input :type="show ? 'text' : 'password'" id="brave_api_key" x-model="braveApiKey" placeholder="Required for @web search" autocomplete="off">
-            {{template "password-toggle"}}
+        <template x-if="braveKeyHint && !replacingBraveKey">
+          <div class="flint-saved-key">
+            <span>Brave Search API key</span>
+            <p>A key is saved, ending in <code x-text="`…${braveKeyHint}`"></code>. It's never shown
+              again, only replaced or removed.</p>
+            <div class="flint-saved-key-actions">
+              <button type="button" class="secondary" @click="replacingBraveKey = true">Replace</button>
+              <button type="button" class="secondary flint-danger-btn" @click="removeBraveKey">Remove</button>
+            </div>
           </div>
-        </label>
-        <template x-if="rankingModelMissing && braveApiKey.trim()">
+        </template>
+        <template x-if="!braveKeyHint || replacingBraveKey">
+          <label for="brave_api_key">Brave Search API key
+            <div class="flint-password-wrap" x-data="{ show: false }">
+              <input :type="show ? 'text' : 'password'" id="brave_api_key" x-model="braveApiKey" placeholder="Required for @web search" autocomplete="off">
+              {{template "password-toggle"}}
+            </div>
+          </label>
+        </template>
+        <template x-if="rankingModelMissing && (braveKeyHint || braveApiKey.trim())">
           <div class="flint-notice">
             <p>Optional: <code>@web</code> works as it is, using Brave's own ranking. Pulling
               <code x-text="rankingModel"></code> (about 270 MB) lets Flint re-rank results against

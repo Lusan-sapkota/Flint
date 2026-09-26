@@ -302,7 +302,7 @@ type settingsViewData struct {
 	ChatModels          []OllamaModelInfo
 	ModelsErr           string
 	OllamaBaseURL       string
-	BraveAPIKey         string
+	BraveKeyHint        string
 	PreferredModelsJSON string
 	QuestionsJSON       string
 	RankingModel        string
@@ -350,8 +350,11 @@ func (s *Server) handleSettingsPage(w http.ResponseWriter, r *http.Request, user
 	if user.OllamaBaseURL != nil {
 		data.OllamaBaseURL = *user.OllamaBaseURL
 	}
-	if user.BraveAPIKey != nil {
-		data.BraveAPIKey = *user.BraveAPIKey
+	// Only the last four characters ever reach the page: enough to tell keys
+	// apart, not enough to use one.
+	if user.BraveAPIKey != nil && *user.BraveAPIKey != "" {
+		key := *user.BraveAPIKey
+		data.BraveKeyHint = key[max(0, len(key)-4):]
 	}
 
 	s.render(w, s.pages.settings, data)

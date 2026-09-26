@@ -10,6 +10,10 @@ to make it safe to share with other people.
 
 - Passwords and security-question answers are hashed with bcrypt and
   never returned.
+- The Brave Search key is stored as entered (Flint has to send it to
+  Brave), but it's never sent back to the browser: not in the Settings
+  page, not in `/api/me`, not in any API response. Settings shows only its
+  last four characters, with Replace and Remove.
 - Sessions are random ids stored in SQLite and sent as an `HttpOnly`,
   `SameSite=Lax` cookie. They last 30 days. Logging out deletes the
   session, and a password reset deletes all of that user's sessions.

@@ -134,7 +134,9 @@ feature change.
 ## Web search (`@web`)
 
 - Start a message with `@web <query>` to search the web through the Brave
-  Search API, using your own key from Settings. Flint runs the search,
+  Search API, using your own key from Settings. Once saved, the key is
+  never shown again: Settings shows its last four characters and lets you
+  replace or remove it. Flint runs the search,
   not the model, and it sends only the query text.
 - The top 10 results are re-ranked by similarity to the query with
   Ollama's `nomic-embed-text`, and the best 3 go into the chat. That model

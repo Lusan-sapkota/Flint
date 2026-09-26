@@ -17,7 +17,7 @@ type User struct {
 	PasswordHash    string   `json:"-"`
 	OllamaBaseURL   *string  `json:"ollama_base_url,omitempty"`
 	PreferredModels []string `json:"preferred_models"`
-	BraveAPIKey     *string  `json:"brave_api_key,omitempty"`
+	BraveAPIKey     *string  `json:"-"`
 	CreatedAt       int64    `json:"created_at"`
 	UpdatedAt       int64    `json:"updated_at"`
 }
