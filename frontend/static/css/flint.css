@@ -373,6 +373,16 @@ button.flint-btn-icon {
   padding: 0.25rem var(--flint-side-gutter) var(--flint-side-gutter);
 }
 
+.flint-tab-error {
+  margin: 0 0 1.5rem;
+}
+
+.flint-sidebar-error {
+  margin: 0 var(--flint-side-gutter) 0.75rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
 .flint-conversation-row {
   display: flex;
   align-items: center;

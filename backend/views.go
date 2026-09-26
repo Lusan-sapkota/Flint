@@ -260,7 +260,7 @@ func (s *Server) handleChatPage(w http.ResponseWriter, r *http.Request, user *Us
 
 	models, err := s.ollama.ListModels(r.Context(), s.ollamaURLFor(user))
 	if err != nil {
-		data.ModelsErr = err.Error()
+		data.ModelsErr = describeOllamaError(err, s.ollamaURLFor(user))
 	}
 	data.Models = preferredOrAll(s.ollama.ChatModels(r.Context(), s.ollamaURLFor(user), models), user.PreferredModels)
 	data.CurrentModelMissing = data.HasCurrent && err == nil && !hasModel(models, data.CurrentModel)
@@ -313,7 +313,7 @@ func (s *Server) handleSettingsPage(w http.ResponseWriter, r *http.Request, user
 	models, err := s.ollama.ListModels(r.Context(), s.ollamaURLFor(user))
 	modelsErr := ""
 	if err != nil {
-		modelsErr = err.Error()
+		modelsErr = describeOllamaError(err, s.ollamaURLFor(user))
 	}
 
 	questions, err := getSecurityQuestionsForUser(s.db, user.ID)

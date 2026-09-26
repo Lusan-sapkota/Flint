@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -20,5 +22,16 @@ func TestStreamChatReportsContextOverflowSize(t *testing.T) {
 	var overflow *contextOverflowError
 	if !errors.As(err, &overflow) || overflow.promptTokens != 12628 {
 		t.Fatalf("expected a context overflow of 12628 tokens, got %v", err)
+	}
+}
+
+func TestDescribeOllamaError(t *testing.T) {
+	c := NewOllamaClient()
+	_, err := c.ListModels(context.Background(), "http://127.0.0.1:1")
+	if got := describeOllamaError(err, "http://127.0.0.1:1"); !strings.Contains(got, "Can't reach Ollama at http://127.0.0.1:1") {
+		t.Errorf("connection failure: got %q", got)
+	}
+	if got := describeOllamaError(errors.New("model not found"), "x"); got != "model not found" {
+		t.Errorf("other errors should pass through, got %q", got)
 	}
 }

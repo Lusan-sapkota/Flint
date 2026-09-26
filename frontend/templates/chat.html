@@ -88,7 +88,7 @@
         </select>
         <button type="submit" class="flint-new-chat-btn" {{if not .Models}}disabled{{end}}>{{template "icon-plus"}} New chat</button>
       </form>
-      {{if .ModelsErr}}<p class="flint-error">Couldn't reach Ollama: {{.ModelsErr}}</p>{{end}}
+      {{if .ModelsErr}}<p class="flint-error flint-sidebar-error" x-show="!rail">{{.ModelsErr}}</p>{{end}}
       <div class="flint-search">
         <input type="search" placeholder="Search chats" aria-label="Search chats"
                x-ref="chatSearch" x-model="q" @input.debounce.200ms="search()"

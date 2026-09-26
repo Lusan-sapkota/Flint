@@ -5,8 +5,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"regexp"
 	"slices"
@@ -449,3 +451,13 @@ func (e *contextOverflowError) Error() string { return e.err.Error() }
 
 // The body nests JSON inside a JSON string, so the quotes may be escaped.
 var nPromptTokens = regexp.MustCompile(`n_prompt_tokens\\?"\s*:\s*(\d+)`)
+
+// describeOllamaError turns "can't connect" into something a user can act
+// on; any other error from Ollama is passed through as it is.
+func describeOllamaError(err error, baseURL string) string {
+	var opErr *net.OpError
+	if errors.As(err, &opErr) {
+		return fmt.Sprintf("Can't reach Ollama at %s. Check that it's running (start it with: ollama serve), or change the address in Settings → Connection.", baseURL)
+	}
+	return err.Error()
+}

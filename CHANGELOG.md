@@ -11,6 +11,12 @@ Notable changes in each release. The measurements behind a change are in
   chip. The new folder replaces the old one as the chat's standing
   context.
 
+### Fixed
+
+- When Ollama isn't reachable, Flint says so plainly (where it looked
+  and what to do) instead of showing Go's raw connection error, and says
+  it once per page instead of in every section.
+
 ## [0.1.3] - 2026-09-26
 
 ### Added

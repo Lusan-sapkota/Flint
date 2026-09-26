@@ -78,11 +78,12 @@
     </section>
 
     <section class="flint-settings-section" x-show="tab === 'models'">
+      {{if .ModelsErr}}<p class="flint-error flint-tab-error">{{.ModelsErr}}</p>{{end}}
       <div class="flint-settings-group">
         <h3>Shown in the new-chat picker</h3>
         <p class="flint-field-hint">Only checked models appear in the New chat picker. Leave all unchecked to show every model.</p>
         {{if .ModelsErr}}
-          <p class="flint-error">Couldn't reach Ollama: {{.ModelsErr}}</p>
+          <p class="flint-empty-state">Unavailable until Flint can reach Ollama.</p>
         {{else if not .ChatModels}}
           <p class="flint-error">No chat models found on this Ollama server.</p>
         {{else}}
@@ -105,7 +106,7 @@
           <h3>Currently running</h3>
           <button type="button" class="secondary flint-icon-btn" @click="refreshRunning" :aria-busy="runningLoading" title="Refresh">{{template "icon-refresh"}}</button>
         </div>
-        <p class="flint-error" x-text="runningError"></p>
+        {{if .ModelsErr}}<p class="flint-empty-state">Unavailable until Flint can reach Ollama.</p>{{else}}<p class="flint-error" x-text="runningError"></p>{{end}}
         <template x-if="!runningLoading && runningModels.length === 0 && !runningError">
           <p class="flint-empty-state">No models are currently loaded.</p>
         </template>
@@ -127,7 +128,7 @@
         <h3>Installed</h3>
         <p class="flint-field-hint">Loading a model unloads whatever is running first, so it gets the memory to itself.</p>
         {{if .ModelsErr}}
-          <p class="flint-error">Couldn't reach Ollama: {{.ModelsErr}}</p>
+          <p class="flint-empty-state">Unavailable until Flint can reach Ollama.</p>
         {{else if not .Models}}
           <p class="flint-empty-state">No models found on this Ollama server.</p>
         {{else}}

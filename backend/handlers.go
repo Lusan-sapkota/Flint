@@ -71,7 +71,7 @@ func (s *Server) handleListModels(w http.ResponseWriter, r *http.Request) {
 	user := userFromContext(r)
 	models, err := s.ollama.ListModels(r.Context(), s.ollamaURLFor(user))
 	if err != nil {
-		writeError(w, http.StatusBadGateway, err.Error())
+		writeError(w, http.StatusBadGateway, describeOllamaError(err, s.ollamaURLFor(user)))
 		return
 	}
 	writeJSON(w, http.StatusOK, models)
@@ -134,7 +134,7 @@ func (s *Server) handleRunningModels(w http.ResponseWriter, r *http.Request) {
 	user := userFromContext(r)
 	info, err := s.ollama.RunningModels(r.Context(), s.ollamaURLFor(user))
 	if err != nil {
-		writeError(w, http.StatusBadGateway, err.Error())
+		writeError(w, http.StatusBadGateway, describeOllamaError(err, s.ollamaURLFor(user)))
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -154,7 +154,7 @@ func (s *Server) handleShowModel(w http.ResponseWriter, r *http.Request) {
 
 	info, err := s.ollama.ShowModel(r.Context(), s.ollamaURLFor(user), body.Name)
 	if err != nil {
-		writeError(w, http.StatusBadGateway, err.Error())
+		writeError(w, http.StatusBadGateway, describeOllamaError(err, s.ollamaURLFor(user)))
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -176,7 +176,7 @@ func (s *Server) handleLoadModel(w http.ResponseWriter, r *http.Request) {
 
 	running, err := s.ollama.runningNames(r.Context(), baseURL)
 	if err != nil {
-		writeError(w, http.StatusBadGateway, err.Error())
+		writeError(w, http.StatusBadGateway, describeOllamaError(err, s.ollamaURLFor(user)))
 		return
 	}
 	for _, name := range running {
@@ -184,14 +184,14 @@ func (s *Server) handleLoadModel(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		if err := s.ollama.UnloadModel(r.Context(), baseURL, name); err != nil {
-			writeError(w, http.StatusBadGateway, "couldn't unload "+name+": "+err.Error())
+			writeError(w, http.StatusBadGateway, "couldn't unload "+name+": "+describeOllamaError(err, baseURL))
 			return
 		}
 	}
 
 	raw, err := s.ollama.ShowModel(r.Context(), baseURL, body.Name)
 	if err != nil {
-		writeError(w, http.StatusBadGateway, err.Error())
+		writeError(w, http.StatusBadGateway, describeOllamaError(err, s.ollamaURLFor(user)))
 		return
 	}
 	var info struct {
@@ -200,7 +200,7 @@ func (s *Server) handleLoadModel(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal(raw, &info)
 	embedding := slices.Contains(info.Capabilities, "embedding") && !slices.Contains(info.Capabilities, "completion")
 	if err := s.ollama.LoadModel(r.Context(), baseURL, body.Name, embedding); err != nil {
-		writeError(w, http.StatusBadGateway, err.Error())
+		writeError(w, http.StatusBadGateway, describeOllamaError(err, s.ollamaURLFor(user)))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -216,7 +216,7 @@ func (s *Server) handleUnloadModel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.ollama.UnloadModel(r.Context(), s.ollamaURLFor(user), body.Name); err != nil {
-		writeError(w, http.StatusBadGateway, err.Error())
+		writeError(w, http.StatusBadGateway, describeOllamaError(err, s.ollamaURLFor(user)))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -234,7 +234,7 @@ func (s *Server) handleDeleteModel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.ollama.DeleteModel(r.Context(), s.ollamaURLFor(user), body.Name); err != nil {
-		writeError(w, http.StatusBadGateway, err.Error())
+		writeError(w, http.StatusBadGateway, describeOllamaError(err, s.ollamaURLFor(user)))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -1009,7 +1009,7 @@ func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Reque
 	}
 	if err != nil {
 		log.Printf("ollama stream error: %v", err)
-		w.Write([]byte("\n[error: " + err.Error() + "]"))
+		w.Write([]byte("\n[error: " + describeOllamaError(err, s.ollamaURLFor(user)) + "]"))
 		if err := touchConversation(s.db, convo.ID); err != nil {
 			log.Printf("warning: failed to touch conversation: %v", err)
 		}
