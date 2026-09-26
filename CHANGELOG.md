@@ -21,6 +21,8 @@ Notable changes in each release. The measurements behind a change are in
 - Settings is laid out like the chat page: sections in a sidebar
   (Connection, Models, Memories, Account), one at a time, instead of one
   long scrolling column. On phones they become tabs.
+- Thinking, sources, system messages and model details open and close
+  with a short transition instead of snapping.
 
 ### Fixed
 

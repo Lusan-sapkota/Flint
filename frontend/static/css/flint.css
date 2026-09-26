@@ -2266,3 +2266,22 @@ button.flint-danger-solid:hover {
   font-size: 0.75rem;
   color: var(--flint-text-dim);
 }
+
+/* Thinking, sources and system messages are native <details>: animate
+   their height where the browser can (Chromium 131+); elsewhere they open
+   instantly, as before. */
+@media (prefers-reduced-motion: no-preference) {
+  :root {
+    interpolate-size: allow-keywords;
+  }
+
+  details::details-content {
+    block-size: 0;
+    overflow-y: clip;
+    transition: block-size 0.2s ease, content-visibility 0.2s allow-discrete;
+  }
+
+  details[open]::details-content {
+    block-size: auto;
+  }
+}

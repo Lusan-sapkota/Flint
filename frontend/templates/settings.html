@@ -134,7 +134,7 @@
                         @click="deleteModel('{{.Name | jsStr}}')"
                         :disabled="deletingModel === '{{.Name | jsStr}}'" :aria-busy="deletingModel === '{{.Name | jsStr}}'" title="Delete">{{template "icon-trash"}}</button>
               </div>
-              <div class="flint-model-details" x-show="open">
+              <div class="flint-model-details" x-show="open" x-transition.opacity.scale.98.origin.top.duration.150ms>
                 <p x-show="loading">Loading details…</p>
                 <p class="flint-error" x-show="error" x-text="error"></p>
                 <template x-if="info && info.length">
