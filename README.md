@@ -6,6 +6,11 @@
 
 <p align="center">A small, fully offline chat UI for local Ollama models, built to get the most out of small models.</p>
 
+<p align="center">
+  <a href="https://github.com/Lusan-sapkota/Flint/releases"><img src="https://img.shields.io/github/v/tag/Lusan-sapkota/Flint?sort=semver&label=version" alt="Latest version"></a>
+  <a href="CHANGELOG.md">Changelog</a>
+</p>
+
 No CDN calls, no telemetry, no cloud dependency. Everything the frontend
 needs is vendored, and the backend only talks to your local Ollama. The one
 deliberate exception is `@web <query>`, which searches the web through the
@@ -117,6 +122,7 @@ capabilities: [deployment](docs/deployment.md).
 | [Experiments](docs/experiments.md) | the measurements behind the design |
 | [Benchmark](docs/benchmark.md) | scored tasks, with and without each piece of scaffolding |
 | [Testing](docs/testing.md) | unit tests, live checks, the long-chat run |
+| [Changelog](CHANGELOG.md) | what changed in each release |
 | [Contributing](CONTRIBUTING.md) | what fits, setup, what a pull request needs |
 
 ## Stack
