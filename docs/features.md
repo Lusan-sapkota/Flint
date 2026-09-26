@@ -79,8 +79,8 @@ feature change.
 - **Automatic titles.** The first message sets a placeholder right away.
   After the first reply, the model writes a 2-6 word title, unless you've
   already renamed the chat.
-- **Rename and delete.** Deleting also removes the chat's attachment
-  files.
+- **Rename and delete.** Deleting asks Yes / No first, and also removes
+  the chat's attachment files.
 - **Search across chats** from the sidebar. It matches titles and your
   and the model's messages as you type, and shows a snippet of the match.
 - **Sidebar.** It collapses to a narrow rail and remembers that choice.
