@@ -117,6 +117,7 @@ capabilities: [deployment](docs/deployment.md).
 | [Experiments](docs/experiments.md) | the measurements behind the design |
 | [Benchmark](docs/benchmark.md) | scored tasks, with and without each piece of scaffolding |
 | [Testing](docs/testing.md) | unit tests, live checks, the long-chat run |
+| [Contributing](CONTRIBUTING.md) | what fits, setup, what a pull request needs |
 
 ## Stack
 
