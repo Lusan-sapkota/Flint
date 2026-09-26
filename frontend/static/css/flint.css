@@ -2043,3 +2043,48 @@ button.flint-danger-solid:hover {
   font-size: 0.85em;
   white-space: pre-wrap;
 }
+
+/* The web sources an @web answer was based on. */
+.flint-sources {
+  align-self: flex-start;
+  max-width: 70ch;
+  width: 100%;
+  margin: 0;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--flint-border);
+  border-radius: 0.6rem;
+  background: var(--flint-surface);
+  font-size: 0.85rem;
+}
+
+.flint-sources summary {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  color: var(--flint-text-dim);
+  cursor: pointer;
+}
+
+.flint-sources-count {
+  margin-left: auto;
+  font-size: 0.8rem;
+}
+
+.flint-sources ol {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.flint-sources li {
+  margin: 0.2rem 0;
+}
+
+.flint-sources a {
+  color: var(--flint-accent);
+}
+
+.flint-source-host {
+  margin-left: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--flint-text-dim);
+}

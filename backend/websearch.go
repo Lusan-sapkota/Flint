@@ -7,6 +7,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -138,4 +139,50 @@ func formatSearchResults(query string, results []SearchResult) string {
 		fmt.Fprintf(&b, "%d. %s\n%s\n%s\n\n", i+1, r.Title, r.URL, r.Snippet)
 	}
 	return b.String()
+}
+
+type sourceLink struct {
+	Title string `json:"title"`
+	URL   string `json:"url"`
+}
+
+type sourcesItem struct {
+	Query   string       `json:"query"`
+	Sources []sourceLink `json:"sources"`
+}
+
+func sourcesView(query string, results []SearchResult) sourcesItem {
+	item := sourcesItem{Query: query, Sources: []sourceLink{}}
+	for _, r := range results {
+		item.Sources = append(item.Sources, sourceLink{Title: r.Title, URL: r.URL})
+	}
+	return item
+}
+
+// parseSearchResults reads back a message written by formatSearchResults,
+// so a saved search shows as its sources after a reload, like it did live.
+func parseSearchResults(content string) (string, []SearchResult, bool) {
+	header, body, _ := strings.Cut(content, "\n\n")
+	quoted, found := strings.CutPrefix(strings.TrimSuffix(header, ":"), webResultsPrefix)
+	if !found {
+		return "", nil, false
+	}
+	query, err := strconv.Unquote(quoted)
+	if err != nil {
+		return "", nil, false
+	}
+	var results []SearchResult
+	for _, block := range strings.Split(strings.TrimSpace(body), "\n\n") {
+		lines := strings.SplitN(block, "\n", 3)
+		if len(lines) < 2 {
+			continue
+		}
+		_, title, _ := strings.Cut(lines[0], ". ")
+		r := SearchResult{Title: title, URL: lines[1]}
+		if len(lines) == 3 {
+			r.Snippet = lines[2]
+		}
+		results = append(results, r)
+	}
+	return query, results, true
 }

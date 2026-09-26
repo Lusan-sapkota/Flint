@@ -72,6 +72,8 @@ and their output is capped at 20,000 characters.
   sources, and media tags plus `style`, `srcset`, `poster` and
   `background` are stripped, since any of them could load a remote URL
   (for example, a tracking pixel in a reply).
+- Web search sources are shown as links only if they're `http(s)`, so a
+  result can't smuggle in a `javascript:` link.
 
 ## Memory
 

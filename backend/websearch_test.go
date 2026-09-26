@@ -54,3 +54,31 @@ func TestFormatSearchResults(t *testing.T) {
 		t.Fatalf("formatted output missing expected content: %q", out)
 	}
 }
+
+func TestSavedSearchShowsAsSourcesAfterTheQuestion(t *testing.T) {
+	results := []SearchResult{
+		{Title: "Nepal PM sworn in", URL: "https://example.test/a", Snippet: "text"},
+		{Title: "Profile", URL: "https://example.test/b", Snippet: "more\nlines"},
+	}
+	saved := formatSearchResults(`who is "PM" of Nepal`, results)
+	query, got, ok := parseSearchResults(saved)
+	if !ok || query != `who is "PM" of Nepal` || len(got) != 2 || got[0].Title != "Nepal PM sworn in" || got[1].URL != "https://example.test/b" {
+		t.Fatalf("round trip failed: ok=%v query=%q got=%+v", ok, query, got)
+	}
+	if _, _, ok := parseSearchResults("Summary of the earlier part"); ok {
+		t.Error("an ordinary system message must not parse as search results")
+	}
+
+	timeline := buildTimeline([]Message{
+		{Role: "system", Content: saved},
+		{Role: "user", Content: "who is PM of Nepal"},
+		{Role: "assistant", Content: "answer"},
+	}, nil)
+	kinds := []string{}
+	for _, it := range timeline {
+		kinds = append(kinds, it.Kind)
+	}
+	if strings.Join(kinds, ",") != "user,sources,assistant" || len(timeline[1].Sources) != 2 {
+		t.Fatalf("expected user, sources, assistant; got %v", kinds)
+	}
+}

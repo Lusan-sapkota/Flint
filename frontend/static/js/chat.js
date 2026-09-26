@@ -196,7 +196,11 @@ document.addEventListener('alpine:init', () => {
   const LOADING_MARKER = '<<<LOADING>>>';
   const CONTEXT_MARKER = '<<<CONTEXT>>>';
   const MEMORY_DRAFT_MARKER = '<<<MEMORY_DRAFT>>>';
-  const MARKERS = [TOOL_CALL_MARKER, STATS_MARKER, THINK_MARKER, LOADING_MARKER, CONTEXT_MARKER, MEMORY_DRAFT_MARKER];
+  const SEARCHING_MARKER = '<<<SEARCHING>>>';
+  const SOURCES_MARKER = '<<<SOURCES>>>';
+  const MARKERS = [TOOL_CALL_MARKER, STATS_MARKER, THINK_MARKER, LOADING_MARKER, CONTEXT_MARKER, MEMORY_DRAFT_MARKER, SEARCHING_MARKER, SOURCES_MARKER];
+  // One JSON value per line, consumed in place while the stream continues.
+  const LINE_MARKERS = [CONTEXT_MARKER, THINK_MARKER, SEARCHING_MARKER, SOURCES_MARKER];
   const LONGEST_MARKER = Math.max(...MARKERS.map((m) => m.length));
   // Mirrors imageMimeExtensions in images.go.
   const SUPPORTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/bmp'];
@@ -239,6 +243,7 @@ document.addEventListener('alpine:init', () => {
     folderError: '',
     streamingBubble: null,
     modelLoading: false,
+    searchingQuery: '',
 
     init() {
       this.scrollToBottom();
@@ -253,6 +258,20 @@ document.addEventListener('alpine:init', () => {
     // DOMPurify before it touches the DOM.
     renderMarkdown(text) {
       return DOMPurify.sanitize(marked.parse(text || ''), SANITIZE_CONFIG);
+    },
+
+    // Search results come from the web, so only http(s) links are ever
+    // turned into anchors; anything else would be a script-URL risk.
+    sourceURL(url) {
+      return /^https?:\/\//i.test(url || '') ? url : null;
+    },
+
+    sourceHost(url) {
+      try {
+        return new URL(url).hostname.replace(/^www\./, '');
+      } catch (e) {
+        return '';
+      }
     },
 
     async copyText(text, el) {
@@ -553,6 +572,7 @@ document.addEventListener('alpine:init', () => {
         this.abortController = null;
         this.lastActive = Date.now();
         this.modelLoading = false;
+        this.searchingQuery = '';
       }
     },
 
@@ -633,6 +653,7 @@ document.addEventListener('alpine:init', () => {
         this.abortController = null;
         this.lastActive = Date.now();
         this.modelLoading = false;
+        this.searchingQuery = '';
       }
     },
 
@@ -691,6 +712,7 @@ document.addEventListener('alpine:init', () => {
           bubble = this.timeline[this.timeline.length - 1];
           this.streamingBubble = bubble;
           this.modelLoading = false;
+          this.searchingQuery = '';
         }
         return bubble;
       };
@@ -719,24 +741,30 @@ document.addEventListener('alpine:init', () => {
             pending = pending.slice(LOADING_MARKER.length).replace(/^\n/, '');
             continue;
           }
-          const isContext = pending.startsWith(CONTEXT_MARKER);
-          if (!isContext && !pending.startsWith(THINK_MARKER)) {
+          const lineMarker = LINE_MARKERS.find((m) => pending.startsWith(m));
+          if (!lineMarker) {
             markerFound = true;
             return;
           }
           const nl = pending.indexOf('\n');
           if (nl === -1) return; // rest of this line hasn't arrived yet
           try {
-            if (isContext) {
-              const obj = JSON.parse(pending.slice(CONTEXT_MARKER.length, nl));
-              this.contextUsed = obj.used;
-              this.contextMax = obj.max;
+            const value = JSON.parse(pending.slice(lineMarker.length, nl));
+            if (lineMarker === CONTEXT_MARKER) {
+              this.contextUsed = value.used;
+              this.contextMax = value.max;
+            } else if (lineMarker === SEARCHING_MARKER) {
+              this.searchingQuery = value.query;
+            } else if (lineMarker === SOURCES_MARKER) {
+              this.searchingQuery = '';
+              this.timeline.push({ kind: 'sources', query: value.query, sources: value.sources });
+              this.scrollToBottom();
             } else {
-              ensureBubble().thinking += JSON.parse(pending.slice(THINK_MARKER.length, nl));
+              ensureBubble().thinking += value;
             }
           } catch (e) {
-            // a malformed line only loses that fragment of reasoning or one
-            // context-bar update
+            // a malformed line only loses that fragment of reasoning, one
+            // context-bar update, or the search status
           }
           pending = pending.slice(nl + 1);
         }

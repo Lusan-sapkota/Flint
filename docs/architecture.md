@@ -114,6 +114,8 @@ client consumes:
 | `<<<TOOL_CALL>>>{"id":..,"command":..}` | a pending command awaiting approval; ends the stream |
 | `<<<STATS>>>{"tokensPerSec":N}` | generation speed; ends a final text reply |
 | `<<<MEMORY_DRAFT>>>{"text":..}` | a drafted memory for the user to review; ends the stream |
+| `<<<SEARCHING>>>{"query":..}` | an `@web` search has started |
+| `<<<SOURCES>>>{"query":..,"sources":[{"title","url"}]}` | the results the answer will be based on |
 
 ## Fixed decisions
 

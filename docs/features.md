@@ -118,6 +118,12 @@ feature change.
   not the model, and it sends only the query text.
 - The top 10 results are re-ranked by similarity to the query with
   Ollama's `nomic-embed-text`, and the best 3 go into the chat.
+- While it runs, the chat shows *Searching the web for "…"*. Afterwards a
+  sources card above the answer lists the results it was based on, as
+  links with their site names, so you can check the answer yourself. The
+  card is also there after a reload. A small model can confidently state
+  wrong facts from memory, and the sources show where the answer really
+  came from.
 - With no key configured, the flag is stripped from the saved message and
   you're shown a notice. The request still goes through.
 

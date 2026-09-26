@@ -540,6 +540,16 @@ func (s *Server) runUserTurn(w http.ResponseWriter, r *http.Request, user *User,
 	}
 
 	notice := ""
+	// A web search streams its progress before the turn itself starts, so
+	// the response may already be under way by the time the model runs.
+	started := false
+	start := func() {
+		if !started {
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			w.WriteHeader(http.StatusOK)
+			started = true
+		}
+	}
 	if isCompactCommand(content) {
 		s.compactNow(w, r, user, id)
 		return
@@ -567,9 +577,24 @@ func (s *Server) runUserTurn(w http.ResponseWriter, r *http.Request, user *User,
 		case user.BraveAPIKey == nil || *user.BraveAPIKey == "":
 			notice = "[Web search isn't configured — add a Brave Search API key in Settings to enable it. Answering without web results.]\n\n"
 		default:
-			if err := s.injectWebSearchResults(r.Context(), id, user, query); err != nil {
+			// Shown while Brave and the re-ranking run, then the sources the
+			// answer will be based on, so the user can check them.
+			start()
+			line, _ := json.Marshal(map[string]string{"query": query})
+			fmt.Fprintf(w, "<<<SEARCHING>>>%s\n", line)
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
+			results, err := s.injectWebSearchResults(r.Context(), id, user, query)
+			switch {
+			case err != nil:
 				log.Printf("web search error: %v", err)
 				notice = "[Web search failed, answering without web results.]\n\n"
+			case len(results) == 0:
+				notice = "[The web search found nothing, answering without web results.]\n\n"
+			default:
+				line, _ := json.Marshal(sourcesView(query, results))
+				fmt.Fprintf(w, "<<<SOURCES>>>%s\n", line)
 			}
 		}
 	}
@@ -600,8 +625,7 @@ func (s *Server) runUserTurn(w http.ResponseWriter, r *http.Request, user *User,
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
+	start()
 	if notice != "" {
 		w.Write([]byte(notice))
 	}
@@ -656,13 +680,13 @@ func cleanGeneratedTitle(s string) string {
 	return normalizeTitle(s)
 }
 
-func (s *Server) injectWebSearchResults(ctx context.Context, conversationID string, user *User, query string) error {
+func (s *Server) injectWebSearchResults(ctx context.Context, conversationID string, user *User, query string) ([]SearchResult, error) {
 	results, err := braveSearch(ctx, *user.BraveAPIKey, query)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if len(results) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	ranked, err := rankByRelevance(ctx, s.ollama, s.ollamaURLFor(user), query, results, rankedResultCount)
@@ -675,7 +699,7 @@ func (s *Server) injectWebSearchResults(ctx context.Context, conversationID stri
 	}
 
 	_, err = insertMessage(s.db, conversationID, "system", formatSearchResults(query, ranked))
-	return err
+	return ranked, err
 }
 
 func (s *Server) handleApproveCommand(w http.ResponseWriter, r *http.Request) {

@@ -236,6 +236,26 @@
             </div>
           </template>
 
+          <template x-if="item.kind === 'sources'">
+            <details class="flint-sources" open>
+              <summary>
+                <span x-text="'Searched the web for “' + item.query + '”'"></span>
+                <span class="flint-sources-count" x-text="item.sources.length + (item.sources.length === 1 ? ' source' : ' sources')"></span>
+              </summary>
+              <ol>
+                <template x-for="s in item.sources" :key="s.url">
+                  <li>
+                    <template x-if="sourceURL(s.url)">
+                      <a :href="sourceURL(s.url)" target="_blank" rel="noopener noreferrer" x-text="s.title || s.url"></a>
+                    </template>
+                    <template x-if="!sourceURL(s.url)"><span x-text="s.title || s.url"></span></template>
+                    <span class="flint-source-host" x-text="sourceHost(s.url)"></span>
+                  </li>
+                </template>
+              </ol>
+            </details>
+          </template>
+
           <template x-if="item.kind === 'system'">
             <details class="flint-msg flint-msg-system">
               <summary x-text="item.content.split('\n')[0]"></summary>
@@ -289,7 +309,8 @@
       </template>
       <div class="flint-typing" x-show="streaming && !streamingBubble" role="status" aria-label="Waiting for the reply">
         <span></span><span></span><span></span>
-        <em class="flint-typing-label" x-show="modelLoading" x-text="'Loading ' + model + ' into memory…'"></em>
+        <em class="flint-typing-label" x-show="searchingQuery" x-text="'Searching the web for “' + searchingQuery + '”…'"></em>
+        <em class="flint-typing-label" x-show="modelLoading && !searchingQuery" x-text="'Loading ' + model + ' into memory…'"></em>
       </div>
     </main>
 

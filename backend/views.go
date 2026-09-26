@@ -67,7 +67,7 @@ type baseData struct {
 }
 
 type timelineItem struct {
-	Kind          string           `json:"kind"` // "user" | "assistant" | "system" | "command"
+	Kind          string           `json:"kind"` // "user" | "assistant" | "system" | "command" | "sources"
 	Content       string           `json:"content,omitempty"`
 	Attachments   []timelineAttach `json:"attachments,omitempty"`
 	CommandID     string           `json:"commandId,omitempty"`
@@ -76,6 +76,8 @@ type timelineItem struct {
 	CommandResult string           `json:"commandResult,omitempty"`
 	TokensPerSec  float64          `json:"tokensPerSec,omitempty"`
 	Thinking      string           `json:"thinking,omitempty"`
+	Query         string           `json:"query,omitempty"`
+	Sources       []sourceLink     `json:"sources,omitempty"`
 }
 
 type timelineAttach struct {
@@ -118,8 +120,19 @@ func buildTimeline(messages []Message, pending *Command) []timelineItem {
 			for _, a := range m.Attachments {
 				item.Attachments = append(item.Attachments, timelineAttach{ID: a.ID, MimeType: a.MimeType, Filename: a.Filename, IsImage: isImageMime(a.MimeType)})
 			}
-			out = append(out, item)
+			// A search is saved just before the message that asked for it;
+			// show it after, where it appeared live.
+			if n := len(out); n > 0 && out[n-1].Kind == "sources" {
+				out = append(out[:n-1], item, out[n-1])
+			} else {
+				out = append(out, item)
+			}
 		case "system":
+			if query, results, ok := parseSearchResults(m.Content); ok {
+				view := sourcesView(query, results)
+				out = append(out, timelineItem{Kind: "sources", Query: view.Query, Sources: view.Sources})
+				continue
+			}
 			out = append(out, timelineItem{Kind: "system", Content: m.Content})
 		case "tool":
 			continue // rendered as part of its paired "command" item, not standalone
