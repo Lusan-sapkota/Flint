@@ -4,7 +4,7 @@ How Flint fits a conversation into a small model's context window, and why
 each step exists. The numbers behind each decision are in
 [experiments.md](experiments.md).
 
-A small local model has a small window, 4096 or 8192 tokens here. Every
+A small local model has a small window, by default 4096 or 8192 tokens here. Every
 request resends the whole history, because Ollama keeps no state between
 requests. Left alone, a long chat overflows the window, and Ollama then
 either quietly drops messages from the middle or rejects the request (see
@@ -123,7 +123,8 @@ most one summarization running at a time (`Server.summarizing`), and one
 pass writes at most 4 summaries.
 
 **When.** Once the not-yet-summarized messages older than the protected
-window are worth at least a quarter of the window (1024 or 2048 tokens),
+window are worth at least a quarter of the window (1024 or 2048 tokens at
+the default windows),
 the oldest run of them becomes one level-0 summary. A chunk never reaches
 the latest user message, the recent window or the latest image, and never
 separates a tool call from its result. Editing a message only ever
@@ -179,6 +180,8 @@ same `num_ctx`, so they never force a model reload.
   matter. The cheaper first step would be a deterministic index from file
   names in the attached folder to the messages and summaries that mention
   them, with no model calls and no embeddings.
-- **A bigger window.** Memory would allow 32k for qwen2.5-3b on a 6 GB
-  GPU ([E12](experiments.md#e12-memory-cost-of-a-bigger-window)). Speed and
-  quality at that size aren't measured yet.
+- **Measuring a bigger window.** It's configurable now (Settings →
+  Connection, E23), and memory would allow 32k for qwen2.5-3b on a 6 GB
+  GPU ([E12](experiments.md#e12-memory-cost-of-a-bigger-window)), but
+  speed, recall and tool use above 8192 aren't measured yet, so the
+  defaults stay where the experiments were run.

@@ -157,10 +157,14 @@ Anything Ollama serves works for chat. What Flint uses:
 - **Thinking** needs `thinking` (qwen3.5-4b).
 - **`@web` re-ranking** uses `nomic-embed-text`, and it's optional, not a
   dependency. Without it `@web` still works, using Brave's own ranking.
-  With it, the model only loads for the moment a search runs, then Ollama
-  unloads it when idle (5 minutes by default). Flint never pulls it on its
+  With it, the model only loads for the moment a search runs: Flint asks
+  Ollama to unload it as soon as the results are ranked, not after
+  Ollama's default 5 minutes. Flint never pulls it on its
   own: Settings → Connection offers a Pull button when a Brave key is set
   and the model is missing, and the Installed list marks it.
 
-A plain chat runs with a 4096-token window and a folder chat with 8192;
-see [context-management.md](context-management.md).
+By default a plain chat runs with a 4096-token window, a folder chat with
+8192, and a chat with an Ollama cloud model with 32768. Each account can
+set its own window for local and for cloud models in Settings →
+Connection, and no model is given more than the `context_length` it
+reports; see [context-management.md](context-management.md).

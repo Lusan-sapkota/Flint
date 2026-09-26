@@ -1,7 +1,6 @@
 # Features
 
-Everything Flint does, grouped by area. Update this page with every
-feature change.
+Everything Flint does, grouped by area.
 
 ## Accounts
 
@@ -118,8 +117,8 @@ feature change.
 
 - **Attach a folder**, typed or picked with the folder browser (it lists
   subfolder names only, starting at the server user's home). Flint reads
-  the files directly inside it (not subfolders), skips binaries and large
-  files, and includes up to 12 KB of text as the chat's standing context.
+  the files directly inside it (not subfolders), skips binaries and files
+  over 64 KB, and includes up to 12 KB of text as the chat's standing context.
   Files past that are listed as not included.
 - **Change the folder** with the Change link on the folder chip. The new
   folder's contents replace the old ones in the same standing-context
@@ -197,7 +196,8 @@ Facts you choose to keep across chats. Like `@web`, memory is only used
 when you ask for it. The model never decides on its own to save or look
 things up.
 
-- **`@memory save <text>`** saves that text exactly as written.
+- **`@memory save <text>`** saves that text exactly as written (up to
+  4000 characters per memory).
 - **`@memory save`** on its own asks the model to draft the lasting facts
   from this chat. The draft appears as a card you can edit, then **Save
   memory** or **Discard**. Nothing is saved until you approve it, because
@@ -205,7 +205,9 @@ things up.
   in every later chat.
 - **`@memory <words>`** searches your memories (any word can match) and
   adds the best matches to this chat, within an eighth of the model's
-  window. If nothing matches, you're told.
+  window. If nothing matches, you're told. After a reload the recall
+  shows as a collapsed "Recalled memories for …" card after the message
+  that asked, not as the instructions sent to the model.
 - **Folder memories.** A memory saved in a chat with a folder attached
   belongs to that folder. It loads automatically in every chat that
   attaches the same folder, newest first, within an eighth of the window.
@@ -275,16 +277,23 @@ a shared link opens the same one.
   supports), and the Brave Search API key for `@web`.
 - **Models:** which models the new-chat picker shows, which are loaded,
   details for each (family, parameters, quantization, context length,
-  capabilities), pulling new ones with a progress bar, and deleting them.
+  capabilities), pulling new ones with a progress bar, and deleting them
+  (type DELETE to confirm).
   **Load** puts a model in memory ahead of time and unloads whatever else
   is running first, so it gets the memory to itself; **Unload** frees a
   running one.
-- **Memories:** edit and delete.
-- **Account:** security questions for password recovery, and deleting the
-  account.
+- **Memories:** every saved memory, with where it applies (its folder, or
+  "Any chat") and the chat it was saved from, as a link. Edit or delete
+  each one; deleting asks you to type DELETE.
+- **Account:** your name and email, a password change, security
+  questions for password recovery, and deleting the account. A new email
+  or password needs your current password.
 
 ## Running it
 
+- **When Ollama isn't reachable,** Flint says so plainly, once per page:
+  where it looked and how to start Ollama or change the address, not
+  Go's raw connection error.
 - One static binary with SQLite, no build step, no CDN. The frontend
   libraries ship with it.
 - A published Docker image (`ghcr.io/lusan-sapkota/flint`) and a Compose

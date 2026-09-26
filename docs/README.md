@@ -7,7 +7,8 @@ inferior model but an under-scaffolded one, so Flint's job is to be the
 best scaffolding around a small model without getting heavy itself:
 context that never overflows, shell commands that always wait for your
 approval, memory across chats, and web search only when you ask. Ollama
-cloud models work too, under the same rules, tagged as cloud.
+cloud models work too, under the same rules, tagged as cloud, and each
+account can set its own context window for local and for cloud models.
 
 ![A shell command proposed by the model, waiting for Approve, Deny or Reply instead](images/hero-approval.png)
 

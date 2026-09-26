@@ -13,7 +13,7 @@
 </p>
 
 No CDN calls, no telemetry, no cloud dependency. Everything the frontend
-needs is vendored, and the backend only talks to your local Ollama. The one
+needs is vendored, and the backend only talks to your Ollama. The one
 deliberate exception is `@web <query>`, which searches the web through the
 Brave Search API with your own key, only when you ask, sending only the
 query text. Ollama cloud models (`:cloud`) run on ollama.com, so Flint tags
@@ -101,8 +101,8 @@ Open `http://localhost:8080` and sign up.
 Optional, only if you use `@web`: `ollama pull nomic-embed-text` (about
 270 MB) lets Flint re-rank search results against your question. It isn't
 a dependency. Without it `@web` still works, using Brave's own ranking,
-and with it the model only loads for the moment a search runs, then Ollama
-unloads it again when idle.
+and with it the model only loads for the moment a search runs: Flint has
+Ollama unload it as soon as the results are ranked.
 
 Or run Flint in Docker, talking to the Ollama already on your machine. No
 clone needed, just the compose file and a folder for your data:

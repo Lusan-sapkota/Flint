@@ -87,8 +87,8 @@
           <div class="flint-notice">
             <p>Optional: <code>@web</code> works as it is, using Brave's own ranking. Pulling
               <code x-text="rankingModel"></code> (about 270 MB) lets Flint re-rank results against
-              your question. It only loads for the moment a search runs, then Ollama unloads it
-              when idle.</p>
+              your question. It only loads for the moment a search runs, and is unloaded as soon
+              as the results are ranked.</p>
             <button type="button" class="secondary" @click="pullRankingModel" :disabled="pulling" :aria-busy="pulling"
                     x-text="`Pull ${rankingModel}`"></button>
             <p x-show="pulling" x-text="pullStatus + (pullPercent !== null ? ` ${pullPercent}%` : '')"></p>

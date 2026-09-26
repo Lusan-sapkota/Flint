@@ -12,7 +12,8 @@ browser (htmx + Alpine.js + Pico.css, all vendored)
 flint (Go, net/http)
    ├── SQLite (modernc.org/sqlite, pure Go, WAL, one connection)
    ├── attachment files on disk
-   ├── Ollama HTTP API (chat, embeddings, model management)
+   ├── Ollama HTTP API (chat, embeddings, model management;
+   │   a `:cloud` model is forwarded by Ollama to ollama.com)
    └── Brave Search API, only on an explicit `@web` query
 ```
 
@@ -62,7 +63,7 @@ Dockerfile, docker-compose.yml (Linux), docker-compose.desktop.yml (Mac/Windows)
 
 | Table | Holds |
 |---|---|
-| `users` | account, bcrypt password hash, own Ollama URL, preferred models, Brave API key |
+| `users` | account, bcrypt password hash, own Ollama URL, preferred models, Brave API key, context window overrides (`num_ctx` local, `cloud_num_ctx` cloud) |
 | `sessions` | session id (the cookie value), user, expiry |
 | `security_questions` | recovery questions, answers bcrypt-hashed |
 | `conversations` | owner, title, model, attached folder, last context use, token ratio |
@@ -74,7 +75,9 @@ Dockerfile, docker-compose.yml (Linux), docker-compose.desktop.yml (Mac/Windows)
 | `memories_fts` | FTS5 index over memories, kept in sync by triggers |
 | `messages_fts` | FTS5 index over message text, kept in sync by triggers |
 
-Deleting a conversation cascades to all of these. Rows are never shared
+Deleting a conversation cascades to its messages, attachments, commands
+and summaries; a memory saved from it stays and only loses its link.
+Deleting a user removes everything they own. Rows are never shared
 between users.
 
 Schema changes that `CREATE TABLE IF NOT EXISTS` can't make on an existing
@@ -94,13 +97,17 @@ Each step is idempotent.
    appends the tool nudge and folder anchor to the last message when a
    folder is attached (the nudge is left off when the user's message says
    not to run commands, see experiments.md E17), and streams the model's
-   reply.
+   reply. Without a folder no tool is offered; if the message asks to run
+   or check something, a note tells the model to give the command for the
+   user to run instead of inventing output (E19).
 4. A tool call is checked by the shield, then by the preconditions, then
    saved as a pending command. The stream ends, and the user approves or
    denies it with a separate request, which runs the command and continues
-   the same turn.
+   the same turn. **Reply instead** denies it without continuing
+   (`deny?reply=1`), and the user's reply is sent as an ordinary message.
 5. After a final text reply come the stats line, then title generation on
-   the first message, then a background summarization pass.
+   the first message (skipped if the reply failed), then a background
+   summarization pass.
 
 ## Streaming protocol
 
@@ -115,6 +122,7 @@ client consumes:
 | `<<<TOOL_RESULT>>>{"status":..,"output":..}` | what an approved or denied command produced, for display |
 | `<<<TOOL_CALL>>>{"id":..,"command":..}` | a pending command awaiting approval; ends the stream |
 | `<<<STATS>>>{"tokensPerSec":N}` | generation speed; ends a final text reply |
+| `<<<MEMORY_SAVED>>>{"content":..}` | `@memory save <text>` stored that text; shown as the "Saved to memory" card |
 | `<<<MEMORY_DRAFT>>>{"text":..}` | a drafted memory for the user to review; ends the stream |
 | `<<<SEARCHING>>>{"query":..}` | an `@web` search has started |
 | `<<<SOURCES>>>{"query":..,"sources":[{"title","url","date"?}]}` | the results the answer will be based on; `date` only when every result has one |
