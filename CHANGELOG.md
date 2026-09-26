@@ -10,6 +10,9 @@ Notable changes in each release. The measurements behind a change are in
 - Change a chat's attached folder with the Change link on the folder
   chip. The new folder replaces the old one as the chat's standing
   context.
+- **Reply instead** on a waiting shell command: tell the model what to do
+  rather than just denying it. Your reply is an ordinary message, so
+  `@web` and `@memory` work in it.
 - Log out from Settings too, at the bottom of its sidebar.
 - Edit your name and email, and change your password, in Settings →
   Account. A new email or password needs your current password, and a
@@ -34,6 +37,8 @@ Notable changes in each release. The measurements behind a change are in
   in the Settings page and in `/api/me`, where the eye button or the page
   source showed it in full. Settings now shows only its last four
   characters, with Replace and Remove.
+- A denied command card shows just "Denied", not the instructions Flint
+  writes for the model.
 - Collapsible headers (sources, system messages) and link hovers no
   longer flash Pico's default blue.
 - The "Attached folder" card no longer jumps sideways while it opens and

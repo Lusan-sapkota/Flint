@@ -218,6 +218,7 @@ document.addEventListener('alpine:init', () => {
     attachments: [],
     attachmentError: '',
     streaming: false,
+    replyingTo: false,
     changingFolder: false,
     folderInput: '',
     folderSuggestions: [],
@@ -451,7 +452,19 @@ document.addEventListener('alpine:init', () => {
 
     async send() {
       const content = this.input.trim();
-      if (!content || this.streaming || this.pendingCommand || !this.conversationId) return;
+      if (!content || this.streaming || (this.pendingCommand && !this.replyingTo) || !this.conversationId) return;
+      // "Reply instead": deny the pending command without letting the model
+      // continue, then send this as an ordinary message it responds to.
+      const cmd = this.pendingCommand;
+      if (cmd) {
+        const res = await fetch(`/api/conversations/${this.conversationId}/commands/${cmd.commandId}/deny?reply=1`, { method: 'POST' }).catch(() => null);
+        if (!res || !res.ok) {
+          this.timeline.push({ kind: 'system', content: 'Error: could not deny the command. Try again.' });
+          return;
+        }
+        cmd.commandStatus = 'denied';
+        this.replyingTo = false;
+      }
 
       const attachments = this.attachments.map((a) => ({ data: a.dataUrl, filename: a.filename }));
       this.timeline.push({ kind: 'user', content, pendingAttachments: this.attachments });
@@ -620,6 +633,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     async decide(cmd, action) {
+      this.replyingTo = false;
       this.streaming = true;
       this.abortController = new AbortController();
       cmd.commandStatus = 'resolving';

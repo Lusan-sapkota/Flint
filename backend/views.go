@@ -154,8 +154,10 @@ func buildTimeline(messages []Message, pending *Command) []timelineItem {
 			tc := calls[0]
 			item := timelineItem{Kind: "command", CommandText: extractToolCommand(*m.ToolCalls)}
 			if result, ok := toolResults[tc.ID]; ok {
-				item.CommandResult = result
 				item.CommandStatus = classifyCommandResult(result)
+				if item.CommandStatus != "denied" {
+					item.CommandResult = result
+				}
 			} else if pending != nil {
 				item.CommandID = pending.ID
 				item.CommandText = pending.Command

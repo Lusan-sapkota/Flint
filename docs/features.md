@@ -120,6 +120,12 @@ feature change.
   automatically. The command text is shown exactly as proposed, and it
   runs with the folder as its working directory, which is a convenience,
   not a sandbox.
+- **Reply instead.** Besides Approve and Deny, a waiting command has
+  **Reply instead**: it opens the message box so you can tell the model
+  what to do ("we're on Plasma 6, not 5", or "`@web` it first"). Sending
+  denies the command without letting the model carry on by itself, then
+  sends your message as a normal one, so `@web` and `@memory` work in it.
+  A denied card shows only "Denied".
 - **Safety shield.** Catastrophic patterns (`rm -rf /`, `sudo`, piping a
   download into a shell, and so on) are blocked before you ever see them.
 - **Precondition check.** A command whose program or read target doesn't

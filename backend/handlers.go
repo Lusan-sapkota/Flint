@@ -819,8 +819,19 @@ func (s *Server) resolveCommandAndContinue(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// A reply-instead denial is followed by the user's own message, which is
+	// what the model should act on, so it neither suggests a retry nor
+	// starts a turn of its own here.
+	replyInstead := !approve && r.URL.Query().Get("reply") == "1"
+
 	var resultText, displayStatus string
-	if !approve {
+	if replyInstead {
+		resultText = "User denied this command and wrote what to do instead in their next message. Follow that message rather than retrying this command."
+		displayStatus = "denied"
+		if err := resolveCommand(s.db, cmd.ID, "denied", "", nil); err != nil {
+			log.Printf("warning: failed to resolve command: %v", err)
+		}
+	} else if !approve {
 		resultText = "User denied this command. It was their choice not to run it, and nothing is wrong with your access. Don't guess what it would have output. Try a different command that gets the same information, or ask the user how they want to proceed."
 		displayStatus = "denied"
 		if err := resolveCommand(s.db, cmd.ID, "denied", "", nil); err != nil {
@@ -873,6 +884,10 @@ func (s *Server) resolveCommandAndContinue(w http.ResponseWriter, r *http.Reques
 	if err := insertToolResultMessage(s.db, convoID, cmd.ToolCallID, resultText); err != nil {
 		log.Printf("warning: failed to save tool result message: %v", err)
 	}
+	if replyInstead {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 
 	convo, err = getConversation(s.db, convoID, user.ID)
 	if err != nil {
@@ -889,7 +904,13 @@ func (s *Server) resolveCommandAndContinue(w http.ResponseWriter, r *http.Reques
 	// it's persisted straight to the tool-result DB row. The UI needs to
 	// show the human what really happened, so a matching <<<TOOL_RESULT>>>
 	// marker is emitted first, display-only, before the assistant continues.
-	resultMarker, _ := json.Marshal(map[string]string{"status": displayStatus, "output": resultText})
+	// A denial's text is written for the model; the card's "Denied" status
+	// already tells the user everything.
+	shown := resultText
+	if displayStatus == "denied" {
+		shown = ""
+	}
+	resultMarker, _ := json.Marshal(map[string]string{"status": displayStatus, "output": shown})
 	fmt.Fprintf(w, "<<<TOOL_RESULT>>>%s\n", resultMarker)
 	if flusher, ok := w.(http.Flusher); ok {
 		flusher.Flush()
