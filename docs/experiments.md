@@ -631,6 +631,43 @@ attached to the user's message; harmless. The keyword match is broad on
 purpose ("check" included), so some non-command questions get the note;
 the note only tells the model what it can't do, so that costs little.
 
+## E20: Which embedding model re-ranks `@web` results best
+
+`@web` re-ranks Brave's top 10 by cosine similarity to the query and
+keeps 3. Asked whether a smaller model than nomic-embed-text (274 MB)
+would do, 15 real Brave searches (technical, current events, weather,
+health, how-to) were saved once and scored offline by
+`docs/tools/web_rerank.py`, embedding exactly what Flint does (raw title
++ snippet, one call). All 150 results were graded from title and snippet
+before any model ran: 2 answers the query, 1 on topic, 0 off topic or
+stale (the Go 1.23 and 1.25 notes for "latest stable Go release"). Score
+is the grade sum of the kept 3, out of 6 per query.
+
+| Setup | Top-3 | nDCG@3 | Memory loaded |
+|---|---|---|---|
+| Brave's order, no model | 59/90 | 0.699 | 0 |
+| nomic, as Flint sends it | 62/90 | 0.754 | 323 MB |
+| nomic + `search_query: ` / `search_document: ` | 70/90 | 0.836 | 323 MB |
+| snowflake-arctic-embed:33m | 66/90 | 0.773 | 60 MB |
+| arctic 33m + its query prefix | 66/90 | 0.781 | 60 MB |
+
+- nomic was trained with those task prefixes and Flint sends none. Adding
+  them fixed the worst misses: "ollama keep_alive default" went 2 -> 5,
+  the World Cup final 4 -> 6.
+- arctic 33m beats unprefixed nomic but loses to prefixed nomic, which
+  wins or ties it on 11 of 15 queries.
+- Cold load plus 11 embeddings is ~1.6 s for both (5 runs each): the
+  time is Ollama starting a runner, not the model's size. Since
+  embeddings now unload right after the call, nomic's larger footprint
+  is held for about that long; it matters only if it pushes the chat
+  model out of a full GPU.
+- One labeler and 15 queries, so a 4-point gap is modest evidence.
+
+**Changed:** nothing in Flint yet; nomic stays the model. The prefixes
+are the recommended next change. Not tried: bigger embedding models
+(mxbai-embed-large, embeddinggemma, bge-m3), arctic's 110M `m` size and
+arctic-embed2.
+
 ## Open questions
 
 - **Commands for questions that don't need one.** E17 fixed explicit

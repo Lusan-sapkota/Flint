@@ -49,6 +49,13 @@ LIVE_DB=/tmp/copy.db go test -tags live -run TestLiveDumpHistory -v .
   role, tool-call count and the start of each message. This is how the
   tool-call drift in E8 was found.
 
+## Web re-ranking
+
+`docs/tools/web_rerank.py` scores embedding models and prefixes for
+`@web` re-ranking on 15 saved, hand-graded Brave searches
+(`web_rerank_results.json`), with no Brave calls (E20). Add a setup to
+`CONFIGS`, pull its model, and run `python3 docs/tools/web_rerank.py`.
+
 ## The long-chat run
 
 `docs/tools/long_chat.py` drives one 19-turn chat with a folder attached
