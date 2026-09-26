@@ -154,11 +154,14 @@ feature change.
   while a search runs (Flint asks Ollama to unload it right after, not
   after its default 5 minutes), and Settings offers a Pull button when
   it's missing.
-- Each result carries its publish date from Brave, when it has one. The
-  model sees the dates with a note that snippets can be out of date, to
+- Each result carries its publish date from Brave, when it has one. When
+  all the kept results have one, the model sees the dates with a note
+  that snippets can be out of date, to
   trust the newest, and to answer "what's the latest version" questions
   with the source's date ("v1.2, according to a page from 2026-08-28; a
-  newer one may exist") rather than as today's fact (E21). Search
+  newer one may exist") rather than as today's fact. With some or all
+  undated, it sees none: it invented a date for the gap, or trusted the
+  one dated result (E21), and the card then shows no dates either. Search
   snippets are short, so a fresh page whose snippet doesn't state the
   answer can't supply it.
 - While it runs, the chat shows *Searching the web for "…"*. Afterwards a

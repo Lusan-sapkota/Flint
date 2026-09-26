@@ -153,20 +153,29 @@ const (
 // staleResultsNote exists because snippets from old "latest version" pages
 // outranked fresh ones, and the model repeated a month-old version as
 // current with no way to tell it was old. It leaves out today's date:
-// given one, the model called the stale answer current "as of" today (E21).
+// given one, the model called the stale answer current "as of" today.
+// Dates and note are only sent when every result has a date: with none,
+// the model invented one to fit the example, and with some, it trusted
+// the one dated result even when stale, or pinned its date on another (E21).
 const staleResultsNote = "These snippets can be out of date: each shows its publish date. When results disagree, trust the most recently published. For a question about the latest or current version of something, answer like \"v1.2, according to a page from 2026-08-28; a newer one may exist\"."
 
 func formatSearchResults(query string, results []SearchResult) string {
+	dated := len(results) > 0
+	for _, r := range results {
+		dated = dated && r.Date != ""
+	}
 	var b strings.Builder
 	fmt.Fprintf(&b, webResultsPrefix+"%q:\n\n", query)
 	for i, r := range results {
 		fmt.Fprintf(&b, "%d. %s\n%s\n", i+1, r.Title, r.URL)
-		if r.Date != "" {
+		if dated {
 			fmt.Fprintf(&b, "%s%s\n", publishedPrefix, r.Date)
 		}
 		fmt.Fprintf(&b, "%s\n\n", r.Snippet)
 	}
-	b.WriteString(staleResultsNote)
+	if dated {
+		b.WriteString(staleResultsNote)
+	}
 	return b.String()
 }
 

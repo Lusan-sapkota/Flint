@@ -51,6 +51,15 @@ func TestFormatSearchResults(t *testing.T) {
 		{Title: "Go Programming Language", URL: "https://go.dev", Snippet: "An open source language"},
 	}
 	out := formatSearchResults("golang", results)
+	if strings.Contains(out, "Published") {
+		t.Error("with no dated result, the date note must be left out, or the model invents a date")
+	}
+	if !strings.Contains(formatSearchResults("q", []SearchResult{{Title: "t", URL: "u", Date: "2026-08-28"}}), "Published: 2026-08-28") {
+		t.Error("a dated result must show its date")
+	}
+	if strings.Contains(formatSearchResults("q", []SearchResult{{Title: "a", URL: "u", Date: "2026-08-28"}, {Title: "b", URL: "v"}}), "Published") {
+		t.Error("with only some results dated, dates must be left out, or the model trusts the dated one")
+	}
 	if !strings.Contains(out, "golang") || !strings.Contains(out, "Go Programming Language") || !strings.Contains(out, "https://go.dev") {
 		t.Fatalf("formatted output missing expected content: %q", out)
 	}
@@ -58,7 +67,7 @@ func TestFormatSearchResults(t *testing.T) {
 
 func TestSavedSearchShowsAsSourcesAfterTheQuestion(t *testing.T) {
 	results := []SearchResult{
-		{Title: "Nepal PM sworn in", URL: "https://example.test/a", Snippet: "text"},
+		{Title: "Nepal PM sworn in", URL: "https://example.test/a", Snippet: "text", Date: "2026-09-01"},
 		{Title: "Profile", URL: "https://example.test/b", Snippet: "more\nlines", Date: "2026-08-28"},
 	}
 	saved := formatSearchResults(`who is "PM" of Nepal`, results)
@@ -66,7 +75,7 @@ func TestSavedSearchShowsAsSourcesAfterTheQuestion(t *testing.T) {
 	if !ok || query != `who is "PM" of Nepal` || len(got) != 2 || got[0].Title != "Nepal PM sworn in" || got[1].URL != "https://example.test/b" {
 		t.Fatalf("round trip failed: ok=%v query=%q got=%+v", ok, query, got)
 	}
-	if got[0].Date != "" || got[1].Date != "2026-08-28" || got[1].Snippet != "more\nlines" {
+	if got[0].Date != "2026-09-01" || got[1].Date != "2026-08-28" || got[1].Snippet != "more\nlines" {
 		t.Errorf("dates must round trip without leaking into snippets, got %+v", got)
 	}
 	if _, old, _ := parseSearchResults("Web search results for \"q\":\n\n1. T\nhttps://x.test\nsnippet\n\n"); len(old) != 1 || old[0].Snippet != "snippet" || old[0].Date != "" {

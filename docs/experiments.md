@@ -702,8 +702,23 @@ real Brave results, fresh chat per run:
 - Leak check, `@web who won the 2026 FIFA World Cup final?`: 3/3
   correct, two added the report date, none added version hedging.
 
+**Follow-up, the same day: a date the model made up.** `@web` on the
+user's own framework (lcore) answered "v0.0.5, according to a page from
+2023-04-07". The version was right; the date appears nowhere: Brave sent
+no `page_age` for any of the 3 kept results, and the note's example
+format pushed the model to fill one in. Then a mixed set (the same
+results, only the stale PyPI one dated), sent directly to Ollama: 5/5
+went wrong, either preferring 0.0.3 as "the most recently published"
+(the only dated result wins the "trust the newest" rule) or pinning
+PyPI's date on GitHub's v0.0.5. So Go decides: dates and the note reach
+the model only when every kept result has a date. With none or only
+some dated, it sees no dates: lcore via the real API 5/5 said 0.0.5
+with no date; the mixed set 4/5 said 0.0.5, one gave both with their
+sources, none gave a date. The all-dated case keeps the adopted wording
+unchanged.
+
 **Changed:** results keep `page_age` as a date; the note is the adopted
-wording. **Not fixed:** the answer is still 0.33.1, because the right
+wording, sent only when every result is dated. **Not fixed:** the answer is still 0.33.1, because the right
 number is in no snippet; only reading the page itself would give it,
 which would send requests to sites other than Brave. A saved search
 from before this still parses, without dates.
