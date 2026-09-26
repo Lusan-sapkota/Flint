@@ -1402,6 +1402,18 @@ details.flint-thinking > summary:focus {
   margin: 0;
 }
 
+.flint-settings-section .flint-settings-actions {
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* On its own line, so "Saved." appearing doesn't shift the centered button. */
+.flint-settings-section .flint-settings-actions .flint-save-status {
+  flex-basis: 100%;
+  text-align: center;
+}
+
 .flint-model-checkbox-list {
   display: flex;
   flex-direction: column;
