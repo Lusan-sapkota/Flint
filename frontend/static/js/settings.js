@@ -9,6 +9,21 @@ function formatBytes(n) {
   return `${n.toFixed(n >= 10 || i === 0 ? 0 : 1)} ${units[i]}`;
 }
 
+// The parts of Ollama's /api/show worth reading, as [label, value] rows.
+function modelSummary(data) {
+  const details = data.details || {};
+  const info = data.model_info || {};
+  const arch = info['general.architecture'];
+  const context = arch && info[`${arch}.context_length`];
+  return [
+    ['Family', details.family],
+    ['Parameters', details.parameter_size],
+    ['Quantization', details.quantization_level],
+    ['Context length', context && `${context.toLocaleString()} tokens`],
+    ['Capabilities', (data.capabilities || []).join(', ')],
+  ].filter(([, value]) => value);
+}
+
 document.addEventListener('alpine:init', () => {
   const TABS = [
     { id: 'connection', label: 'Connection' },
@@ -124,15 +139,30 @@ document.addEventListener('alpine:init', () => {
       }
     },
 
-    async showModel(name) {
-      const res = await fetch('/api/models/show', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) return `Error: ${data.error || res.statusText}`;
-      return JSON.stringify(data, null, 2);
+    // d is the model row's own Alpine state. A failed load leaves info
+    // empty, so opening the row again retries.
+    async toggleDetails(d, name) {
+      d.open = !d.open;
+      if (!d.open || d.info || d.loading) return;
+      d.loading = true;
+      d.error = '';
+      try {
+        const res = await fetch('/api/models/show', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          d.error = `Couldn't load details: ${data.error || res.statusText}`;
+          return;
+        }
+        d.info = modelSummary(data);
+      } catch (e) {
+        d.error = 'Could not reach the server.';
+      } finally {
+        d.loading = false;
+      }
     },
 
     async deleteModel(name) {

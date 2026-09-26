@@ -91,20 +91,30 @@
         {{else}}
           <ul class="flint-installed-models">
             {{range .Models}}
-            <li x-data="{ detailsOpen: false, detailsText: '', detailsLoading: false }">
+            <li x-data="{ open: false, loading: false, info: null, error: '' }">
               <div class="flint-installed-model-row">
                 <div class="flint-installed-model-info">
                   <strong>{{.Name}}</strong>
                   <span class="flint-model-meta">{{.Size | humanSize}}{{if .Details.ParameterSize}} &middot; {{.Details.ParameterSize}}{{end}}{{if .Details.QuantizationLevel}} &middot; {{.Details.QuantizationLevel}}{{end}}</span>
                 </div>
-                <button type="button" class="secondary flint-icon-btn"
-                        @click="detailsOpen = !detailsOpen; if (detailsOpen && !detailsText) { detailsLoading = true; showModel('{{.Name | jsStr}}').then(t => detailsText = t).finally(() => detailsLoading = false) }"
-                        :aria-busy="detailsLoading" title="Details">{{template "icon-info"}}</button>
+                <button type="button" class="secondary flint-icon-btn" @click="toggleDetails($data, '{{.Name | jsStr}}')"
+                        :aria-expanded="open" title="Details">{{template "icon-info"}}</button>
                 <button type="button" class="flint-icon-btn flint-danger-btn"
                         @click="deleteModel('{{.Name | jsStr}}')"
                         :disabled="deletingModel === '{{.Name | jsStr}}'" :aria-busy="deletingModel === '{{.Name | jsStr}}'" title="Delete">{{template "icon-trash"}}</button>
               </div>
-              <pre class="flint-model-details" x-show="detailsOpen" x-text="detailsText"></pre>
+              <div class="flint-model-details" x-show="open">
+                <p x-show="loading">Loading details…</p>
+                <p class="flint-error" x-show="error" x-text="error"></p>
+                <template x-if="info && info.length">
+                  <dl>
+                    <template x-for="[label, value] in info" :key="label">
+                      <div><dt x-text="label"></dt><dd x-text="value"></dd></div>
+                    </template>
+                  </dl>
+                </template>
+                <p x-show="info && !info.length">Ollama returned no details for this model.</p>
+              </div>
             </li>
             {{end}}
           </ul>

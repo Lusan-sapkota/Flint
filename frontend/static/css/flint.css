@@ -1595,15 +1595,35 @@ details.flint-thinking > summary:focus {
 
 .flint-model-details {
   margin-top: 0.5rem;
-  background: #141416;
+  background: var(--flint-surface);
   border: 1px solid var(--flint-border);
   border-radius: 0.4rem;
-  padding: 0.75rem;
-  font-size: 0.75rem;
-  max-height: 16rem;
-  overflow: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+}
+
+.flint-model-details p {
+  margin: 0;
+}
+
+.flint-model-details dl {
+  margin: 0;
+}
+
+.flint-model-details dl > div {
+  display: grid;
+  grid-template-columns: 9rem 1fr;
+  gap: 1rem;
+  padding: 0.2rem 0;
+}
+
+.flint-model-details dt {
+  color: var(--flint-text-dim);
+  font-weight: normal;
+}
+
+.flint-model-details dd {
+  margin: 0;
 }
 
 .flint-pull-form {
