@@ -71,12 +71,13 @@ cd backend
 go run .
 ```
 
-Open `http://localhost:8080` and sign up. Or with Docker, which runs its
-own Ollama alongside Flint:
+Open `http://localhost:8080` and sign up.
+
+Or run Flint in Docker, talking to the Ollama already on your machine:
 
 ```bash
-docker compose up -d
-docker compose exec ollama ollama pull qwen2.5:3b
+docker compose up -d                                   # Linux
+docker compose -f docker-compose.desktop.yml up -d     # Mac, Windows
 ```
 
 Then open `http://localhost:3141`, a deliberately uncommon port so it

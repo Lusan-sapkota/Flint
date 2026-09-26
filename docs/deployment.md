@@ -22,6 +22,7 @@ cd backend && CGO_ENABLED=0 go build -o flint .
 
 | Variable | Default | |
 |---|---|---|
+| `HOST` | `127.0.0.1` | address to listen on; localhost only by default, since commands run on this machine and signup is open |
 | `PORT` | `8080` | |
 | `DB_PATH` | `data/chat.db` | SQLite file, relative to `backend/` |
 | `ATTACHMENTS_DIR` | `data/attachments` | uploaded files |
@@ -30,27 +31,49 @@ cd backend && CGO_ENABLED=0 go build -o flint .
 
 ## Docker
 
+Docker runs **Flint only**. Ollama stays the normal app on your machine,
+where it already has your GPU and your models, and the container talks
+to it.
+
+**Linux:**
+
 ```bash
 docker compose up -d
-docker compose exec ollama ollama pull qwen2.5:3b
 ```
 
-Compose runs Flint alongside its own Ollama container. Chat data and
-models each live in a named volume. Notes:
+The container uses host networking, so it reaches Ollama at
+`localhost:11434` exactly as a native Flint would, and Ollama never has to
+listen beyond localhost.
 
-- Flint is published on `127.0.0.1:3141` only: open
-  `http://localhost:3141`. The port is deliberately uncommon, since 8080
-  is where most dev servers go. Set `FLINT_PORT` to use another one
-  (`FLINT_PORT=4000 docker compose up -d`). Inside the container, Flint
-  still listens on 8080.
-- The image is Alpine, not scratch, because the shell tool needs `sh`.
-  Only the tools Alpine ships are available to commands.
-- Folder attach and the shell tool only see the container's filesystem.
-  Bind-mount a project folder to work on it.
-- A GPU needs the usual Compose GPU configuration on the `ollama` service.
-- The image build and `compose up` haven't been run for real yet. The
-  container's file layout was verified by running the static binary from
-  the same directory structure.
+**Mac and Windows (Docker Desktop):**
+
+```bash
+docker compose -f docker-compose.desktop.yml up -d
+```
+
+Host networking doesn't work there the same way, because Docker runs in a
+small VM. This file uses ordinary port mapping, and reaches Ollama through
+`host.docker.internal`, which Docker Desktop forwards to your machine.
+This setup is untested so far, since it was built on Linux; if it doesn't
+reach Ollama, please open an issue.
+
+Then open `http://localhost:3141`. Notes:
+
+- **Port:** 3141 is deliberately uncommon, since 8080 is where most dev
+  servers go. Set `FLINT_PORT` to use another
+  (`FLINT_PORT=4000 docker compose up -d`). Either way it's published on
+  `127.0.0.1` only.
+- **Data:** chats and attachments live in the `flint-data` volume and
+  survive restarts and rebuilds.
+- **Folders:** folder attach and the shell tool only see the container's
+  filesystem. To work on a project, bind-mount it (add a `volumes:` entry
+  such as `- /home/you/project:/home/flint/project`), or run Flint natively.
+- **Shell:** the image is Alpine (23.5 MB), not scratch, because the shell
+  tool needs `sh`. Commands only have the tools Alpine ships.
+- **Listening address:** the image sets `HOST=0.0.0.0`, so a plain
+  `docker run -p` works. The Linux compose file narrows it back to
+  `127.0.0.1`, since host networking would otherwise expose it to the
+  network.
 
 ## Health
 

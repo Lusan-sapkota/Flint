@@ -54,6 +54,10 @@ func handleHealthz(srv *Server) http.HandlerFunc {
 func main() {
 	loadAblations()
 	port := getenv("PORT", "8080")
+	// Localhost by default: model-proposed shell commands run as this
+	// process and signup is open, so it must not be reachable from the
+	// network unless someone explicitly asks for that.
+	host := getenv("HOST", "127.0.0.1")
 	dbPath := getenv("DB_PATH", "data/chat.db")
 	ollamaBaseURL := getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 	attachmentsDir := getenv("ATTACHMENTS_DIR", "data/attachments")
@@ -127,10 +131,10 @@ func main() {
 	mux.HandleFunc("GET /c/{id}", srv.requireAuthPage(srv.handleChatPage))
 	mux.HandleFunc("POST /conversations", srv.requireAuthPage(srv.handleCreateConversationPage))
 
-	httpServer := &http.Server{Addr: ":" + port, Handler: mux}
+	httpServer := &http.Server{Addr: host + ":" + port, Handler: mux}
 
 	go func() {
-		log.Printf("flint listening on http://localhost:%s (ollama: %s, db: %s)", port, ollamaBaseURL, dbPath)
+		log.Printf("flint listening on http://%s:%s (ollama: %s, db: %s)", host, port, ollamaBaseURL, dbPath)
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("server error: %v", err)
 		}

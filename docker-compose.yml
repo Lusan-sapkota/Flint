@@ -1,23 +1,18 @@
 services:
   flint:
     build: .
-    ports:
-      # Not 8080: that's the port every dev server reaches for first.
-      - "127.0.0.1:${FLINT_PORT:-3141}:8080"
+    # Host networking, so Flint reaches the system Ollama at localhost:11434,
+    # where the GPU and the models already are, without Ollama having to
+    # listen beyond localhost. Linux only.
+    network_mode: host
     environment:
-      OLLAMA_BASE_URL: http://ollama:11434
+      HOST: 127.0.0.1
+      # Not 8080: that's the port every dev server reaches for first.
+      PORT: ${FLINT_PORT:-3141}
+      OLLAMA_BASE_URL: http://localhost:11434
     volumes:
       - flint-data:/data
-    depends_on:
-      - ollama
-    restart: unless-stopped
-
-  ollama:
-    image: ollama/ollama
-    volumes:
-      - ollama-models:/root/.ollama
     restart: unless-stopped
 
 volumes:
   flint-data:
-  ollama-models:

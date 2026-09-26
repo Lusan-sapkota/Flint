@@ -1,0 +1,17 @@
+# Docker Desktop (Mac, Windows): Flint in Docker, Ollama as the normal app
+# on your machine. Host networking isn't available there the way it is on
+# Linux, so Flint reaches Ollama through host.docker.internal instead.
+#   docker compose -f docker-compose.desktop.yml up -d
+services:
+  flint:
+    build: .
+    ports:
+      - "127.0.0.1:${FLINT_PORT:-3141}:8080"
+    environment:
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+    volumes:
+      - flint-data:/data
+    restart: unless-stopped
+
+volumes:
+  flint-data:

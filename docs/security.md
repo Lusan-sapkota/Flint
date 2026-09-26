@@ -64,8 +64,8 @@ and their output is capped at 20,000 characters.
 - Flint talks to Ollama, and to Brave Search only for an explicit `@web`
   message using that user's own key. Nothing else leaves the machine.
 - The UI is same-origin with the API, so no CORS headers are set.
-- Docker Compose publishes Flint on `127.0.0.1:3141` only, because of open
-  signup and the shell tool.
+- Flint listens on `127.0.0.1` by default (`HOST`), and Docker Compose
+  keeps it there, because of open signup and the shell tool.
 - Model output is rendered as Markdown through DOMPurify, restricted to
   HTML and MathML (no SVG). Rendering must never fetch from the network:
   remote markdown images become links, `<img>` keeps only local or `data:`

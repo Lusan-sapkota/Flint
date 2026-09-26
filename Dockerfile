@@ -14,7 +14,9 @@ COPY frontend/ /app/frontend/
 USER flint
 # The binary resolves templates and static files relative to ../frontend.
 WORKDIR /app/backend
-ENV DB_PATH=/data/chat.db ATTACHMENTS_DIR=/data/attachments
+# 0.0.0.0 so a plain `docker run -p` can reach it; docker-compose.yml runs on
+# the host network and narrows this back to 127.0.0.1.
+ENV DB_PATH=/data/chat.db ATTACHMENTS_DIR=/data/attachments HOST=0.0.0.0
 VOLUME /data
 EXPOSE 8080
 CMD ["./flint"]
