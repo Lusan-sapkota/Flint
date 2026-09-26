@@ -11,8 +11,9 @@ services:
       PORT: ${FLINT_PORT:-3141}
       OLLAMA_BASE_URL: http://localhost:11434
     volumes:
-      - flint-data:/data
+      # A plain folder next to this file, not a named volume: it survives
+      # `docker compose down -v` and is deleted only by deleting the folder.
+      # Create it before the first start (mkdir data) so it's owned by you,
+      # not root.
+      - ./data:/data
     restart: unless-stopped
-
-volumes:
-  flint-data:

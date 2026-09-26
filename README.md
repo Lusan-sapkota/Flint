@@ -76,6 +76,7 @@ Open `http://localhost:8080` and sign up.
 Or run Flint in Docker, talking to the Ollama already on your machine:
 
 ```bash
+mkdir data                                             # once; your data lives here
 docker compose up -d                                   # Linux
 docker compose -f docker-compose.desktop.yml up -d     # Mac, Windows
 ```

@@ -12,6 +12,9 @@
 # Uploaded image attachments
 /backend/data/attachments/
 
+# Docker Compose data folder
+/data/
+
 # Env
 .env
 

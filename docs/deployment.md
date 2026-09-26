@@ -38,6 +38,7 @@ to it.
 **Linux:**
 
 ```bash
+mkdir data            # once, before the first start
 docker compose up -d
 ```
 
@@ -48,6 +49,7 @@ listen beyond localhost.
 **Mac and Windows (Docker Desktop):**
 
 ```bash
+mkdir data            # once, before the first start
 docker compose -f docker-compose.desktop.yml up -d
 ```
 
@@ -63,8 +65,15 @@ Then open `http://localhost:3141`. Notes:
   servers go. Set `FLINT_PORT` to use another
   (`FLINT_PORT=4000 docker compose up -d`). Either way it's published on
   `127.0.0.1` only.
-- **Data:** chats and attachments live in the `flint-data` volume and
-  survive restarts and rebuilds.
+- **Data:** everything Flint stores (chats, memories, summaries,
+  settings, attachments) lives in the `data/` folder next to the compose
+  file. It's a plain folder, not a Docker volume, so it survives
+  `docker compose down -v` and rebuilds, and you can back it up like any
+  other files. It's gone only when you delete the folder. Create it
+  yourself before the first start: if Docker creates it, it's owned by
+  root and the container can't write to it. The container runs as uid
+  1000, the usual first user on Linux. It's separate from
+  `backend/data/`, which a native `go run .` uses.
 - **Folders:** folder attach and the shell tool only see the container's
   filesystem. To work on a project, bind-mount it (add a `volumes:` entry
   such as `- /home/you/project:/home/flint/project`), or run Flint natively.

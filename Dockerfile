@@ -8,7 +8,9 @@ RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /flint .
 # Alpine rather than scratch: the approved shell tool runs commands with sh,
 # so the image needs a shell and basic coreutils.
 FROM alpine:3.22
-RUN adduser -D flint && mkdir /data && chown flint /data
+# uid 1000 matches the usual first user on Linux, so a bind-mounted data
+# folder that user created is writable from inside the container.
+RUN adduser -D -u 1000 flint && mkdir /data && chown flint /data
 COPY --from=build /flint /app/backend/flint
 COPY frontend/ /app/frontend/
 USER flint
