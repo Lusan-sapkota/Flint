@@ -7,10 +7,11 @@ Notable changes in each release. The measurements behind a change are in
 
 ### Added
 
-- Set your own context window in Settings → Connection, for a GPU with
-  room for more than the defaults. Cloud models get 32k by default
-  instead of the 4k/8k meant for small local ones, and no model is given
-  more than it supports.
+- Set your own context window in Settings → Connection, one for local
+  models (for a GPU with room for more than the defaults) and one for
+  cloud models, with common sizes (32k = 32768, 1M = 1048576, ...) to
+  pick from. Cloud models get 32k by default instead of the 4k/8k meant
+  for small local ones, and no model is given more than it supports.
 - Ollama cloud models (`:cloud`) are tagged "cloud" in the model picker,
   Settings and the chat, with a line saying the chat is sent to
   ollama.com. Not being signed in to Ollama now says to run
@@ -50,6 +51,7 @@ Notable changes in each release. The measurements behind a change are in
 
 ### Fixed
 
+- A cloud model's details in Settings → Models show its context length.
 - qwen3.5 no longer fails with "System message must be at the beginning"
   after `@memory`, a later `@web`, or once a long chat is summarized. Its
   chat template allows one system message, first; Flint now resends

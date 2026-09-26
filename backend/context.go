@@ -32,10 +32,12 @@ func (s *Server) numCtxFor(user *User, c Conversation) int {
 	info := s.ollama.modelInfo(s.ollamaURLFor(user), c.Model)
 	n := defaultNumCtx
 	switch {
-	case user.NumCtx != nil:
-		n = *user.NumCtx
+	case info.RemoteHost != "" && user.CloudNumCtx != nil:
+		n = *user.CloudNumCtx
 	case info.RemoteHost != "":
 		n = cloudNumCtx
+	case user.NumCtx != nil:
+		n = *user.NumCtx
 	case c.AttachedFolder != nil && *c.AttachedFolder != "":
 		n = boostedNumCtx
 	}

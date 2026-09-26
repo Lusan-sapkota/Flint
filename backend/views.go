@@ -335,6 +335,7 @@ type settingsViewData struct {
 	ModelsErr           string
 	OllamaBaseURL       string
 	NumCtx              int
+	CloudNumCtx         int
 	BraveKeyHint        string
 	PreferredModelsJSON string
 	QuestionsJSON       string
@@ -385,6 +386,9 @@ func (s *Server) handleSettingsPage(w http.ResponseWriter, r *http.Request, user
 	}
 	if user.NumCtx != nil {
 		data.NumCtx = *user.NumCtx
+	}
+	if user.CloudNumCtx != nil {
+		data.CloudNumCtx = *user.CloudNumCtx
 	}
 	// Only the last four characters ever reach the page: enough to tell keys
 	// apart, not enough to use one.

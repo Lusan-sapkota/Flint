@@ -19,12 +19,17 @@ Every request sets `num_ctx` explicitly (`numCtxFor` in `context.go`). A
 request without it makes Ollama reload the model at its server default,
 and the budget needs to know the real window. The window is, in order:
 
-1. the account's **Context window** setting (Settings → Connection), if set;
-2. **32768 for a cloud model** (`remote_host` in `/api/tags`): it costs no
-   local memory, and ollama.com ignores `num_ctx` anyway (E23), so the
-   number only bounds how much each turn resends;
-3. **4096 for a plain local chat, 8192 with a folder attached**, the
-   defaults every experiment here was measured with.
+1. for a **cloud model** (`remote_host` in `/api/tags`): the account's
+   cloud window setting, else **32768**. It costs no local memory, and
+   ollama.com ignores `num_ctx` anyway (E23), so the number only bounds
+   how much each turn resends;
+2. for a **local model**: the account's local window setting, else
+   **4096 for a plain chat, 8192 with a folder attached**, the defaults
+   every experiment here was measured with.
+
+The two settings (Settings → Connection) are separate on purpose: a
+local window is limited by GPU memory, a cloud one by usage, so one
+number would be wrong for one of them.
 
 Whichever applies, it's capped at the model's own `context_length`.
 

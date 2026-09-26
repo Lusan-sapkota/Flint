@@ -761,8 +761,10 @@ cloud ignores `num_ctx`, and the only effect of Flint's 4k was its own
 compaction and meter treating a large model as a small one. The same
 fixed number also held back anyone with a bigger GPU.
 
-**Changed:** an account setting (Settings → Connection, empty = Auto),
-then 32768 for a cloud model, then the old 4096/8192, capped at the
+**Changed:** two account settings, local and cloud (Settings →
+Connection, empty = Auto; one shared box would have dragged a cloud
+model down to a small GPU's number or the reverse), defaulting to the
+old 4096/8192 for local and 32768 for cloud, capped at the
 model's `context_length` from `/api/tags` (every installed model reports
 one: qwen2.5-3b 32768, phi3 131072, qwen3.5-4b 262144). Cloud gets 32k,
 not its full window, because each turn resends the kept history and a

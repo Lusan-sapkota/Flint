@@ -280,6 +280,7 @@ func TestNumCtxForFollowsSettingModelAndLimit(t *testing.T) {
 	store("big:cloud", "https://ollama.com", 262144)
 	folder := "/tmp/x"
 	custom := func(n int) *User { return &User{NumCtx: &n} }
+	cloudCustom := func(n int) *User { return &User{CloudNumCtx: &n} }
 
 	for _, tc := range []struct {
 		name string
@@ -293,6 +294,9 @@ func TestNumCtxForFollowsSettingModelAndLimit(t *testing.T) {
 		{"custom", custom(16000), Conversation{Model: "qwen2.5-3b", AttachedFolder: &folder}, 16000},
 		{"custom above the model's limit", custom(100000), Conversation{Model: "qwen2.5-3b"}, 32768},
 		{"default above the model's limit", &User{}, Conversation{Model: "tiny", AttachedFolder: &folder}, 2048},
+		{"local setting leaves cloud alone", custom(8192), Conversation{Model: "big:cloud"}, cloudNumCtx},
+		{"cloud setting", cloudCustom(131072), Conversation{Model: "big:cloud"}, 131072},
+		{"cloud setting leaves local alone", cloudCustom(131072), Conversation{Model: "qwen2.5-3b"}, defaultNumCtx},
 	} {
 		if got := s.numCtxFor(tc.user, tc.c); got != tc.want {
 			t.Errorf("%s: got %d, want %d", tc.name, got, tc.want)

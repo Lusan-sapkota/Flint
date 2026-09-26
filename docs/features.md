@@ -265,9 +265,11 @@ tabs. The open section is in the URL (`/settings#models`), so a reload or
 a shared link opens the same one.
 
 - **Connection:** your own Ollama URL, falling back to the server default,
-  the context window (Auto, or a number of tokens if your GPU has room for
-  more; never above what the model supports), and the Brave Search API
-  key for `@web`.
+  the context window for local and for cloud models, separately (Auto,
+  or a number of tokens: raise the local one if your GPU has room, the
+  cloud one if your ollama.com usage allows; common sizes such as 32k =
+  32768 are listed and offered in the box; never above what the model
+  supports), and the Brave Search API key for `@web`.
 - **Models:** which models the new-chat picker shows, which are loaded,
   details for each (family, parameters, quantization, context length,
   capabilities), pulling new ones with a progress bar, and deleting them.

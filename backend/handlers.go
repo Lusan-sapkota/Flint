@@ -110,13 +110,17 @@ func (s *Server) handleUpdateSettings(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if v, ok := raw["num_ctx"]; ok {
+	for _, column := range []string{"num_ctx", "cloud_num_ctx"} {
+		v, ok := raw[column]
+		if !ok {
+			continue
+		}
 		var n *int
 		if err := json.Unmarshal(v, &n); err != nil || (n != nil && (*n < minNumCtx || *n > maxNumCtx)) {
-			writeError(w, http.StatusBadRequest, fmt.Sprintf("the context window must be %d to %d tokens, or empty for Auto", minNumCtx, maxNumCtx))
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("a context window must be %d to %d tokens, or empty for Auto", minNumCtx, maxNumCtx))
 			return
 		}
-		if err := updateUserNumCtx(s.db, user.ID, n); err != nil {
+		if err := updateUserNumCtx(s.db, user.ID, column, n); err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}

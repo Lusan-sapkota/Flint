@@ -3,6 +3,7 @@
 <div class="flint-settings-shell" x-data="settingsForm({
     ollamaBaseURL: '{{.OllamaBaseURL | jsStr}}',
     numCtx: {{.NumCtx}},
+    cloudNumCtx: {{.CloudNumCtx}},
     braveKeyHint: '{{.BraveKeyHint | jsStr}}',
     preferredModels: {{.PreferredModelsJSON}},
     questions: {{.QuestionsJSON}},
@@ -41,12 +42,28 @@
         <label for="ollama_base_url">Base URL override
           <input type="text" id="ollama_base_url" x-model="ollamaBaseURL" placeholder="http://localhost:11434 (leave blank for server default)">
         </label>
-        <label for="num_ctx">Context window (tokens)
-          <input type="number" id="num_ctx" x-model="numCtx" min="2048" max="1048576" step="1024" placeholder="Auto">
-        </label>
-        <p class="flint-field-hint">Auto uses 4096, or 8192 with a folder attached, for a local model, and 32768 for a
-          cloud one. Set a number to use more if your GPU has the memory; a model is never given more than it
-          supports. A bigger window keeps more of a long chat but uses more memory and is slower to process.</p>
+        <div class="flint-field-row">
+          <label for="num_ctx">Context window, local models
+            <input type="number" id="num_ctx" x-model="numCtx" min="2048" max="1048576" step="1024" placeholder="Auto: 4096, or 8192 with a folder" list="ctx_sizes">
+          </label>
+          <label for="cloud_num_ctx">Context window, cloud models
+            <input type="number" id="cloud_num_ctx" x-model="cloudNumCtx" min="2048" max="1048576" step="1024" placeholder="Auto: 32768" list="ctx_sizes">
+          </label>
+        </div>
+        <datalist id="ctx_sizes">
+          <option value="8192" label="8k"></option>
+          <option value="16384" label="16k"></option>
+          <option value="32768" label="32k"></option>
+          <option value="65536" label="64k"></option>
+          <option value="131072" label="128k"></option>
+          <option value="262144" label="256k"></option>
+          <option value="1048576" label="1M"></option>
+        </datalist>
+        <p class="flint-field-hint">8k = 8192 · 16k = 16384 · 32k = 32768 · 64k = 65536 · 128k = 131072 ·
+          256k = 262144 · 1M = 1048576. A model's own maximum is under Models → details (context length).</p>
+        <p class="flint-field-hint">In tokens. Raise the local one if your GPU has the memory; a bigger window keeps more
+          of a long chat but uses more memory and is slower. A cloud model costs no local memory, but each turn resends
+          up to its window, which counts against your ollama.com usage. No model is given more than it supports.</p>
         <template x-if="braveKeyHint && !replacingBraveKey">
           <div class="flint-saved-key">
             <span>Brave Search API key</span>
