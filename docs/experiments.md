@@ -249,8 +249,8 @@ Both kept the decision. Both dropped the stated preference for short
 answers, and both recast the decision as a "preference".
 
 **Changed:** drafts are never saved without review. The draft appears as
-an editable card, and only **Save memory** stores it. `@memory save
-<text>` skips the model entirely.
+an editable card, and only **Save memory** stores it.
+`@memory save <text>` skips the model entirely.
 
 Recall worked in a separate chat. `@memory astra which database did we
 pick and when does it ship?` answered with both saved facts (Postgres 16,
@@ -271,7 +271,8 @@ for this repo?"* in fresh chats on the same folder:
 The misses still reached for a tool, which is the E9 nudge conflict.
 
 **Changed:** folder memories go with the anchor. This is the same
-finding as the nudge placement in CLAUDE.md: text far from where the
+finding as the tool nudge's placement
+([context management](context-management.md)): text far from where the
 model starts writing loses its effect once a long manifest sits in
 between.
 

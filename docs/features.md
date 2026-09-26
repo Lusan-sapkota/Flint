@@ -210,7 +210,7 @@ things up.
   belongs to that folder. It loads automatically in every chat that
   attaches the same folder, newest first, within an eighth of the window.
 - **Manage memories** in Settings: read, edit or delete them. A memory
-  saved from a chat links back to it ("From: <chat title>"). Memories
+  saved from a chat links back to it (`From: <chat title>`). Memories
   saved in Settings, before this existed, or from a since-deleted chat
   show no link.
 - **A "Saved to memory" card** marks where a memory was saved from a chat,

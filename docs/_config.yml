@@ -1,0 +1,4 @@
+title: Flint
+description: A small, fully offline chat UI for local Ollama models, built to get the most out of small models.
+theme: jekyll-theme-minimal
+logo: /images/logo.png

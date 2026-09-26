@@ -70,6 +70,18 @@ telling the model to ask for a re-send.
 The folder manifest is capped at 12 KB (`maxAttachTotalSize`), about 3.6k
 tokens of Go code, so it fits well inside the 8192 window (E4).
 
+**The tool nudge goes on the last message.** When tools are offered, the
+reasoning nudge is appended to the last message in the request, not
+sent as its own system message. With a short system prompt a separate
+message worked: qwen2.5-3b reasoned before its tool call. With a real
+folder manifest in context (~2700 tokens) the same message was diluted,
+and the model jumped straight to an empty-content tool call every time,
+reproduced the same way with a direct request to Ollama. Appended to the
+last message, closest to where the model starts writing, it held. The
+folder anchor and folder memories sit there for the same reason (E14).
+Short prompts hide this failure, so any change here has to be re-checked
+with a real manifest in the prompt.
+
 **Later system messages.** Summaries, context notes, `@web` results and
 `@memory` recalls are system messages placed later in the history, closer
 to generation. Some chat templates refuse that: qwen3.5's raises "System
@@ -145,8 +157,8 @@ any summary can be rebuilt.
 
 **Prompting.** The instructions go after the transcript in a single user
 message, not in a system prompt. With a 2k-token transcript ahead of it,
-qwen2.5-3b ignored a system prompt (E6), the same effect CLAUDE.md records
-for the tool nudge. Summaries use the conversation's own model and the
+qwen2.5-3b ignored a system prompt (E6), the same effect that put the tool
+nudge on the last message (above). Summaries use the conversation's own model and the
 same `num_ctx`, so they never force a model reload.
 
 ## Memories in the request

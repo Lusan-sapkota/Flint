@@ -8,6 +8,7 @@
 
 <p align="center">
   <a href="https://github.com/Lusan-sapkota/Flint/releases"><img src="https://img.shields.io/github/v/tag/Lusan-sapkota/Flint?sort=semver&label=version" alt="Latest version"></a>
+  <a href="https://flint.lusansapkota.com.np">Docs</a> ·
   <a href="CHANGELOG.md">Changelog</a>
 </p>
 
@@ -136,6 +137,10 @@ Environment variables, Docker notes and which models need which
 capabilities: [deployment](docs/deployment.md).
 
 ## Docs
+
+Read them at **[flint.lusansapkota.com.np](https://flint.lusansapkota.com.np)**.
+They're the Markdown files in [`docs/`](docs/), so they read the same here
+on GitHub:
 
 | | |
 |---|---|

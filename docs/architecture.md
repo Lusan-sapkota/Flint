@@ -117,13 +117,55 @@ client consumes:
 | `<<<STATS>>>{"tokensPerSec":N}` | generation speed; ends a final text reply |
 | `<<<MEMORY_DRAFT>>>{"text":..}` | a drafted memory for the user to review; ends the stream |
 | `<<<SEARCHING>>>{"query":..}` | an `@web` search has started |
-| `<<<SOURCES>>>{"query":..,"sources":[{"title","url"}]}` | the results the answer will be based on |
+| `<<<SOURCES>>>{"query":..,"sources":[{"title","url","date"?}]}` | the results the answer will be based on; `date` only when every result has one |
 
 ## Fixed decisions
 
 The reasons behind the settled choices (pure-Go SQLite, a single
 connection, cookie sessions instead of JWT, 404 instead of 403, no CORS,
-native tool calls, the nudge placement and so on) are recorded in the
-repository's agent notes. The ones that shape behavior are also described
-in [security.md](security.md) and
-[context-management.md](context-management.md).
+native tool calls, the nudge placement and so on) are described where
+they apply: [security.md](security.md) for accounts, sessions and the
+shell tool, [context-management.md](context-management.md) for prompts
+and the window, and [experiments.md](experiments.md) for the measurements
+behind them.
+
+## Where the ideas come from
+
+Each borrows from research, scaled down to what a small local tool can
+honestly claim:
+
+- **The retry budget** is a bounded verifier loop, after Snell et al. on
+  test-time compute. A shell exit code is a free, high-precision
+  verifier, so every tool result states success or failure explicitly
+  (`[exit code: N]` or `[FAILED, exit code: N]`; a silent failure used to
+  look like success), and after 3 tool calls in a row the model has to
+  answer in text. A small retry budget beats one greedy attempt without
+  a bigger model, while each retry still costs you an approval.
+- **The shield** takes the idea of shielding (Alshiekh et al.): block
+  unsafe actions before they run. Unlike that work it's a pattern list,
+  not a proof. A shell is Turing-complete, so it's a floor under human
+  approval, not a guarantee.
+- **Preconditions** are the ToolGate / Hoare-triple idea at its smallest:
+  check that a command can work before asking you to approve it.
+- **Decay by observed signals.** How fast old tool output fades depends
+  on what can actually be seen (a failed result fades 3x slower, an
+  exploring command's output 2x faster), not on a belief filter whose
+  transition probabilities would have to be invented, with no data to
+  learn them from.
+
+## Deliberately not built
+
+- **A bundled RAG or embedding stack.** It's the weight Flint exists to
+  avoid. `@web` re-ranking uses Ollama's own `/api/embed` instead.
+- **Sampling several commands to detect confabulation** (semantic
+  entropy, Farquhar et al.). It triples the model calls per tool
+  decision, and grouping shell commands by syntax gives false alarms,
+  because many different commands do the same thing (`find`, `ls -R`
+  and `git ls-files` all count the same files).
+- **Conformal abstention by embedding distance** to the folder
+  manifest. With no calibration set, any cutoff would be arbitrary
+  presented as a bound. The score doesn't track hallucination either: a
+  correct "this code doesn't have that" is far from the manifest, and a
+  wrong answer that name-drops real files is close to it.
+
+Neither should come back without solving the problem that stopped it.
