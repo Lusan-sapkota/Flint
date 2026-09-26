@@ -968,13 +968,15 @@ details.flint-thinking > summary:focus {
   color: var(--flint-success);
 }
 
+/* One width open or closed: sized to its label, the card jumped wider (and,
+   being centered, sideways) the moment it opened, then back after closing. */
 .flint-msg-system {
   align-self: center;
   background: transparent;
   border: 1px dashed var(--flint-border);
   color: var(--flint-text-dim);
   font-size: 0.85rem;
-  max-width: 90ch;
+  width: min(90ch, 100%);
 }
 
 .flint-msg-attachment {

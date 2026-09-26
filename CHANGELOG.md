@@ -24,6 +24,8 @@ Notable changes in each release. The measurements behind a change are in
 - When Ollama isn't reachable, Flint says so plainly (where it looked
   and what to do) instead of showing Go's raw connection error, and says
   it once per page instead of in every section.
+- The "Attached folder" card no longer jumps sideways while it opens and
+  closes.
 
 ## [0.1.3] - 2026-09-26
 
