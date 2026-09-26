@@ -38,7 +38,11 @@ docker compose exec ollama ollama pull qwen2.5:3b
 Compose runs Flint alongside its own Ollama container. Chat data and
 models each live in a named volume. Notes:
 
-- Flint is published on `127.0.0.1:8080` only.
+- Flint is published on `127.0.0.1:3141` only: open
+  `http://localhost:3141`. The port is deliberately uncommon, since 8080
+  is where most dev servers go. Set `FLINT_PORT` to use another one
+  (`FLINT_PORT=4000 docker compose up -d`). Inside the container, Flint
+  still listens on 8080.
 - The image is Alpine, not scratch, because the shell tool needs `sh`.
   Only the tools Alpine ships are available to commands.
 - Folder attach and the shell tool only see the container's filesystem.

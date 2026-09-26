@@ -79,6 +79,9 @@ docker compose up -d
 docker compose exec ollama ollama pull qwen2.5:3b
 ```
 
+Then open `http://localhost:3141`, a deliberately uncommon port so it
+doesn't collide with other dev servers (set `FLINT_PORT` to change it).
+
 Environment variables, Docker notes and which models need which
 capabilities: [deployment](docs/deployment.md).
 

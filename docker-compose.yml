@@ -2,7 +2,8 @@ services:
   flint:
     build: .
     ports:
-      - "127.0.0.1:8080:8080"
+      # Not 8080: that's the port every dev server reaches for first.
+      - "127.0.0.1:${FLINT_PORT:-3141}:8080"
     environment:
       OLLAMA_BASE_URL: http://ollama:11434
     volumes:
