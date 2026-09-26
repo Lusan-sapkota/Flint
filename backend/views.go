@@ -305,6 +305,8 @@ type settingsViewData struct {
 	BraveAPIKey         string
 	PreferredModelsJSON string
 	QuestionsJSON       string
+	RankingModel        string
+	RankingModelMissing bool
 }
 
 func (s *Server) handleSettingsPage(w http.ResponseWriter, r *http.Request, user *User) {
@@ -342,6 +344,8 @@ func (s *Server) handleSettingsPage(w http.ResponseWriter, r *http.Request, user
 		ModelsErr:           modelsErr,
 		PreferredModelsJSON: string(preferredJSON),
 		QuestionsJSON:       string(questionsJSON),
+		RankingModel:        embeddingModel,
+		RankingModelMissing: modelsErr == "" && !slices.ContainsFunc(models, func(m OllamaModelInfo) bool { return isRankingModel(m.Name) }),
 	}
 	if user.OllamaBaseURL != nil {
 		data.OllamaBaseURL = *user.OllamaBaseURL

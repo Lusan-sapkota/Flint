@@ -131,6 +131,12 @@ func rankByRelevance(ctx context.Context, ollama *OllamaClient, baseURL, query s
 	return top, nil
 }
 
+// isRankingModel reports whether an installed model's name (usually with a
+// ":latest" tag) is the embedding model `@web` ranks results with.
+func isRankingModel(name string) bool {
+	return name == embeddingModel || strings.HasPrefix(name, embeddingModel+":")
+}
+
 const webResultsPrefix = "Web search results for "
 
 func formatSearchResults(query string, results []SearchResult) string {

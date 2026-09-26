@@ -155,8 +155,12 @@ Anything Ollama serves works for chat. What Flint uses:
   capability, such as qwen2.5-3b-instruct or qwen3.5-4b.
 - **Images** need `vision` (qwen3.5-4b).
 - **Thinking** needs `thinking` (qwen3.5-4b).
-- **`@web` re-ranking** uses `nomic-embed-text`. Without it, results are
-  used unranked.
+- **`@web` re-ranking** uses `nomic-embed-text`, and it's optional, not a
+  dependency. Without it `@web` still works, using Brave's own ranking.
+  With it, the model only loads for the moment a search runs, then Ollama
+  unloads it when idle (5 minutes by default). Flint never pulls it on its
+  own: Settings → Connection offers a Pull button when a Brave key is set
+  and the model is missing, and the Installed list marks it.
 
 A plain chat runs with a 4096-token window and a folder chat with 8192;
 see [context-management.md](context-management.md).

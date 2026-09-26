@@ -110,3 +110,16 @@ func TestListWebSearchesIsScopedAndParsed(t *testing.T) {
 		t.Errorf("count after the search = %d, want 0", n)
 	}
 }
+
+func TestIsRankingModel(t *testing.T) {
+	for name, want := range map[string]bool{
+		"nomic-embed-text":           true,
+		"nomic-embed-text:latest":    true,
+		"nomic-embed-text-v2:latest": false,
+		"qwen2.5-3b-instruct:latest": false,
+	} {
+		if got := isRankingModel(name); got != want {
+			t.Errorf("%s: got %v, want %v", name, got, want)
+		}
+	}
+}

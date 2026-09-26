@@ -4,7 +4,9 @@
     ollamaBaseURL: '{{.OllamaBaseURL | jsStr}}',
     braveApiKey: '{{.BraveAPIKey | jsStr}}',
     preferredModels: {{.PreferredModelsJSON}},
-    questions: {{.QuestionsJSON}}
+    questions: {{.QuestionsJSON}},
+    rankingModel: '{{.RankingModel | jsStr}}',
+    rankingModelMissing: {{.RankingModelMissing}}
   })" x-cloak>
   <nav class="flint-settings-nav" aria-label="Settings sections">
     <div class="flint-sidebar-header">
@@ -34,6 +36,18 @@
             {{template "password-toggle"}}
           </div>
         </label>
+        <template x-if="rankingModelMissing && braveApiKey.trim()">
+          <div class="flint-notice">
+            <p>Optional: <code>@web</code> works as it is, using Brave's own ranking. Pulling
+              <code x-text="rankingModel"></code> (about 270 MB) lets Flint re-rank results against
+              your question. It only loads for the moment a search runs, then Ollama unloads it
+              when idle.</p>
+            <button type="button" class="secondary" @click="pullRankingModel" :disabled="pulling" :aria-busy="pulling"
+                    x-text="`Pull ${rankingModel}`"></button>
+            <p x-show="pulling" x-text="pullStatus + (pullPercent !== null ? ` ${pullPercent}%` : '')"></p>
+            <p class="flint-error" x-text="pullError"></p>
+          </div>
+        </template>
         <div class="flint-settings-actions">
           <button type="button" @click="saveGeneral" :aria-busy="savingGeneral" :disabled="savingGeneral">Save</button>
           <p class="flint-save-status" x-text="generalStatus"></p>
@@ -123,6 +137,7 @@
               <div class="flint-installed-model-row">
                 <div class="flint-installed-model-info">
                   <strong>{{.Name}}</strong>
+                  <span class="flint-model-meta" x-show="isRankingModel('{{.Name | jsStr}}')">Optional: ranks <code>@web</code> results, loaded only while a search runs</span>
                   <span class="flint-model-meta">{{.Size | humanSize}}{{if .Details.ParameterSize}} &middot; {{.Details.ParameterSize}}{{end}}{{if .Details.QuantizationLevel}} &middot; {{.Details.QuantizationLevel}}{{end}}</span>
                 </div>
                 <button type="button" class="secondary flint-icon-btn" @click="toggleDetails($data, '{{.Name | jsStr}}')"

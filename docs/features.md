@@ -124,7 +124,9 @@ feature change.
   Search API, using your own key from Settings. Flint runs the search,
   not the model, and it sends only the query text.
 - The top 10 results are re-ranked by similarity to the query with
-  Ollama's `nomic-embed-text`, and the best 3 go into the chat.
+  Ollama's `nomic-embed-text`, and the best 3 go into the chat. That model
+  is optional: without it `@web` uses Brave's own top 3. It only loads
+  while a search runs, and Settings offers a Pull button when it's missing.
 - While it runs, the chat shows *Searching the web for "…"*. Afterwards a
   collapsed one-line card above the answer (*Searched the web for "…" ·
   3 sources*) opens to list the results it was based on, as links with

@@ -1599,6 +1599,29 @@ details.flint-thinking > summary:focus {
   color: #1c1c1e;
 }
 
+.flint-notice {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--flint-surface);
+  border: 1px solid var(--flint-border);
+  border-radius: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.flint-notice p {
+  margin: 0 0 0.6rem;
+}
+
+.flint-notice p:last-child,
+.flint-notice .flint-error:empty {
+  margin: 0;
+}
+
+.flint-notice button {
+  width: auto;
+  padding: 0 1rem;
+}
+
 .flint-web-count {
   margin: 0 0 0.5rem;
   font-size: 0.9rem;

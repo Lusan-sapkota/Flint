@@ -78,6 +78,12 @@ go run .
 
 Open `http://localhost:8080` and sign up.
 
+Optional, only if you use `@web`: `ollama pull nomic-embed-text` (about
+270 MB) lets Flint re-rank search results against your question. It isn't
+a dependency. Without it `@web` still works, using Brave's own ranking,
+and with it the model only loads for the moment a search runs, then Ollama
+unloads it again when idle.
+
 Or run Flint in Docker, talking to the Ollama already on your machine. No
 clone needed, just the compose file and a folder for your data:
 

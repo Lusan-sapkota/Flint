@@ -40,6 +40,8 @@ document.addEventListener('alpine:init', () => {
     braveApiKey: config.braveApiKey || '',
     preferredModels: config.preferredModels || [],
     existingQuestions: config.questions || [],
+    rankingModel: config.rankingModel,
+    rankingModelMissing: config.rankingModelMissing,
     editQuestions: (config.questions || []).map((q) => ({ question: q.question, answer: '' })),
     savingGeneral: false,
     generalStatus: '',
@@ -222,8 +224,21 @@ document.addEventListener('alpine:init', () => {
       }
     },
 
+    // Mirrors isRankingModel in websearch.go.
+    isRankingModel(name) {
+      return name === this.rankingModel || name.startsWith(`${this.rankingModel}:`);
+    },
+    pullRankingModel() {
+      this.pullName = this.rankingModel;
+      this.pullModel();
+    },
+
     async deleteModel(name) {
-      if (!(await flintConfirmDelete(`Delete ${name}?`, "This removes the model from the Ollama server itself, not just from Flint. You'd have to pull it again to use it."))) return;
+      let message = "This removes the model from the Ollama server itself, not just from Flint. You'd have to pull it again to use it.";
+      if (this.isRankingModel(name)) {
+        message += " It's optional: Flint only uses it to re-rank @web results. Without it, @web keeps working with Brave's own ranking.";
+      }
+      if (!(await flintConfirmDelete(`Delete ${name}?`, message))) return;
       this.deleteError = '';
       this.deletingModel = name;
       try {
