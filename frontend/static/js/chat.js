@@ -1,7 +1,7 @@
 async function flintDeleteConversation(id, button) {
   const row = button.closest('.flint-conversation-row');
   const title = row.querySelector('a').textContent;
-  if (!(await flintConfirmDelete(`Delete "${title}"?`, 'This permanently deletes the conversation, its messages, and any files attached to it.'))) return;
+  if (!(await flintAsk(`Delete "${title}"?`, 'This permanently deletes the conversation, its messages, and any files attached to it.'))) return;
   const res = await fetch(`/api/conversations/${id}`, { method: 'DELETE' });
   if (!res.ok && res.status !== 404) {
     button.title = 'Could not delete this conversation';

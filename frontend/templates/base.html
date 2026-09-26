@@ -43,11 +43,13 @@
 {{end}}
 
 {{/* Opened by flintAsk() in confirm.js: a plain yes/no question, for
-     actions that are easy to undo (logging out), unlike confirm-dialog. */}}
+     everyday actions (logging out, deleting one chat). confirm-dialog's
+     typed DELETE stays on the ones that cost the most to undo. */}}
 {{define "ask-dialog"}}
 <dialog id="flint-ask-dialog" class="flint-confirm-dialog">
   <article>
     <h3></h3>
+    <p></p>
     <form method="dialog">
       <div class="flint-settings-actions">
         <button value="no" class="secondary">No</button>

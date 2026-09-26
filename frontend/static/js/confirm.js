@@ -1,6 +1,8 @@
-function flintAsk(question) {
+function flintAsk(question, detail = '') {
   const dialog = document.getElementById('flint-ask-dialog');
   dialog.querySelector('h3').textContent = question;
+  dialog.querySelector('p').textContent = detail;
+  dialog.querySelector('p').hidden = !detail;
   dialog.returnValue = '';
   dialog.showModal();
   return new Promise((resolve) => {
