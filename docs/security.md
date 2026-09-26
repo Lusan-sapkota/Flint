@@ -100,6 +100,10 @@ keeps misleading it. That's why a model-drafted memory is only saved after
 the user has read and approved it, and why memories are only written or
 searched on an explicit `@memory` command.
 
+The Settings list names the chat a memory came from by joining on
+conversations owned by the same user, so it can never show the title of
+another account's chat.
+
 ## Reporting a vulnerability
 
 Please report security problems privately through the repository's

@@ -185,7 +185,10 @@ things up.
 - **Folder memories.** A memory saved in a chat with a folder attached
   belongs to that folder. It loads automatically in every chat that
   attaches the same folder, newest first, within an eighth of the window.
-- **Manage memories** in Settings: read, edit or delete them.
+- **Manage memories** in Settings: read, edit or delete them. A memory
+  saved from a chat links back to it ("From: <chat title>"). Memories
+  saved in Settings, before this existed, or from a since-deleted chat
+  show no link.
 - **A "Saved to memory" card** marks where a memory was saved from a chat,
   and expands to show what was saved. It's there live and after a reload
   (placed by the time it was saved), shows the memory's current text if

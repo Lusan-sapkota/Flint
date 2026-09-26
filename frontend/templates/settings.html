@@ -226,7 +226,12 @@
           <div class="flint-memory-row">
             <textarea x-model="m.content" rows="3" aria-label="Memory"></textarea>
             <div class="flint-memory-meta">
-              <span class="flint-memory-folder" x-text="m.folder ? 'Folder: ' + m.folder : 'Any chat'"></span>
+              <div class="flint-memory-folder">
+                <span x-text="m.folder ? 'Folder: ' + m.folder : 'Any chat'"></span>
+                <template x-if="m.source_id">
+                  <a class="flint-memory-source" :href="'/c/' + m.source_id" x-text="'From: ' + m.source_title"></a>
+                </template>
+              </div>
               <span x-text="m.status"></span>
               <button type="button" class="secondary" @click="saveMemory(m)">Save</button>
               <button type="button" class="secondary" @click="deleteMemory(m)">Delete</button>

@@ -12,6 +12,8 @@ Notable changes in each release. The measurements behind a change are in
   context.
 - A "Saved to memory" card where you saved a memory from a chat, which
   expands to show what was saved and stays after a reload.
+- Settings → Memories shows which chat each memory was saved from, with
+  a link back to it.
 - **Reply instead** on a waiting shell command: tell the model what to do
   rather than just denying it. Your reply is an ordinary message, so
   `@web` and `@memory` work in it.

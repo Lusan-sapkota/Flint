@@ -939,6 +939,9 @@ type Memory struct {
 	Content   string  `json:"content"`
 	CreatedAt int64   `json:"created_at"`
 	UpdatedAt int64   `json:"updated_at"`
+	// Only set by listMemories, for the Settings "From: <chat>" link.
+	SourceID    *string `json:"source_id,omitempty"`
+	SourceTitle *string `json:"source_title,omitempty"`
 }
 
 func scanMemories(rows *sql.Rows) ([]Memory, error) {
@@ -975,12 +978,26 @@ func chatMemories(db *sql.DB, userID, conversationID string) ([]Memory, error) {
 	return scanMemories(rows)
 }
 
+// listMemories joins the source chat on the owner too, so a memory can
+// only ever name one of the caller's own chats.
 func listMemories(db *sql.DB, userID string) ([]Memory, error) {
-	rows, err := db.Query(`SELECT id, folder, content, created_at, updated_at FROM memories WHERE user_id = ? ORDER BY updated_at DESC`, userID)
+	rows, err := db.Query(`
+SELECT m.id, m.folder, m.content, m.created_at, m.updated_at, c.id, c.title
+FROM memories m LEFT JOIN conversations c ON c.id = m.conversation_id AND c.user_id = m.user_id
+WHERE m.user_id = ? ORDER BY m.updated_at DESC`, userID)
 	if err != nil {
 		return nil, err
 	}
-	return scanMemories(rows)
+	defer rows.Close()
+	out := []Memory{}
+	for rows.Next() {
+		var m Memory
+		if err := rows.Scan(&m.ID, &m.Folder, &m.Content, &m.CreatedAt, &m.UpdatedAt, &m.SourceID, &m.SourceTitle); err != nil {
+			return nil, err
+		}
+		out = append(out, m)
+	}
+	return out, rows.Err()
 }
 
 func folderMemories(db *sql.DB, userID, folder string) ([]Memory, error) {

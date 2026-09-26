@@ -89,3 +89,38 @@ func TestChatMemoriesOutliveTheirChat(t *testing.T) {
 		t.Fatalf("deleting the chat must keep its memories, got %d", len(all))
 	}
 }
+
+func TestListMemoriesNamesOnlyOwnSourceChat(t *testing.T) {
+	db, err := openDB(filepath.Join(t.TempDir(), "t.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	createUser(db, "alice", "alice", "a@x.io", "h")
+	createUser(db, "bob", "bob", "b@x.io", "h")
+	createConversation(db, "a1", "alice", "m")
+	renameConversation(db, "a1", "alice", "Trip plans")
+	createConversation(db, "a2", "alice", "m")
+	createConversation(db, "b1", "bob", "m")
+	renameConversation(db, "b1", "bob", "Bob's secret")
+	kept, gone, foreign := "a1", "a2", "b1"
+	createMemory(db, "alice", nil, &kept, "kept")
+	createMemory(db, "alice", nil, &gone, "gone")
+	createMemory(db, "alice", nil, &foreign, "foreign")
+	createMemory(db, "alice", nil, nil, "settings")
+	deleteConversation(db, "a2", "alice")
+
+	all, err := listMemories(db, "alice")
+	if err != nil || len(all) != 4 {
+		t.Fatalf("want 4 memories, got %d (%v)", len(all), err)
+	}
+	for _, m := range all {
+		if m.Content == "kept" {
+			if m.SourceID == nil || *m.SourceID != "a1" || *m.SourceTitle != "Trip plans" {
+				t.Errorf("own chat should be named, got %v %v", m.SourceID, m.SourceTitle)
+			}
+		} else if m.SourceID != nil || m.SourceTitle != nil {
+			t.Errorf("%q must have no source, got %s", m.Content, *m.SourceID)
+		}
+	}
+}

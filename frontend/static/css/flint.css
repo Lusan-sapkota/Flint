@@ -2296,6 +2296,10 @@ button.flint-danger-solid:hover {
   overflow-wrap: anywhere;
 }
 
+.flint-memory-source {
+  display: block;
+}
+
 /* In the input bar, the folder chip and context meter sit as plain text,
    split by a thin divider, rather than as boxed chips. */
 .flint-inputbar-top .flint-folder-indicator,
