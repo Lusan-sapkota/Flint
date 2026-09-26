@@ -1,58 +1,72 @@
 {{define "scripts"}}<script src="/static/js/settings.js" defer></script>{{end}}
 {{define "content"}}
-<div class="flint-settings-page">
-  <a href="/" class="flint-settings-back">{{template "icon-arrow-left"}} Back to chat</a>
-  <h1>Settings</h1>
-
-  <div x-data="settingsForm({
+<div class="flint-settings-shell" x-data="settingsForm({
     ollamaBaseURL: '{{.OllamaBaseURL | jsStr}}',
     braveApiKey: '{{.BraveAPIKey | jsStr}}',
     preferredModels: {{.PreferredModelsJSON}},
     questions: {{.QuestionsJSON}}
   })" x-cloak>
+  <nav class="flint-settings-nav" aria-label="Settings sections">
+    <div class="flint-sidebar-header">
+      <a href="/" class="flint-settings-back">{{template "icon-arrow-left"}} Back to chat</a>
+    </div>
+    <div class="flint-settings-nav-list">
+      <template x-for="t in tabs" :key="t.id">
+        <a :href="`#${t.id}`" class="flint-settings-nav-item" :class="{ active: tab === t.id }" :aria-current="tab === t.id ? 'page' : null" x-text="t.label"></a>
+      </template>
+    </div>
+  </nav>
 
-    <section class="flint-settings-section">
-      <h3>Ollama connection</h3>
-      <label for="ollama_base_url">Base URL override
-        <input type="text" id="ollama_base_url" x-model="ollamaBaseURL" placeholder="http://localhost:11434 (leave blank for server default)">
-      </label>
+  <div class="flint-settings-main">
+    <header class="flint-topbar">
+      <h1 class="flint-settings-title" x-text="tabs.find((t) => t.id === tab).label"></h1>
+    </header>
+    <div class="flint-settings-scroll">
 
-      <label>Preferred models</label>
-      <p class="flint-field-hint">Only checked models appear in the New chat picker. Leave all unchecked to show every model.</p>
-      {{if .ModelsErr}}
-        <p class="flint-error">Couldn't reach Ollama: {{.ModelsErr}}</p>
-      {{else if not .ChatModels}}
-        <p class="flint-error">No chat models found on this Ollama server.</p>
-      {{else}}
-        <div class="flint-model-checkbox-list">
-          {{range .ChatModels}}
-          <label>
-            <input type="checkbox" :checked="isPreferred('{{.Name | jsStr}}')" @change="toggleModel('{{.Name | jsStr}}')">
-            {{.Name}}
-          </label>
-          {{end}}
+    <section class="flint-settings-section" x-show="tab === 'connection'">
+      <div class="flint-settings-group">
+        <label for="ollama_base_url">Base URL override
+          <input type="text" id="ollama_base_url" x-model="ollamaBaseURL" placeholder="http://localhost:11434 (leave blank for server default)">
+        </label>
+        <label for="brave_api_key">Brave Search API key
+          <div class="flint-password-wrap" x-data="{ show: false }">
+            <input :type="show ? 'text' : 'password'" id="brave_api_key" x-model="braveApiKey" placeholder="Required for @web search" autocomplete="off">
+            {{template "password-toggle"}}
+          </div>
+        </label>
+        <div class="flint-settings-actions">
+          <button type="button" @click="saveGeneral" :aria-busy="savingGeneral" :disabled="savingGeneral">Save</button>
+          <p class="flint-save-status" x-text="generalStatus"></p>
         </div>
-      {{end}}
-
-      <label for="brave_api_key">Brave Search API key
-        <div class="flint-password-wrap" x-data="{ show: false }">
-          <input :type="show ? 'text' : 'password'" id="brave_api_key" x-model="braveApiKey" placeholder="Required for @web search" autocomplete="off">
-          {{template "password-toggle"}}
-        </div>
-      </label>
-
-      <div class="flint-settings-actions">
-        <button type="button" @click="saveGeneral" :aria-busy="savingGeneral" :disabled="savingGeneral">Save</button>
-        <p class="flint-save-status" x-text="generalStatus"></p>
       </div>
     </section>
 
-    <section class="flint-settings-section">
-      <h3>Manage models</h3>
-
-      <div class="flint-models-subsection">
+    <section class="flint-settings-section" x-show="tab === 'models'">
+      <div class="flint-settings-group">
+        <h3>Shown in the new-chat picker</h3>
+        <p class="flint-field-hint">Only checked models appear in the New chat picker. Leave all unchecked to show every model.</p>
+        {{if .ModelsErr}}
+          <p class="flint-error">Couldn't reach Ollama: {{.ModelsErr}}</p>
+        {{else if not .ChatModels}}
+          <p class="flint-error">No chat models found on this Ollama server.</p>
+        {{else}}
+          <div class="flint-model-checkbox-list">
+            {{range .ChatModels}}
+            <label>
+              <input type="checkbox" :checked="isPreferred('{{.Name | jsStr}}')" @change="toggleModel('{{.Name | jsStr}}')">
+              {{.Name}}
+            </label>
+            {{end}}
+          </div>
+        {{end}}
+        <div class="flint-settings-actions">
+          <button type="button" @click="saveGeneral" :aria-busy="savingGeneral" :disabled="savingGeneral">Save</button>
+          <p class="flint-save-status" x-text="generalStatus"></p>
+        </div>
+      </div>
+      <div class="flint-settings-group">
         <div class="flint-models-subheader">
-          <h4>Currently running</h4>
+          <h3>Currently running</h3>
           <button type="button" class="secondary flint-icon-btn" @click="refreshRunning" :aria-busy="runningLoading" title="Refresh">{{template "icon-refresh"}}</button>
         </div>
         <p class="flint-error" x-text="runningError"></p>
@@ -68,9 +82,8 @@
           </template>
         </ul>
       </div>
-
-      <div class="flint-models-subsection">
-        <h4>Installed</h4>
+      <div class="flint-settings-group">
+        <h3>Installed</h3>
         {{if .ModelsErr}}
           <p class="flint-error">Couldn't reach Ollama: {{.ModelsErr}}</p>
         {{else if not .Models}}
@@ -98,9 +111,8 @@
         {{end}}
         <p class="flint-error" x-text="deleteError"></p>
       </div>
-
-      <div class="flint-models-subsection">
-        <h4>Pull a new model</h4>
+      <div class="flint-settings-group">
+        <h3>Pull a new model</h3>
         <form @submit.prevent="pullModel" class="flint-pull-form">
           <input type="text" x-model="pullName" placeholder="e.g. llama3.2:1b" :disabled="pulling" required>
           <button type="submit" class="flint-btn-icon" :disabled="pulling || !pullName.trim()">
@@ -121,75 +133,79 @@
       </div>
     </section>
 
-    <section class="flint-settings-section">
-      <h3>Memories</h3>
-      <p>Facts you saved with <code>@memory save</code>. Recall them in any chat with
-        <code>@memory &lt;words&gt;</code>; memories saved from a folder chat also load
-        automatically whenever that folder is attached.</p>
-      <p class="flint-error" x-text="memoriesError"></p>
-      <template x-if="!memoriesLoading && memories.length === 0 && !memoriesError">
-        <p class="flint-empty-state">No memories saved yet.</p>
-      </template>
-      <template x-for="m in memories" :key="m.id">
-        <div class="flint-memory-row">
-          <textarea x-model="m.content" rows="3" aria-label="Memory"></textarea>
-          <div class="flint-memory-meta">
-            <span class="flint-memory-folder" x-text="m.folder ? 'Folder: ' + m.folder : 'Any chat'"></span>
-            <span x-text="m.status"></span>
-            <button type="button" class="secondary" @click="saveMemory(m)">Save</button>
-            <button type="button" class="secondary" @click="deleteMemory(m)">Delete</button>
+    <section class="flint-settings-section" x-show="tab === 'memories'">
+      <div class="flint-settings-group">
+        <p>Facts you saved with <code>@memory save</code>. Recall them in any chat with
+          <code>@memory &lt;words&gt;</code>; memories saved from a folder chat also load
+          automatically whenever that folder is attached.</p>
+        <p class="flint-error" x-text="memoriesError"></p>
+        <template x-if="!memoriesLoading && memories.length === 0 && !memoriesError">
+          <p class="flint-empty-state">No memories saved yet.</p>
+        </template>
+        <template x-for="m in memories" :key="m.id">
+          <div class="flint-memory-row">
+            <textarea x-model="m.content" rows="3" aria-label="Memory"></textarea>
+            <div class="flint-memory-meta">
+              <span class="flint-memory-folder" x-text="m.folder ? 'Folder: ' + m.folder : 'Any chat'"></span>
+              <span x-text="m.status"></span>
+              <button type="button" class="secondary" @click="saveMemory(m)">Save</button>
+              <button type="button" class="secondary" @click="deleteMemory(m)">Delete</button>
+            </div>
           </div>
-        </div>
-      </template>
-    </section>
-
-    <section class="flint-settings-section">
-      <h3>Security questions</h3>
-      <p>Used to recover your account without email. Answers are never shown back to you once
-        saved. Saving this form replaces <strong>all</strong> questions and requires re-entering
-        every answer, even ones you're keeping.</p>
-
-      <template x-for="(q, i) in editQuestions" :key="i">
-        <div class="flint-sq-row">
-          <input type="text" x-model="q.question" placeholder="Question" required>
-          <input type="text" x-model="q.answer" placeholder="Answer" required>
-          <button type="button" class="secondary flint-sq-remove" @click="removeQuestionRow(i)" :disabled="editQuestions.length <= 2" aria-label="Remove question">{{template "icon-x"}}</button>
-        </div>
-      </template>
-
-      <button type="button" class="secondary flint-btn-icon" @click="addQuestionRow" :disabled="editQuestions.length >= 5">{{template "icon-plus"}} Add question</button>
-      <p class="flint-error" x-text="questionsError"></p>
-      <div class="flint-settings-actions">
-        <button type="button" @click="saveQuestions" :aria-busy="savingQuestions" :disabled="savingQuestions">Save questions</button>
-        <p class="flint-save-status" x-text="questionsStatus"></p>
+        </template>
       </div>
     </section>
 
-    <section class="flint-settings-section">
-      <h3>Delete account</h3>
-      <p>Deletes your account and everything in it: chats, attachments, memories and settings.
-        This cannot be undone. Enter your password<span x-show="existingQuestions.length"> and
-        the answers to your security questions</span> to confirm.</p>
+    <section class="flint-settings-section" x-show="tab === 'account'">
+      <div class="flint-settings-group">
+        <h3>Security questions</h3>
+        <p>Used to recover your account without email. Answers are never shown back to you once
+          saved. Saving this form replaces <strong>all</strong> questions and requires re-entering
+          every answer, even ones you're keeping.</p>
 
-      <label for="delete_password">Password
-        <div class="flint-password-wrap" x-data="{ show: false }">
-          <input :type="show ? 'text' : 'password'" id="delete_password" x-model="deletePassword" autocomplete="current-password">
-          {{template "password-toggle"}}
+        <template x-for="(q, i) in editQuestions" :key="i">
+          <div class="flint-sq-row">
+            <input type="text" x-model="q.question" placeholder="Question" required>
+            <input type="text" x-model="q.answer" placeholder="Answer" required>
+            <button type="button" class="secondary flint-sq-remove" @click="removeQuestionRow(i)" :disabled="editQuestions.length <= 2" aria-label="Remove question">{{template "icon-x"}}</button>
+          </div>
+        </template>
+
+        <button type="button" class="secondary flint-btn-icon" @click="addQuestionRow" :disabled="editQuestions.length >= 5">{{template "icon-plus"}} Add question</button>
+        <p class="flint-error" x-text="questionsError"></p>
+        <div class="flint-settings-actions">
+          <button type="button" @click="saveQuestions" :aria-busy="savingQuestions" :disabled="savingQuestions">Save questions</button>
+          <p class="flint-save-status" x-text="questionsStatus"></p>
         </div>
-      </label>
-      <template x-for="(q, i) in existingQuestions" :key="i">
-        <label>
-          <span x-text="q.question"></span>
-          <input type="text" x-model="deleteAnswers[i]" autocomplete="off">
+      </div>
+
+      <div class="flint-settings-group flint-danger-zone">
+        <h3>Delete account</h3>
+        <p>Deletes your account and everything in it: chats, attachments, memories and settings.
+          This cannot be undone. Enter your password<span x-show="existingQuestions.length"> and
+          the answers to your security questions</span> to confirm.</p>
+
+        <label for="delete_password">Password
+          <div class="flint-password-wrap" x-data="{ show: false }">
+            <input :type="show ? 'text' : 'password'" id="delete_password" x-model="deletePassword" autocomplete="current-password">
+            {{template "password-toggle"}}
+          </div>
         </label>
-      </template>
+        <template x-for="(q, i) in existingQuestions" :key="i">
+          <label>
+            <span x-text="q.question"></span>
+            <input type="text" x-model="deleteAnswers[i]" autocomplete="off">
+          </label>
+        </template>
 
-      <p class="flint-error" x-text="deleteAccountError"></p>
-      <div class="flint-settings-actions">
-        <button type="button" class="flint-danger-btn" @click="deleteAccount" :aria-busy="deletingAccount" :disabled="deletingAccount">Delete my account</button>
+        <p class="flint-error" x-text="deleteAccountError"></p>
+        <div class="flint-settings-actions">
+          <button type="button" class="flint-danger-btn" @click="deleteAccount" :aria-busy="deletingAccount" :disabled="deletingAccount">Delete my account</button>
+        </div>
       </div>
     </section>
 
+    </div>
   </div>
 </div>
 {{end}}

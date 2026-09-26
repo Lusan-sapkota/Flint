@@ -1321,19 +1321,36 @@ details.flint-thinking > summary:focus {
 }
 
 /* Settings page */
-.flint-settings-page {
-  max-width: 42rem;
-  margin: 0 auto;
-  padding: 2rem 1.25rem 4rem;
+/* Settings mirrors the chat shell: the same sidebar on the left, a top bar
+   and one scrolling pane on the right, one topic at a time. */
+.flint-settings-shell {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.flint-settings-nav {
+  background: var(--flint-surface);
+  border-right: 1px solid var(--flint-border);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  min-width: 0;
 }
 
 .flint-settings-back {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  margin-bottom: 1rem;
+  gap: 0.4rem;
   color: var(--flint-text-dim);
   text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.flint-settings-back:hover {
+  color: var(--flint-text);
 }
 
 .flint-settings-back svg {
@@ -1341,17 +1358,85 @@ details.flint-thinking > summary:focus {
   height: 1rem;
 }
 
+.flint-settings-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: var(--flint-side-gutter);
+}
+
+.flint-settings-nav-item {
+  display: block;
+  padding: 0 0.75rem;
+  line-height: var(--flint-side-control-h);
+  border-radius: 0.4rem;
+  color: var(--flint-text);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.flint-settings-nav-item:hover,
+.flint-settings-nav-item.active {
+  background: var(--flint-surface-raised);
+}
+
+.flint-settings-nav-item.active {
+  box-shadow: inset 2px 0 0 var(--flint-accent);
+}
+
+.flint-settings-main {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.flint-settings-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.flint-settings-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem 2.5rem 4rem;
+}
+
 .flint-settings-section {
-  background: var(--flint-surface);
-  border: 1px solid var(--flint-border);
-  border-radius: 0.6rem;
-  padding: 1.25rem;
-  margin-bottom: 1.25rem;
+  max-width: 40rem;
+}
+
+.flint-settings-group {
+  margin-bottom: 2rem;
+}
+
+.flint-settings-group + .flint-settings-group:not(.flint-danger-zone) {
+  border-top: 1px solid var(--flint-border);
+  padding-top: 2rem;
+}
+
+.flint-settings-group:last-child {
+  margin-bottom: 0;
+}
+
+.flint-settings-group > *:last-child {
+  margin-bottom: 0;
 }
 
 .flint-settings-section h3 {
-  margin: 0 0 1rem;
-  font-size: 1.05rem;
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+.flint-danger-zone {
+  border: 1px solid color-mix(in srgb, var(--flint-danger) 45%, transparent);
+  border-radius: 0.6rem;
+  padding: 1.25rem;
+}
+
+.flint-danger-zone h3 {
+  color: var(--flint-danger);
 }
 
 .flint-settings-section > *:last-child {
@@ -1409,7 +1494,7 @@ details.flint-thinking > summary:focus {
 }
 
 .flint-settings-section .flint-settings-actions button,
-.flint-settings-section > button.flint-btn-icon {
+.flint-settings-group > button.flint-btn-icon {
   width: 100%;
 }
 
@@ -1426,26 +1511,13 @@ details.flint-thinking > summary:focus {
   margin-bottom: 0.75rem;
 }
 
-.flint-models-subsection {
-  margin-bottom: 1.5rem;
-}
-
-.flint-models-subsection:last-child {
-  margin-bottom: 0;
-}
-
-.flint-models-subsection h4 {
-  font-size: 0.95rem;
-  margin-bottom: 0.5rem;
-}
-
 .flint-models-subheader {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.flint-models-subheader h4 {
+.flint-models-subheader h3 {
   margin-bottom: 0;
 }
 
@@ -1992,11 +2064,47 @@ button.flint-danger-solid:hover {
     padding: 0 0.9rem;
   }
 
-  .flint-settings-page {
-    padding: 1.25rem 0.75rem 3rem;
+  /* The sidebar becomes a row of tabs above the pane. */
+  .flint-settings-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    height: 100dvh;
   }
 
-  .flint-settings-section {
+  .flint-settings-nav {
+    border-right: 0;
+    border-bottom: 1px solid var(--flint-border);
+  }
+
+  .flint-settings-nav .flint-sidebar-header {
+    height: auto;
+    padding: 0.75rem 1rem 0.25rem;
+    border-bottom: 0;
+  }
+
+  .flint-settings-nav-list {
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 0.25rem 0.75rem 0.5rem;
+  }
+
+  .flint-settings-nav-item {
+    white-space: nowrap;
+  }
+
+  .flint-settings-nav-item.active {
+    box-shadow: inset 0 -2px 0 var(--flint-accent);
+  }
+
+  .flint-settings-main .flint-topbar {
+    display: none;
+  }
+
+  .flint-settings-scroll {
+    padding: 1.25rem 1rem 3rem;
+  }
+
+  .flint-danger-zone {
     padding: 1rem;
   }
 }

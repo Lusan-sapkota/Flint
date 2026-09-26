@@ -198,13 +198,19 @@ waiting for older messages to fill a quarter of the window.
 
 ## Settings
 
-- **Ollama URL**: your own, falling back to the server default.
-- **Preferred models**, to limit which models the new-chat picker shows.
-- **Model management**: see which models are loaded, inspect their
-  details, pull new ones with a progress bar, and delete them.
-- **Brave Search API key** for `@web`.
-- **Memories**: edit and delete.
-- **Security questions** for password recovery.
+Laid out like the chat page: a sidebar of sections on the left and one
+section at a time on the right. On phones the sections become a row of
+tabs. The open section is in the URL (`/settings#models`), so a reload or
+a shared link opens the same one.
+
+- **Connection:** your own Ollama URL, falling back to the server default,
+  and the Brave Search API key for `@web`.
+- **Models:** which models the new-chat picker shows, which are loaded,
+  details for each, pulling new ones with a progress bar, and deleting
+  them.
+- **Memories:** edit and delete.
+- **Account:** security questions for password recovery, and deleting the
+  account.
 
 ## Running it
 

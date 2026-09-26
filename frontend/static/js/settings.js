@@ -10,7 +10,17 @@ function formatBytes(n) {
 }
 
 document.addEventListener('alpine:init', () => {
+  const TABS = [
+    { id: 'connection', label: 'Connection' },
+    { id: 'models', label: 'Models' },
+    { id: 'memories', label: 'Memories' },
+    { id: 'account', label: 'Account' },
+  ];
+  const tabFromHash = () => (TABS.some((t) => `#${t.id}` === location.hash) ? location.hash.slice(1) : TABS[0].id);
+
   Alpine.data('settingsForm', (config) => ({
+    tabs: TABS,
+    tab: tabFromHash(),
     ollamaBaseURL: config.ollamaBaseURL || '',
     braveApiKey: config.braveApiKey || '',
     preferredModels: config.preferredModels || [],
@@ -42,6 +52,7 @@ document.addEventListener('alpine:init', () => {
     memoriesError: '',
 
     init() {
+      window.addEventListener('hashchange', () => { this.tab = tabFromHash(); });
       this.refreshRunning();
       this.loadMemories();
     },

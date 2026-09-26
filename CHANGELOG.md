@@ -12,6 +12,12 @@ Notable changes in each release. The measurements behind a change are in
   confirmation. Everything in the account is deleted for good, including
   attachment files, and every session is signed out.
 
+### Changed
+
+- Settings is laid out like the chat page: sections in a sidebar
+  (Connection, Models, Memories, Account), one at a time, instead of one
+  long scrolling column. On phones they become tabs.
+
 ### Fixed
 
 - Display math no longer shows a small vertical scrollbar.
