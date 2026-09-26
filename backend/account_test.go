@@ -103,15 +103,19 @@ func TestProfileAndPasswordChanges(t *testing.T) {
 		return w.Code
 	}
 
-	for body, want := range map[string]int{
-		`{"full_name":"Alice R","email":"alice@x.io"}`:                          http.StatusOK,
-		`{"full_name":"Alice R","email":"new@x.io"}`:                            http.StatusUnauthorized,
-		`{"full_name":"Alice R","email":"bob@x.io","password":"password123"}`:   http.StatusConflict,
-		`{"full_name":"","email":"alice@x.io"}`:                                 http.StatusBadRequest,
-		`{"full_name":"Alice R","email":" New@X.io ","password":"password123"}`: http.StatusOK,
+	// In order: the last case changes the email the earlier ones compare against.
+	for _, c := range []struct {
+		body string
+		want int
+	}{
+		{`{"full_name":"Alice R","email":"alice@x.io"}`, http.StatusOK},
+		{`{"full_name":"Alice R","email":"new@x.io"}`, http.StatusUnauthorized},
+		{`{"full_name":"Alice R","email":"bob@x.io","password":"password123"}`, http.StatusConflict},
+		{`{"full_name":"","email":"alice@x.io"}`, http.StatusBadRequest},
+		{`{"full_name":"Alice R","email":" New@X.io ","password":"password123"}`, http.StatusOK},
 	} {
-		if code := call(s.handleUpdateProfile, body); code != want {
-			t.Errorf("profile %s: got %d, want %d", body, code, want)
+		if code := call(s.handleUpdateProfile, c.body); code != c.want {
+			t.Errorf("profile %s: got %d, want %d", c.body, code, c.want)
 		}
 	}
 	if u, _ := getUserByID(db, "alice"); u.FullName != "Alice R" || u.Email != "new@x.io" {
