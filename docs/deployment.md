@@ -116,7 +116,9 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-That publishes `0.1.0`, `0.1` and `latest`. It authenticates with the
+That publishes `0.1.0`, `0.1` and `latest`. A pre-release tag such as
+`v0.2.0-beta` publishes only its own version, so `latest` keeps pointing
+at the newest normal release. It authenticates with the
 workflow's own `GITHUB_TOKEN`, so no secrets or extra accounts are needed.
 After the first publish, check the package's visibility on GitHub (profile
 → Packages → flint → Package settings) and set it to **Public** if it isn't,

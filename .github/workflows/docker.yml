@@ -32,10 +32,11 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/lusan-sapkota/flint
+          # latest moves only for a normal release: v0.2.0 yes, v0.2.0-beta no.
+          flavor: latest=auto
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest
 
       - uses: docker/build-push-action@v6
         with:
