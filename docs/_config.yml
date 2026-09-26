@@ -4,15 +4,25 @@ theme: jekyll-theme-minimal
 logo: /images/logo.png
 repository_url: https://github.com/Lusan-sapkota/Flint
 
-# The sidebar menu (_layouts/default.html), in order.
+# The sidebar menu (_layouts/default.html), in order. A new page goes here too.
 nav:
-  - {title: Home, url: /}
-  - {title: Features, url: /features.html}
-  - {title: Deployment, url: /deployment.html}
-  - {title: Architecture, url: /architecture.html}
-  - {title: Security, url: /security.html}
-  - {title: Context management, url: /context-management.html}
-  - {title: Experiments, url: /experiments.html}
-  - {title: Benchmark, url: /benchmark.html}
-  - {title: Testing, url: /testing.html}
-  - {title: Changelog, url: /changelog.html}
+  - title: Get started
+    pages:
+      - {title: Overview, url: /}
+      - {title: Install and run, url: /deployment.html}
+  - title: Using Flint
+    pages:
+      - {title: Features, url: /features.html}
+      - {title: Security, url: /security.html}
+  - title: How it works
+    pages:
+      - {title: Architecture, url: /architecture.html}
+      - {title: Context management, url: /context-management.html}
+  - title: Evidence
+    pages:
+      - {title: Experiments, url: /experiments.html}
+      - {title: Benchmark, url: /benchmark.html}
+      - {title: Testing, url: /testing.html}
+  - title: Project
+    pages:
+      - {title: Changelog, url: /changelog.html}

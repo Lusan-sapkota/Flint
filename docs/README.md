@@ -14,8 +14,22 @@ account can set its own context window for local and for cloud models.
 
 ## Quick start
 
-With [Ollama](https://ollama.com) running and a model pulled (for example
-`ollama pull qwen2.5:3b`), either run it from source:
+You need [Ollama](https://ollama.com) running with a model pulled, for
+example `ollama pull qwen2.5:3b`.
+
+**With Docker** (recommended; no clone needed). On Linux:
+
+```bash
+mkdir flint && cd flint && mkdir data
+curl -O https://raw.githubusercontent.com/Lusan-sapkota/Flint/main/docker-compose.yml
+docker compose up -d
+```
+
+Then open `http://localhost:3141`. On Mac and Windows, use
+`docker-compose.desktop.yml` instead, as shown in
+[Install and run](deployment.md).
+
+**Or from source**, with Go installed:
 
 ```bash
 git clone https://github.com/Lusan-sapkota/Flint.git
@@ -23,34 +37,44 @@ cd Flint/backend
 go run .
 ```
 
-and open `http://localhost:8080`, or run the published Docker image. The
-compose files, environment variables and model requirements are in
-[deployment](deployment.md).
+Then open `http://localhost:8080` and sign up.
 
-## Pages
+## The docs
 
-- [Features](features.md): what Flint does, from a user's point of view.
-- [Architecture](architecture.md): the pieces, repository layout, data
-  model, what happens in a chat turn, and the streaming protocol.
+**Get started**
+
+- [Install and run](deployment.md): Docker and source, environment
+  variables, health checks, and which models need which capabilities.
+
+**Using Flint**
+
+- [Features](features.md): everything Flint does, from a user's point of
+  view.
 - [Security](security.md): accounts, rate limits, the shell-command
   safety layers, and what leaves the machine.
-- [Deployment](deployment.md): running from source or Docker,
-  environment variables, health checks, and which models need which
-  capabilities.
+
+**How it works**
+
+- [Architecture](architecture.md): the pieces, repository layout, data
+  model, a chat turn, the streaming protocol, where the ideas come from
+  and what was deliberately not built.
 - [Context management](context-management.md): how a conversation is
   fit into a small model's window.
+
+**Evidence**
+
 - [Experiments](experiments.md): the measurements behind each design
   decision, including what failed and was rejected.
 - [Benchmark](benchmark.md): the scored benchmark, with and without
   each piece of scaffolding.
 - [Testing](testing.md): unit tests, live checks against Ollama, the
-  long-chat run and the web re-ranking set.
-- [Changelog](changelog.md): what changed in each release.
+  long-chat run and the web re-ranking set. The scripts it uses are
+  [tools/long_chat.py](tools/long_chat.py) and
+  [tools/web_rerank.py](tools/web_rerank.py).
 
-Tools used in the experiments:
-[tools/long_chat.py](tools/long_chat.py), the scripted 19-turn chat, and
-[tools/web_rerank.py](tools/web_rerank.py), which scores `@web`
-re-ranking on saved, hand-graded searches.
+**Project**
+
+- [Changelog](changelog.md): what changed in each release.
 
 ## Screenshots
 

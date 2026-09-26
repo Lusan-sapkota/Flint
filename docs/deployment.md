@@ -1,33 +1,4 @@
-# Running Flint
-
-## From source
-
-Requires Go (see `backend/go.mod`) and a running Ollama.
-
-```bash
-ollama serve                 # or the system service
-cd backend
-go run .                     # must run from backend/: assets resolve via ../frontend
-```
-
-Open `http://localhost:8080`, sign up, and pick a model.
-
-To build a static binary (no cgo, any OS):
-
-```bash
-cd backend && CGO_ENABLED=0 go build -o flint .
-```
-
-## Environment variables
-
-| Variable | Default | |
-|---|---|---|
-| `HOST` | `127.0.0.1` | address to listen on; localhost only by default, since commands run on this machine and signup is open |
-| `PORT` | `8080` | |
-| `DB_PATH` | `data/chat.db` | SQLite file, relative to `backend/` |
-| `ATTACHMENTS_DIR` | `data/attachments` | uploaded files |
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | server default; each user can override it in Settings |
-| `FLINT_ABLATE` | empty | benchmark only: switches scaffolding off, see [benchmark.md](benchmark.md). Leave unset. |
+# Install and run
 
 ## Docker
 
@@ -96,7 +67,36 @@ Then open `http://localhost:3141`. Notes:
   `ghcr.io/lusan-sapkota/flint:0.1` (patch releases of 0.1) or `:0.1.0`
   (exactly that one). Nothing updates automatically.
 
-### Building the image yourself
+## From source
+
+Requires Go (see `backend/go.mod`) and a running Ollama.
+
+```bash
+ollama serve                 # or the system service
+cd backend
+go run .                     # must run from backend/: assets resolve via ../frontend
+```
+
+Open `http://localhost:8080`, sign up, and pick a model.
+
+To build a static binary (no cgo, any OS):
+
+```bash
+cd backend && CGO_ENABLED=0 go build -o flint .
+```
+
+## Environment variables
+
+| Variable | Default | |
+|---|---|---|
+| `HOST` | `127.0.0.1` | address to listen on; localhost only by default, since commands run on this machine and signup is open |
+| `PORT` | `8080` | |
+| `DB_PATH` | `data/chat.db` | SQLite file, relative to `backend/` |
+| `ATTACHMENTS_DIR` | `data/attachments` | uploaded files |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | server default; each user can override it in Settings |
+| `FLINT_ABLATE` | empty | benchmark only: switches scaffolding off, see [benchmark.md](benchmark.md). Leave unset. |
+
+## Building the image yourself
 
 From a clone of the repository:
 
@@ -108,7 +108,7 @@ The compose files then use that local image instead of downloading one.
 Remove it (`docker rmi ghcr.io/lusan-sapkota/flint:latest`) to go back to
 the published image, since otherwise the local copy keeps shadowing it.
 
-### Publishing the image
+## Publishing the image
 
 `.github/workflows/docker.yml` builds the image for `linux/amd64` and
 `linux/arm64` and pushes it to GitHub Container Registry whenever a version

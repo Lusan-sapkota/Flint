@@ -1,0 +1,65 @@
+---
+---
+
+@import "jekyll-theme-minimal";
+
+// Flint's own dark palette (frontend/static/css/flint.css), over the
+// minimal theme's light one, so the docs look like the app.
+$bg: #1c1c1e;
+$surface: #26282c;
+$raised: #2d2f33;
+$border: #3a3d42;
+$text: #e8e6e3;
+$dim: #9a9a9e;
+$accent: #f2a65a;
+
+html { color-scheme: dark; }
+body { background-color: $bg; color: $dim; }
+h1, h2, h3, h4, h5, h6, strong, dt, th { color: $text; }
+header h1 a, header h1 a:hover { color: $text; }
+a { color: $accent; }
+a:hover, a:focus { color: lighten($accent, 12%); }
+blockquote { border-left-color: $border; color: $dim; }
+hr { background: $border; }
+code, pre, kbd { color: $text; }
+code { background: $surface; border: 1px solid $border; border-radius: 4px; padding: 0 4px; }
+pre { background: $surface; border-color: $border; }
+pre code { background: none; border: 0; padding: 0; }
+table, th, td { border-color: $border; }
+th, td { border-bottom-color: $border; }
+img { max-width: 100%; }
+section img { border: 1px solid $border; border-radius: 6px; }
+footer, small { color: $dim; }
+@media print, screen and (max-width: 720px) {
+  header { border-bottom: 1px solid $border; }
+}
+
+// The sidebar menu (_layouts/default.html).
+nav.pages { margin: 0 0 20px; }
+nav.pages .group { margin: 14px 0 4px; color: $text; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+nav.pages ul { display: block; list-style: none; padding: 0; margin: 0; background: none; border: 0; width: auto; height: auto; }
+nav.pages li { display: block; float: none; width: auto; height: auto; border: 0; }
+nav.pages a { display: block; padding: 2px 0 2px 10px; border-left: 2px solid transparent; color: $dim; }
+nav.pages a:hover { color: $text; }
+nav.pages a.current { color: $accent; border-left-color: $accent; font-weight: 700; }
+
+// Syntax colors, dark (replaces rouge-github's light ones).
+.highlight { background: $surface; }
+.highlight span { color: $text; }
+.highlight .c, .highlight .c1, .highlight .cm, .highlight .cs, .highlight .cp { color: #7f848e; font-style: italic; }
+.highlight .s, .highlight .s1, .highlight .s2, .highlight .sb, .highlight .se, .highlight .sh { color: #98c379; }
+.highlight .k, .highlight .kd, .highlight .kn, .highlight .kr, .highlight .nb, .highlight .nt { color: $accent; }
+.highlight .m, .highlight .mi, .highlight .mf, .highlight .nv, .highlight .na { color: #d19a66; }
+.highlight .o, .highlight .p { color: $dim; }
+
+pre { overflow-x: auto; }
+
+// On a phone the menu sits above the page: wrap it into compact links
+// instead of a long column that pushes the content a screen down.
+@media print, screen and (max-width: 720px) {
+  nav.pages .group { display: none; }
+  nav.pages ul { display: inline; }
+  nav.pages li { display: inline-block; margin: 0 12px 6px 0; }
+  nav.pages a { display: inline; padding: 0; border-left: 0; }
+  nav.pages a.current { border-bottom: 2px solid $accent; }
+}

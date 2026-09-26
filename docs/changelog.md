@@ -9,9 +9,10 @@ Notable changes in each release. The measurements behind a change are in
 
 - The docs are published at
   [flint.lusansapkota.com.np](https://flint.lusansapkota.com.np), from
-  the `docs/` folder, with a home page, screenshots, and the reasoning
-  behind the design (where the ideas come from, what was deliberately
-  not built).
+  the `docs/` folder, in Flint's own dark colors with a grouped page
+  menu: a home page with a quick start (Docker first), screenshots, the
+  changelog, and the reasoning behind the design (where the ideas come
+  from, what was deliberately not built).
 - Set your own context window in Settings → Connection, one for local
   models (for a GPU with room for more than the defaults) and one for
   cloud models, with common sizes (32k = 32768, 1M = 1048576, ...) to

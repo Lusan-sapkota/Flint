@@ -7,13 +7,6 @@
 
 {% seo %}
     <link rel="stylesheet" href="{{ "/assets/css/style.css?v=" | append: site.github.build_revision | relative_url }}">
-    <style>
-      nav.pages ul { list-style: none; padding: 0; margin: 0 0 20px; }
-      nav.pages li { margin: 0; }
-      nav.pages a { display: block; padding: 3px 0; color: #555; }
-      nav.pages a:hover { color: #069; }
-      nav.pages a.current { color: #222; font-weight: 700; }
-    </style>
   </head>
   <body>
     <div class="wrapper">
@@ -27,12 +20,14 @@
         <p>{{ site.description }}</p>
 
         <nav class="pages" aria-label="Pages">
-          <ul>
-            {% for item in site.nav %}
-              {% assign href = item.url | relative_url %}
-              <li><a href="{{ href }}"{% if page.url == item.url %} class="current" aria-current="page"{% endif %}>{{ item.title }}</a></li>
-            {% endfor %}
-          </ul>
+          {% for group in site.nav %}
+            <p class="group">{{ group.title }}</p>
+            <ul>
+              {% for item in group.pages %}
+                <li><a href="{{ item.url | relative_url }}"{% if page.url == item.url %} class="current" aria-current="page"{% endif %}>{{ item.title }}</a></li>
+              {% endfor %}
+            </ul>
+          {% endfor %}
         </nav>
 
         <p class="view"><a href="{{ site.repository_url }}">View the source on GitHub</a></p>

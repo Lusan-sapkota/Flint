@@ -88,24 +88,12 @@ exactly the feedback I can't get from my own hardware.
 
 ## Quick start
 
-With [Ollama](https://ollama.com) running and a model pulled (for example
-`ollama pull qwen2.5:3b`):
+You need [Ollama](https://ollama.com) running with a model pulled, for
+example `ollama pull qwen2.5:3b`.
 
-```bash
-cd backend
-go run .
-```
-
-Open `http://localhost:8080` and sign up.
-
-Optional, only if you use `@web`: `ollama pull nomic-embed-text` (about
-270 MB) lets Flint re-rank search results against your question. It isn't
-a dependency. Without it `@web` still works, using Brave's own ranking,
-and with it the model only loads for the moment a search runs: Flint has
-Ollama unload it as soon as the results are ranked.
-
-Or run Flint in Docker, talking to the Ollama already on your machine. No
-clone needed, just the compose file and a folder for your data:
+**With Docker** (recommended). Flint runs in the container and talks to
+the Ollama already on your machine. No clone needed, just the compose
+file and a folder for your data:
 
 ```bash
 mkdir flint && cd flint && mkdir data
@@ -133,6 +121,22 @@ docker image prune -f   # optional: remove the old image
 `v0.2.0-beta`. To stay on one version, pin its tag in the compose file,
 for example `ghcr.io/lusan-sapkota/flint:0.1`.
 
+**Or from source**, with Go installed:
+
+```bash
+git clone https://github.com/Lusan-sapkota/Flint.git
+cd Flint/backend
+go run .
+```
+
+Then open `http://localhost:8080` and sign up.
+
+Optional, only if you use `@web`: `ollama pull nomic-embed-text` (about
+270 MB) lets Flint re-rank search results against your question. It isn't
+a dependency. Without it `@web` still works, using Brave's own ranking,
+and with it the model only loads for the moment a search runs: Flint has
+Ollama unload it as soon as the results are ranked.
+
 Environment variables, Docker notes and which models need which
 capabilities: [deployment](docs/deployment.md).
 
@@ -142,18 +146,18 @@ Read them at **[flint.lusansapkota.com.np](https://flint.lusansapkota.com.np)**.
 They're the Markdown files in [`docs/`](docs/), so they read the same here
 on GitHub:
 
-| | |
-|---|---|
-| [Features](docs/features.md) | everything Flint does |
-| [Architecture](docs/architecture.md) | layout, data model, a chat turn, the streaming protocol |
-| [Context management](docs/context-management.md) | how a chat fits a small window |
-| [Security](docs/security.md) | accounts, the shell-command safety layers, what leaves the machine |
-| [Deployment](docs/deployment.md) | running from source or Docker |
-| [Experiments](docs/experiments.md) | the measurements behind the design |
-| [Benchmark](docs/benchmark.md) | scored tasks, with and without each piece of scaffolding |
-| [Testing](docs/testing.md) | unit tests, live checks, the long-chat run |
-| [Changelog](docs/changelog.md) | what changed in each release |
-| [Contributing](CONTRIBUTING.md) | what fits, setup, what a pull request needs |
+| | | |
+|---|---|---|
+| Get started | [Install and run](docs/deployment.md) | Docker or source, environment variables, models |
+| Using Flint | [Features](docs/features.md) | everything Flint does |
+| | [Security](docs/security.md) | accounts, the shell-command safety layers, what leaves the machine |
+| How it works | [Architecture](docs/architecture.md) | layout, data model, a chat turn, the streaming protocol |
+| | [Context management](docs/context-management.md) | how a chat fits a small window |
+| Evidence | [Experiments](docs/experiments.md) | the measurements behind the design |
+| | [Benchmark](docs/benchmark.md) | scored tasks, with and without each piece of scaffolding |
+| | [Testing](docs/testing.md) | unit tests, live checks, the long-chat run |
+| Project | [Changelog](docs/changelog.md) | what changed in each release |
+| | [Contributing](CONTRIBUTING.md) | what fits, setup, what a pull request needs |
 
 ## Stack
 
