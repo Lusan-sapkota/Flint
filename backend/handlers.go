@@ -110,6 +110,18 @@ func (s *Server) handleUpdateSettings(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if v, ok := raw["num_ctx"]; ok {
+		var n *int
+		if err := json.Unmarshal(v, &n); err != nil || (n != nil && (*n < minNumCtx || *n > maxNumCtx)) {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("the context window must be %d to %d tokens, or empty for Auto", minNumCtx, maxNumCtx))
+			return
+		}
+		if err := updateUserNumCtx(s.db, user.ID, n); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
 	if v, ok := raw["brave_api_key"]; ok {
 		var key *string
 		if err := json.Unmarshal(v, &key); err != nil {
@@ -714,7 +726,7 @@ func (s *Server) runUserTurn(w http.ResponseWriter, r *http.Request, user *User,
 	s.streamAssistantTurn(w, r, user, convo)
 
 	if firstMessage {
-		s.generateTitle(r.Context(), user, convo.Model, numCtxFor(convo.Conversation), id, placeholderTitle, content)
+		s.generateTitle(r.Context(), user, convo.Model, s.numCtxFor(user, convo.Conversation), id, placeholderTitle, content)
 	}
 }
 
@@ -939,7 +951,7 @@ func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, use
 }
 
 func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Request, user *User, convo *ConversationWithMessages, retried bool) {
-	numCtx := numCtxFor(convo.Conversation)
+	numCtx := s.numCtxFor(user, convo.Conversation)
 	options := map[string]any{"num_ctx": numCtx}
 	count := tokenCounter(convo.TokenRatio)
 
@@ -959,7 +971,7 @@ func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Reque
 	// Folder memories go with the anchor, next to the generation point: as
 	// a system message after the manifest, qwen2.5-3b ignored them (the same
 	// dilution as the tool nudge).
-	if memories := s.folderMemoryBlock(user.ID, convo.Conversation); memories != "" {
+	if memories := s.folderMemoryBlock(user, convo.Conversation); memories != "" {
 		suffix = strings.TrimLeft(memories+"\n\n"+suffix, "\n")
 	}
 	toolsJSON, _ := json.Marshal(tools)

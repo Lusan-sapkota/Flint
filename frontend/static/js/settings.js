@@ -37,6 +37,7 @@ document.addEventListener('alpine:init', () => {
     tabs: TABS,
     tab: tabFromHash(),
     ollamaBaseURL: config.ollamaBaseURL || '',
+    numCtx: config.numCtx || '',
     braveKeyHint: config.braveKeyHint,
     braveApiKey: '',
     replacingBraveKey: false,
@@ -355,7 +356,11 @@ document.addEventListener('alpine:init', () => {
       this.savingGeneral = true;
       this.generalStatus = '';
       const newKey = this.braveApiKey.trim();
-      const body = { ollama_base_url: this.ollamaBaseURL.trim() || null, preferred_models: this.preferredModels };
+      const body = {
+        ollama_base_url: this.ollamaBaseURL.trim() || null,
+        num_ctx: this.numCtx === '' || this.numCtx === null ? null : Number(this.numCtx),
+        preferred_models: this.preferredModels,
+      };
       if (newKey) body.brave_api_key = newKey;
       try {
         const res = await fetch('/api/me/settings', {

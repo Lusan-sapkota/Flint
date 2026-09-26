@@ -11,9 +11,14 @@ import (
 const (
 	charsPerToken = 4.0
 	// Chat-template framing per message (role markers, separators).
-	perMessageTokens       = 4
-	defaultNumCtx          = 4096
-	boostedNumCtx          = 8192
+	perMessageTokens = 4
+	defaultNumCtx    = 4096
+	boostedNumCtx    = 8192
+	// A cloud model's window costs no local memory, and ollama.com ignores
+	// num_ctx anyway (E23); this bounds what each turn resends instead.
+	cloudNumCtx            = 32768
+	minNumCtx              = 2048
+	maxNumCtx              = 1048576
 	responseReserve        = 1024
 	protectedWindow        = 6
 	decayHalfLife          = 4.0
@@ -23,11 +28,21 @@ const (
 // Every request sets num_ctx explicitly: a request without it makes Ollama
 // reload the model at its server default (verified: a model loaded at 8192
 // was reloaded at 4096), and the budget needs to know the real window.
-func numCtxFor(c Conversation) int {
-	if c.AttachedFolder != nil && *c.AttachedFolder != "" {
-		return boostedNumCtx
+func (s *Server) numCtxFor(user *User, c Conversation) int {
+	info := s.ollama.modelInfo(s.ollamaURLFor(user), c.Model)
+	n := defaultNumCtx
+	switch {
+	case user.NumCtx != nil:
+		n = *user.NumCtx
+	case info.RemoteHost != "":
+		n = cloudNumCtx
+	case c.AttachedFolder != nil && *c.AttachedFolder != "":
+		n = boostedNumCtx
 	}
-	return defaultNumCtx
+	if limit := info.Details.ContextLength; limit > 0 && n > limit {
+		n = limit
+	}
+	return n
 }
 
 // tokenCounter turns the chars/4 estimate into a calibrated one. The ratio

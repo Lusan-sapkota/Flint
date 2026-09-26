@@ -81,6 +81,7 @@ type OllamaModelDetails struct {
 	Family            string `json:"family,omitempty"`
 	ParameterSize     string `json:"parameter_size,omitempty"`
 	QuantizationLevel string `json:"quantization_level,omitempty"`
+	ContextLength     int    `json:"context_length,omitempty"`
 }
 
 type OllamaModelInfo struct {
@@ -110,6 +111,10 @@ type OllamaClient struct {
 	// Models whose chat template rejects a system message after the first
 	// one, learned from the first rejection.
 	systemFirstOnly sync.Map
+
+	// Last /api/tags entry per base URL and model name, for the window
+	// size of every request without a fetch each time.
+	models sync.Map
 }
 
 func NewOllamaClient() *OllamaClient {
@@ -135,7 +140,27 @@ func (c *OllamaClient) ListModels(ctx context.Context, baseURL string) ([]Ollama
 	if err := json.NewDecoder(resp.Body).Decode(&tags); err != nil {
 		return nil, err
 	}
+	for _, m := range tags.Models {
+		c.models.Store(baseURL+" "+m.Name, m)
+	}
 	return tags.Models, nil
+}
+
+// modelInfo is the model's /api/tags entry, listing once on a miss. A
+// model that can't be found yields the zero value, which numCtxFor reads
+// as local with no known limit.
+func (c *OllamaClient) modelInfo(baseURL, name string) OllamaModelInfo {
+	if m, ok := c.models.Load(baseURL + " " + name); ok {
+		return m.(OllamaModelInfo)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if _, err := c.ListModels(ctx, baseURL); err != nil {
+		return OllamaModelInfo{}
+	}
+	m, _ := c.models.Load(baseURL + " " + name)
+	info, _ := m.(OllamaModelInfo)
+	return info
 }
 
 // ChatModels drops models that can't hold a conversation, such as

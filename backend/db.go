@@ -18,6 +18,7 @@ type User struct {
 	OllamaBaseURL   *string  `json:"ollama_base_url,omitempty"`
 	PreferredModels []string `json:"preferred_models"`
 	BraveAPIKey     *string  `json:"-"`
+	NumCtx          *int     `json:"num_ctx,omitempty"`
 	CreatedAt       int64    `json:"created_at"`
 	UpdatedAt       int64    `json:"updated_at"`
 }
@@ -268,6 +269,7 @@ func migrate(db *sql.DB) error {
 		// The chat a memory was saved from, so that chat can show where it
 		// happened. A memory outlives its chat, hence SET NULL.
 		`ALTER TABLE memories ADD COLUMN conversation_id TEXT REFERENCES conversations(id) ON DELETE SET NULL`,
+		`ALTER TABLE users ADD COLUMN num_ctx INTEGER`,
 	} {
 		if _, err := db.Exec(stmt); err != nil && !strings.Contains(err.Error(), "duplicate column") {
 			return err
@@ -377,8 +379,8 @@ func getUserByEmail(db *sql.DB, email string) (*User, error) {
 	var u User
 	var preferredModelsRaw *string
 	err := db.QueryRow(
-		`SELECT id, full_name, email, password_hash, ollama_base_url, preferred_models, brave_api_key, created_at, updated_at FROM users WHERE email = ?`, email,
-	).Scan(&u.ID, &u.FullName, &u.Email, &u.PasswordHash, &u.OllamaBaseURL, &preferredModelsRaw, &u.BraveAPIKey, &u.CreatedAt, &u.UpdatedAt)
+		`SELECT id, full_name, email, password_hash, ollama_base_url, preferred_models, brave_api_key, num_ctx, created_at, updated_at FROM users WHERE email = ?`, email,
+	).Scan(&u.ID, &u.FullName, &u.Email, &u.PasswordHash, &u.OllamaBaseURL, &preferredModelsRaw, &u.BraveAPIKey, &u.NumCtx, &u.CreatedAt, &u.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -393,8 +395,8 @@ func getUserByID(db *sql.DB, id string) (*User, error) {
 	var u User
 	var preferredModelsRaw *string
 	err := db.QueryRow(
-		`SELECT id, full_name, email, password_hash, ollama_base_url, preferred_models, brave_api_key, created_at, updated_at FROM users WHERE id = ?`, id,
-	).Scan(&u.ID, &u.FullName, &u.Email, &u.PasswordHash, &u.OllamaBaseURL, &preferredModelsRaw, &u.BraveAPIKey, &u.CreatedAt, &u.UpdatedAt)
+		`SELECT id, full_name, email, password_hash, ollama_base_url, preferred_models, brave_api_key, num_ctx, created_at, updated_at FROM users WHERE id = ?`, id,
+	).Scan(&u.ID, &u.FullName, &u.Email, &u.PasswordHash, &u.OllamaBaseURL, &preferredModelsRaw, &u.BraveAPIKey, &u.NumCtx, &u.CreatedAt, &u.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -410,6 +412,11 @@ func updateUserOllamaURL(db *sql.DB, userID string, baseURL *string) error {
 		`UPDATE users SET ollama_base_url = ?, updated_at = ? WHERE id = ?`,
 		baseURL, time.Now().UnixMilli(), userID,
 	)
+	return err
+}
+
+func updateUserNumCtx(db *sql.DB, userID string, numCtx *int) error {
+	_, err := db.Exec(`UPDATE users SET num_ctx = ?, updated_at = ? WHERE id = ?`, numCtx, time.Now().UnixMilli(), userID)
 	return err
 }
 
@@ -464,10 +471,10 @@ func getSessionUser(db *sql.DB, sessionID string) (*User, error) {
 	var preferredModelsRaw *string
 	var expiresAt int64
 	err := db.QueryRow(
-		`SELECT u.id, u.full_name, u.email, u.password_hash, u.ollama_base_url, u.preferred_models, u.brave_api_key, u.created_at, u.updated_at, s.expires_at
+		`SELECT u.id, u.full_name, u.email, u.password_hash, u.ollama_base_url, u.preferred_models, u.brave_api_key, u.num_ctx, u.created_at, u.updated_at, s.expires_at
 		 FROM sessions s JOIN users u ON u.id = s.user_id
 		 WHERE s.id = ?`, sessionID,
-	).Scan(&u.ID, &u.FullName, &u.Email, &u.PasswordHash, &u.OllamaBaseURL, &preferredModelsRaw, &u.BraveAPIKey, &u.CreatedAt, &u.UpdatedAt, &expiresAt)
+	).Scan(&u.ID, &u.FullName, &u.Email, &u.PasswordHash, &u.OllamaBaseURL, &preferredModelsRaw, &u.BraveAPIKey, &u.NumCtx, &u.CreatedAt, &u.UpdatedAt, &expiresAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}

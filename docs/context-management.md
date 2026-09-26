@@ -15,10 +15,18 @@ chance.
 
 ## The request budget
 
-Every request sets `num_ctx` explicitly (`numCtxFor` in `context.go`): 4096
-for a plain chat and 8192 with a folder attached. A request without it
-makes Ollama reload the model at its server default, and the budget needs
-to know the real window.
+Every request sets `num_ctx` explicitly (`numCtxFor` in `context.go`). A
+request without it makes Ollama reload the model at its server default,
+and the budget needs to know the real window. The window is, in order:
+
+1. the account's **Context window** setting (Settings → Connection), if set;
+2. **32768 for a cloud model** (`remote_host` in `/api/tags`): it costs no
+   local memory, and ollama.com ignores `num_ctx` anyway (E23), so the
+   number only bounds how much each turn resends;
+3. **4096 for a plain local chat, 8192 with a folder attached**, the
+   defaults every experiment here was measured with.
+
+Whichever applies, it's capped at the model's own `context_length`.
 
 ```
 budget = num_ctx - responseReserve (1024) - tool schema - tool nudge, anchor and folder memories

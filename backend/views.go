@@ -334,6 +334,7 @@ type settingsViewData struct {
 	ChatModels          []OllamaModelInfo
 	ModelsErr           string
 	OllamaBaseURL       string
+	NumCtx              int
 	BraveKeyHint        string
 	PreferredModelsJSON string
 	QuestionsJSON       string
@@ -381,6 +382,9 @@ func (s *Server) handleSettingsPage(w http.ResponseWriter, r *http.Request, user
 	}
 	if user.OllamaBaseURL != nil {
 		data.OllamaBaseURL = *user.OllamaBaseURL
+	}
+	if user.NumCtx != nil {
+		data.NumCtx = *user.NumCtx
 	}
 	// Only the last four characters ever reach the page: enough to tell keys
 	// apart, not enough to use one.

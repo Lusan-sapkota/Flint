@@ -7,6 +7,10 @@ Notable changes in each release. The measurements behind a change are in
 
 ### Added
 
+- Set your own context window in Settings → Connection, for a GPU with
+  room for more than the defaults. Cloud models get 32k by default
+  instead of the 4k/8k meant for small local ones, and no model is given
+  more than it supports.
 - Ollama cloud models (`:cloud`) are tagged "cloud" in the model picker,
   Settings and the chat, with a line saying the chat is sent to
   ollama.com. Not being signed in to Ollama now says to run

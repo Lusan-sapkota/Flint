@@ -269,3 +269,33 @@ func TestBuildOptimizedHistory_CutsProtectedToolOutputToFit(t *testing.T) {
 		t.Fatalf("protected tool output should be cut to fit, keeping its status line; total=%d", total)
 	}
 }
+
+func TestNumCtxForFollowsSettingModelAndLimit(t *testing.T) {
+	s := &Server{ollama: NewOllamaClient(), defaultOllamaURL: "http://ollama.test"}
+	store := func(name, host string, limit int) {
+		s.ollama.models.Store("http://ollama.test "+name, OllamaModelInfo{Name: name, RemoteHost: host, Details: OllamaModelDetails{ContextLength: limit}})
+	}
+	store("qwen2.5-3b", "", 32768)
+	store("tiny", "", 2048)
+	store("big:cloud", "https://ollama.com", 262144)
+	folder := "/tmp/x"
+	custom := func(n int) *User { return &User{NumCtx: &n} }
+
+	for _, tc := range []struct {
+		name string
+		user *User
+		c    Conversation
+		want int
+	}{
+		{"local default", &User{}, Conversation{Model: "qwen2.5-3b"}, defaultNumCtx},
+		{"local with a folder", &User{}, Conversation{Model: "qwen2.5-3b", AttachedFolder: &folder}, boostedNumCtx},
+		{"cloud", &User{}, Conversation{Model: "big:cloud"}, cloudNumCtx},
+		{"custom", custom(16000), Conversation{Model: "qwen2.5-3b", AttachedFolder: &folder}, 16000},
+		{"custom above the model's limit", custom(100000), Conversation{Model: "qwen2.5-3b"}, 32768},
+		{"default above the model's limit", &User{}, Conversation{Model: "tiny", AttachedFolder: &folder}, 2048},
+	} {
+		if got := s.numCtxFor(tc.user, tc.c); got != tc.want {
+			t.Errorf("%s: got %d, want %d", tc.name, got, tc.want)
+		}
+	}
+}

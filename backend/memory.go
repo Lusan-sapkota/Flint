@@ -76,12 +76,12 @@ func formatMemories(header string, memories []Memory, left int) string {
 // folderMemoryBlock is the standing memory for a folder chat: every memory
 // saved from a chat on the same folder, newest first, within an eighth of
 // the window. It is rebuilt every turn, not stored in the conversation.
-func (s *Server) folderMemoryBlock(userID string, c Conversation) string {
+func (s *Server) folderMemoryBlock(user *User, c Conversation) string {
 	folder := folderOf(c)
 	if folder == nil {
 		return ""
 	}
-	memories, err := folderMemories(s.db, userID, *folder)
+	memories, err := folderMemories(s.db, user.ID, *folder)
 	if err != nil {
 		log.Printf("warning: loading folder memories: %v", err)
 		return ""
@@ -89,7 +89,7 @@ func (s *Server) folderMemoryBlock(userID string, c Conversation) string {
 	if len(memories) == 0 {
 		return ""
 	}
-	kept, left := fitMemories(memories, numCtxFor(c)/8)
+	kept, left := fitMemories(memories, s.numCtxFor(user, c)/8)
 	return formatMemories("Saved memories for this folder (the user saved these from earlier chats; treat them as known facts):", kept, left)
 }
 
@@ -124,7 +124,7 @@ func (s *Server) recallMemories(user *User, convo Conversation, query string) (n
 	if len(memories) == 0 {
 		return fmt.Sprintf("[No saved memories match %q.]\n\n", query)
 	}
-	kept, left := fitMemories(memories, numCtxFor(convo)/8)
+	kept, left := fitMemories(memories, s.numCtxFor(user, convo)/8)
 	block := formatMemories(fmt.Sprintf(recallHeaderFormat, query), kept, left)
 	if _, err := insertMessage(s.db, convo.ID, "system", block); err != nil {
 		log.Printf("warning: saving recalled memories: %v", err)
@@ -160,7 +160,7 @@ func (s *Server) saveMemoryFromChat(w http.ResponseWriter, r *http.Request, user
 		return
 	}
 
-	transcript := memorySource(convo)
+	transcript := memorySource(convo, s.numCtxFor(user, convo.Conversation)/2)
 	if transcript == "" {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("[There's nothing in this chat to remember yet.]"))
@@ -173,7 +173,7 @@ func (s *Server) saveMemoryFromChat(w http.ResponseWriter, r *http.Request, user
 			f.Flush()
 		}
 	}
-	numCtx := numCtxFor(convo.Conversation)
+	numCtx := s.numCtxFor(user, convo.Conversation)
 	target := numCtx / 16
 	draft, err := s.condense(r.Context(), user, convo, fmt.Sprintf(memoryDraftPrompt, target/15), transcript, target)
 	if err != nil {
@@ -187,14 +187,13 @@ func (s *Server) saveMemoryFromChat(w http.ResponseWriter, r *http.Request, user
 // memorySource is what a memory draft is written from: the conversation's
 // summaries plus the newest unsummarized messages, up to half the window.
 // The folder manifest is left out; it's file contents, not something said.
-func memorySource(convo *ConversationWithMessages) string {
+func memorySource(convo *ConversationWithMessages, budget int) string {
 	var after int64 = -1
 	if n := len(convo.Summaries); n > 0 {
 		after = convo.Summaries[n-1].LastMessageID
 	}
 	_, firstSystem, _ := protectedAnchors(convo.Messages)
 	count := tokenCounter(convo.TokenRatio)
-	budget := numCtxFor(convo.Conversation) / 2
 	var recent []Message
 	for i := len(convo.Messages) - 1; i >= 0; i-- {
 		m := convo.Messages[i]

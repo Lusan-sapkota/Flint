@@ -2,6 +2,7 @@
 {{define "content"}}
 <div class="flint-settings-shell" x-data="settingsForm({
     ollamaBaseURL: '{{.OllamaBaseURL | jsStr}}',
+    numCtx: {{.NumCtx}},
     braveKeyHint: '{{.BraveKeyHint | jsStr}}',
     preferredModels: {{.PreferredModelsJSON}},
     questions: {{.QuestionsJSON}},
@@ -40,6 +41,12 @@
         <label for="ollama_base_url">Base URL override
           <input type="text" id="ollama_base_url" x-model="ollamaBaseURL" placeholder="http://localhost:11434 (leave blank for server default)">
         </label>
+        <label for="num_ctx">Context window (tokens)
+          <input type="number" id="num_ctx" x-model="numCtx" min="2048" max="1048576" step="1024" placeholder="Auto">
+        </label>
+        <p class="flint-field-hint">Auto uses 4096, or 8192 with a folder attached, for a local model, and 32768 for a
+          cloud one. Set a number to use more if your GPU has the memory; a model is never given more than it
+          supports. A bigger window keeps more of a long chat but uses more memory and is slower to process.</p>
         <template x-if="braveKeyHint && !replacingBraveKey">
           <div class="flint-saved-key">
             <span>Brave Search API key</span>
@@ -79,7 +86,7 @@
 
       <div class="flint-settings-group">
         <h3>Web searches</h3>
-        <p class="flint-field-hint">An <code>@web</code> search is the only thing Flint sends off your
+        <p class="flint-field-hint">Apart from chats with a cloud model, an <code>@web</code> search is the only thing Flint sends off your
           machine, and it sends just the query to Brave Search. These are the searches still in
           your chats; deleting a chat removes its searches from this list.</p>
         <p class="flint-error" x-text="webSearchesError"></p>

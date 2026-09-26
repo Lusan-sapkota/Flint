@@ -46,7 +46,7 @@ func liveConversation(t *testing.T) (*Server, *User, *ConversationWithMessages) 
 // transcript it was given.
 func TestLiveSummarizeChunk(t *testing.T) {
 	srv, user, convo := liveConversation(t)
-	numCtx := numCtxFor(convo.Conversation)
+	numCtx := srv.numCtxFor(user, convo.Conversation)
 	chunk, ok := nextChunk(convo.Messages, nil, tokenCounter(convo.TokenRatio), numCtx/4, numCtx/4)
 	if !ok {
 		t.Skip("conversation is too short to have a summarizable chunk")
@@ -65,8 +65,8 @@ func TestLiveSummarizeChunk(t *testing.T) {
 // TestLiveDumpHistory prints what would be sent to Ollama for the next
 // turn: role, tool-call count and the start of each message.
 func TestLiveDumpHistory(t *testing.T) {
-	_, _, convo := liveConversation(t)
-	numCtx := numCtxFor(convo.Conversation)
+	srv, user, convo := liveConversation(t)
+	numCtx := srv.numCtxFor(user, convo.Conversation)
 	h := buildOptimizedHistory(convo.Messages, convo.Summaries, "", numCtx-responseReserve, tokenCounter(convo.TokenRatio))
 	fmt.Printf("token ratio %.2f, %d summaries, %d messages -> %d sent\n", convo.TokenRatio, len(convo.Summaries), len(convo.Messages), len(h))
 	for _, m := range h {

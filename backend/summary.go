@@ -202,7 +202,7 @@ func (s *Server) summarizeStep(ctx context.Context, user *User, convoID string, 
 	if err != nil || convo == nil {
 		return true, "", err
 	}
-	numCtx := numCtxFor(convo.Conversation)
+	numCtx := s.numCtxFor(user, convo.Conversation)
 	target := summaryTokens(numCtx)
 	count := tokenCounter(convo.TokenRatio)
 
@@ -299,7 +299,7 @@ func (s *Server) condense(ctx context.Context, user *User, convo *ConversationWi
 	// (the same dilution the tool nudge ran into, see streamAssistantTurn).
 	out, err := s.ollama.Chat(ctx, s.ollamaURLFor(user), convo.Model, []OllamaMessage{
 		{Role: "user", Content: input + "\n\n---\n\n" + system},
-	}, map[string]any{"num_ctx": numCtxFor(convo.Conversation), "temperature": 0.2, "num_predict": target * 2})
+	}, map[string]any{"num_ctx": s.numCtxFor(user, convo.Conversation), "temperature": 0.2, "num_predict": target * 2})
 	if err != nil {
 		return "", err
 	}

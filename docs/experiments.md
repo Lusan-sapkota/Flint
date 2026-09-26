@@ -749,6 +749,29 @@ saved, so it went through but likely ran out of room thinking, a separate
 problem. qwen2.5-3b and phi3 never trigger the fallback; phi3 echoed the
 memory block and misdescribed it, which is the model.
 
+## E23: The window size for cloud models and bigger GPUs
+
+A chat with `nemotron-3-ultra:cloud` showed "157 / 4.1k": the fixed
+4096/8192 window was meant for a 6 GB GPU, and a cloud model reports
+`context_length` 262144. Checked first whether ollama.com honors
+`num_ctx`: a code word plus ~10.9k tokens of filler, sent with
+`num_ctx` 4096 and again with 32768. Both processed all 10,924 prompt
+tokens and answered the code word from the prompt's start. So Ollama
+cloud ignores `num_ctx`, and the only effect of Flint's 4k was its own
+compaction and meter treating a large model as a small one. The same
+fixed number also held back anyone with a bigger GPU.
+
+**Changed:** an account setting (Settings → Connection, empty = Auto),
+then 32768 for a cloud model, then the old 4096/8192, capped at the
+model's `context_length` from `/api/tags` (every installed model reports
+one: qwen2.5-3b 32768, phi3 131072, qwen3.5-4b 262144). Cloud gets 32k,
+not its full window, because each turn resends the kept history and a
+full window could mean 100k+ tokens of quota per turn. Verified live: a
+custom 16384 loaded qwen2.5-3b at 16384 (`/api/ps`) with the meter at
+16384; Auto on the cloud model reported 32768. **Not measured:** recall
+and tool use at bigger windows on the small models (see the open
+question on a bigger window).
+
 ## Open questions
 
 - **qwen3.5 thinking with no answer.** Once in E22 it streamed a long
