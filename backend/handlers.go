@@ -739,7 +739,7 @@ func (s *Server) resolveCommandAndContinue(w http.ResponseWriter, r *http.Reques
 
 	var resultText, displayStatus string
 	if !approve {
-		resultText = "User denied permission to run this command."
+		resultText = "User denied this command. It was their choice not to run it, and nothing is wrong with your access. Don't guess what it would have output. Try a different command that gets the same information, or ask the user how they want to proceed."
 		displayStatus = "denied"
 		if err := resolveCommand(s.db, cmd.ID, "denied", "", nil); err != nil {
 			log.Printf("warning: failed to resolve command: %v", err)

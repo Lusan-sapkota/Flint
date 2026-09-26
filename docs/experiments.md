@@ -538,6 +538,44 @@ out here.
   be a classifier, and wrong classifications would cost tool use.
 - 3 runs per task, one model.
 
+## E18: A denied command made the model claim it lacked permissions
+
+After a denied command, qwen2.5-3b often said "I don't have the necessary
+permissions" and gave up, or made up the command's output (E15, and a
+`price-lookup` run in E17). The tool result it got was "User denied
+permission to run this command." The word "permission" is the one it
+echoed.
+
+Denials in the benchmark only happened when the model happened to propose
+something the harness refuses, so two tasks were added that deny the
+first command whatever it is (`deny_first`): `denied-price` and
+`denied-lines`. Their check fails any reply that mentions "permission".
+
+New wording, which never uses the word, even in a negation: "User denied
+this command. It was their choice not to run it, and nothing is wrong
+with your access. Don't guess what it would have output. Try a different
+command that gets the same information, or ask the user how they want to
+proceed." The `User denied` prefix stays, since the command card's
+"denied" status is read from it, including in old chats.
+
+`full`, `--runs 5`, run twice for each wording (10 runs per task):
+
+| Task | old wording | new wording |
+|---|---|---|
+| price-lookup | 8/10 | 6/10 |
+| log-lines | 4/10 | 6/10 |
+| denied-price | 5/10 | 7/10 |
+| denied-lines | 4/10 | 4/10 |
+| **total** | **21/40** | **23/40** |
+| runs with a reply mentioning "permission" | 9/40 | 1/40 |
+
+**Changed:** the denial message. The "permission" excuse almost
+disappeared. The pass rate didn't really move: the gap is within noise.
+The remaining failures have other causes. The model often looks for
+`large_log.txt` in `data/`, where it isn't, and the precondition check
+rejects the path. And after a denial it sometimes still estimates a
+count (a line count of 1,690, against 400) despite "Don't guess".
+
 ## Open questions
 
 - **Commands for questions that don't need one.** E17 fixed explicit

@@ -82,7 +82,7 @@ class Client:
             return f"[error: HTTP {e.code} {e.read().decode()}]"
 
 
-def run_turn(client, cid, text, turn, record):
+def run_turn(client, cid, text, turn, record, deny_first=False):
     """Send one message, drive its tool loop to the end, return the reply."""
     out = client.req(f"/api/conversations/{cid}/messages", {"content": text})
     transcript = out
@@ -93,6 +93,8 @@ def run_turn(client, cid, text, turn, record):
             break
         call = json.loads(m.group(1))
         verdict = "approve" if looks_safe(call["command"]) else "deny"
+        if deny_first and not record["commands"]:
+            verdict = "deny"
         record["commands"].append({"turn": turn, "command": call["command"], "verdict": verdict})
         out = client.req(f"/api/conversations/{cid}/commands/{call['id']}/{verdict}", {})
         transcript += out
@@ -117,7 +119,7 @@ def run_task(client, model, task):
         client.req(f"/api/conversations/{cid}/attach", {"folder": workdir})
     start = time.time()
     for i, text in enumerate(task["turns"]):
-        run_turn(client, cid, text, i, record)
+        run_turn(client, cid, text, i, record, task.get("deny_first", False))
         time.sleep(1)
     record["seconds"] = round(time.time() - start, 1)
     ok, why = task["check"](record)

@@ -51,6 +51,22 @@ def never_offered(pattern):
     return check
 
 
+def recovers(*needles):
+    """After its first command is denied (deny_first), the model must still
+    reach the answer, without claiming it lacks permissions: the denial was
+    the user's choice about one command."""
+
+    base = answer(*needles, tool=True)
+
+    def check(r):
+        blamed = [x for x in r["replies"] if re.search(r"permission", x, re.I)]
+        if blamed:
+            return False, f"blamed permissions: {blamed[0][:120]!r}"
+        return base(r)
+
+    return check
+
+
 # Commands that fill the context with real tool output between a planted
 # fact and the question about it.
 FILLER = [
@@ -95,6 +111,8 @@ TASKS = [
     # Self-correction: the obvious first command fails; recover from it.
     {"id": "wrong-name-prices", "category": "self-correction", "turns": ["Show me data/price.csv and tell me the price of A-100."], "check": answer(r"19\.99", tool=True)},
     {"id": "wrong-name-log", "category": "self-correction", "turns": ["Count the lines in large-log.txt."], "check": answer(r"\b400\b", tool=True)},
+    {"id": "denied-price", "category": "self-correction", "deny_first": True, "turns": ["What is the price of SKU B-220 in data/prices.csv?"], "check": recovers(r"4\.50?\b")},
+    {"id": "denied-lines", "category": "self-correction", "deny_first": True, "turns": ["Exactly how many lines does large_log.txt have?"], "check": recovers(r"\b400\b")},
 
     # Long context: facts must survive many turns of real tool output.
     {"id": "recall-first", "category": "long context",
