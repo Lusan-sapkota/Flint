@@ -5,7 +5,7 @@
 Docker runs **Flint only**. Ollama stays the normal app on your machine,
 where it already has your GPU and your models, and the container talks
 to it. The image is published at `ghcr.io/lusan-sapkota/flint` (see
-[Publishing the image](#publishing-the-image)), and the compose files in
+[Image tags](#image-tags)), and the compose files in
 the repository root are ready-to-use examples. Download one; there's no
 need to clone the repository.
 
@@ -108,33 +108,20 @@ The compose files then use that local image instead of downloading one.
 Remove it (`docker rmi ghcr.io/lusan-sapkota/flint:latest`) to go back to
 the published image, since otherwise the local copy keeps shadowing it.
 
-## Publishing the image
+## Image tags
 
-`.github/workflows/docker.yml` builds the image for `linux/amd64` and
-`linux/arm64` and pushes it to GitHub Container Registry whenever a version
-tag is pushed, and at no other time:
+A new image is published for every release, for `linux/amd64` and
+`linux/arm64`:
 
-```bash
-git tag v0.1.0
-git push origin v0.1.0
-```
+| Tag | Follows |
+|---|---|
+| `latest` | the newest normal release (never a pre-release like `v0.2.0-beta`) |
+| `0.1` | the newest `0.1.x` patch release |
+| `0.1.4` | exactly that release |
 
-That publishes `0.1.0`, `0.1` and `latest`. A pre-release tag such as
-`v0.2.0-beta` publishes only its own version, so `latest` keeps pointing
-at the newest normal release. It authenticates with the
-workflow's own `GITHUB_TOKEN`, so no secrets or extra accounts are needed.
-After the first publish, check the package's visibility on GitHub (profile
-→ Packages → flint → Package settings) and set it to **Public** if it isn't,
-or nobody else can pull it. The workflow file has to exist in the tagged
-commit, so tag a commit that includes it.
-
-The repository has two rulesets, which apply to the owner too:
-
-- **`main`** can't be force-pushed or deleted, since it's what people
-  clone and what the download links point at.
-- **`v*` tags** can't be deleted or moved once pushed, so a published
-  version always means the same code. A broken release is fixed by
-  tagging the next version (`v0.1.1`), not by re-tagging.
+The compose files use `latest`. To stay on one version, change the tag
+in the compose file. A published version always means the same code: a
+broken release is fixed by the next version, never by republishing one.
 
 ## Health
 

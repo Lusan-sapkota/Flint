@@ -82,6 +82,44 @@ build. Don't add CDN links or a build step.
 - Wrap anything like `@web` in backticks. GitHub turns a bare `@word`
   into a mention of whoever owns that username.
 
+## Releasing (maintainers)
+
+A release is a version tag on `main` plus a GitHub release whose notes
+are that version's section of [docs/changelog.md](docs/changelog.md):
+
+```bash
+git switch main && git pull --ff-only
+git tag -a v0.1.4 -m "v0.1.4"
+git push origin v0.1.4
+awk '/^## \[0.1.4\]/{f=1;next} /^## \[/{f=0} f' docs/changelog.md > /tmp/notes.md
+gh release create v0.1.4 --title "v0.1.4" --notes-file /tmp/notes.md --verify-tag
+```
+
+Before tagging, the changelog section needs its date and a compare link
+at the bottom, and every `@word` in it must be in backticks (a bare one
+becomes a GitHub mention of a real account).
+
+Pushing the tag runs `.github/workflows/docker.yml`, which builds the
+image for `linux/amd64` and `linux/arm64` and pushes it to GitHub
+Container Registry, and at no other time. `v0.1.4` publishes `0.1.4`,
+`0.1` and `latest`; a pre-release tag such as `v0.2.0-beta` publishes
+only its own version. It authenticates with the workflow's own
+`GITHUB_TOKEN`, so no secrets are needed. The workflow file has to exist
+in the tagged commit. After the very first publish, the package's
+visibility had to be set to **Public** (profile → Packages → flint →
+Package settings), or nobody else could pull it.
+
+The docs site (flint.lusansapkota.com.np) is served by GitHub Pages from
+`main` /docs, so it updates when `main` does.
+
+The repository has two rulesets, which apply to the owner too:
+
+- **`main`** can't be force-pushed or deleted, since it's what people
+  clone and what the download links point at.
+- **`v*` tags** can't be deleted or moved once pushed, so a published
+  version always means the same code. A broken release is fixed by
+  tagging the next version, not by re-tagging.
+
 ## Security issues
 
 Don't open a public issue. Report them privately through **Security →
