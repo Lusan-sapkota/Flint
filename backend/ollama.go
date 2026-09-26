@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"slices"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -102,6 +103,10 @@ type OllamaClient struct {
 	// change, so each is looked up via /api/show at most once.
 	capsMu sync.Mutex
 	caps   map[string][]string
+
+	// Models whose chat template rejects a system message after the first
+	// one, learned from the first rejection.
+	systemFirstOnly sync.Map
 }
 
 func NewOllamaClient() *OllamaClient {
@@ -340,6 +345,12 @@ func (c *OllamaClient) doRaw(ctx context.Context, method, url string, body *byte
 // otherwise spends a small num_predict budget entirely on reasoning and
 // returns empty content. Non-thinking models accept think:false fine.
 func (c *OllamaClient) Chat(ctx context.Context, baseURL, model string, messages []OllamaMessage, options map[string]any) (string, error) {
+	return withSystemFallback(c, model, messages, func(messages []OllamaMessage) (string, error) {
+		return c.chat(ctx, baseURL, model, messages, options)
+	})
+}
+
+func (c *OllamaClient) chat(ctx context.Context, baseURL, model string, messages []OllamaMessage, options map[string]any) (string, error) {
 	think := false
 	body, err := json.Marshal(ollamaChatRequest{Model: model, Messages: messages, Options: options, Think: &think})
 	if err != nil {
@@ -360,6 +371,12 @@ func (c *OllamaClient) Chat(ctx context.Context, baseURL, model string, messages
 // model without the "thinking" capability: Ollama rejects think:true there
 // with "does not support thinking".
 func (c *OllamaClient) StreamChat(ctx context.Context, baseURL, model string, messages []OllamaMessage, tools []OllamaTool, options map[string]any, think *bool, onToken, onThinking func(string)) (ChatResult, error) {
+	return withSystemFallback(c, model, messages, func(messages []OllamaMessage) (ChatResult, error) {
+		return c.streamChat(ctx, baseURL, model, messages, tools, options, think, onToken, onThinking)
+	})
+}
+
+func (c *OllamaClient) streamChat(ctx context.Context, baseURL, model string, messages []OllamaMessage, tools []OllamaTool, options map[string]any, think *bool, onToken, onThinking func(string)) (ChatResult, error) {
 	body, err := json.Marshal(ollamaChatRequest{Model: model, Messages: messages, Stream: true, Tools: tools, Options: options, Think: think})
 	if err != nil {
 		return ChatResult{}, err
@@ -432,6 +449,38 @@ func (c *OllamaClient) StreamChat(ctx context.Context, baseURL, model string, me
 	}
 
 	return ChatResult{Content: full.String(), Thinking: thinking.String(), ToolCalls: toolCalls, TokensPerSec: tokensPerSec, ContextUsed: contextUsed, PromptTokens: promptTokens}, nil
+}
+
+// systemNotFirst is the error qwen3.5's chat template raises for a system
+// message anywhere but first. Flint places `@web` results, recalled
+// memories, summaries and context notes later in the history as system
+// messages on purpose (closer to generation), which most templates allow.
+const systemNotFirst = "System message must be at the beginning"
+
+// withSystemFallback resends with the later system messages as user
+// messages when the model's template refuses them, and remembers that
+// model, so every other model keeps the placement the experiments were
+// measured with. The rejection comes before any token is streamed.
+func withSystemFallback[T any](c *OllamaClient, model string, messages []OllamaMessage, send func([]OllamaMessage) (T, error)) (T, error) {
+	if _, ok := c.systemFirstOnly.Load(model); ok {
+		return send(laterSystemAsUser(messages))
+	}
+	out, err := send(messages)
+	if err != nil && strings.Contains(err.Error(), systemNotFirst) {
+		c.systemFirstOnly.Store(model, true)
+		return send(laterSystemAsUser(messages))
+	}
+	return out, err
+}
+
+func laterSystemAsUser(messages []OllamaMessage) []OllamaMessage {
+	out := slices.Clone(messages)
+	for i := 1; i < len(out); i++ {
+		if out[i].Role == "system" {
+			out[i].Role = "user"
+		}
+	}
+	return out
 }
 
 func readAll(r interface{ Read([]byte) (int, error) }, max int) ([]byte, error) {

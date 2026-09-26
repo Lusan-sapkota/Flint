@@ -57,6 +57,14 @@ telling the model to ask for a re-send.
 The folder manifest is capped at 12 KB (`maxAttachTotalSize`), about 3.6k
 tokens of Go code, so it fits well inside the 8192 window (E4).
 
+**Later system messages.** Summaries, context notes, `@web` results and
+`@memory` recalls are system messages placed later in the history, closer
+to generation. Some chat templates refuse that: qwen3.5's raises "System
+message must be at the beginning". On that exact error `withSystemFallback`
+(ollama.go) resends with every system message after the first sent as a
+user message, and remembers the model until Flint restarts, so other
+models keep the placement the experiments measured (E22).
+
 ## Fitting everything else, cheapest loss first
 
 `buildOptimizedHistory` does these steps in order:

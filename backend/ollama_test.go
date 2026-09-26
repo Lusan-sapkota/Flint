@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -33,5 +34,36 @@ func TestDescribeOllamaError(t *testing.T) {
 	}
 	if got := describeOllamaError(errors.New("model not found"), "x"); got != "model not found" {
 		t.Errorf("other errors should pass through, got %q", got)
+	}
+}
+
+func TestSystemFallbackOnlyForModelsThatRefuse(t *testing.T) {
+	c := NewOllamaClient()
+	history := []OllamaMessage{{Role: "system", Content: "manifest"}, {Role: "user", Content: "hi"}, {Role: "system", Content: "Saved memories"}, {Role: "user", Content: "lcore"}}
+	sends := 0
+	strict := func(m []OllamaMessage) (string, error) {
+		sends++
+		for i, msg := range m {
+			if i > 0 && msg.Role == "system" {
+				return "", fmt.Errorf("ollama returned status 500: Jinja Exception: %s.", systemNotFirst)
+			}
+		}
+		return m[0].Role + "," + m[2].Role, nil
+	}
+
+	if got, err := withSystemFallback(c, "qwen3.5-4b", history, strict); err != nil || got != "system,user" || sends != 2 {
+		t.Fatalf("want a resend with the later system message as user, got %q %v after %d sends", got, err, sends)
+	}
+	if history[2].Role != "system" {
+		t.Error("the caller's history must not be changed")
+	}
+	sends = 0
+	if _, err := withSystemFallback(c, "qwen3.5-4b", history, strict); err != nil || sends != 1 {
+		t.Errorf("a model already known to refuse must go straight to the fallback, got %d sends", sends)
+	}
+
+	lenient := func(m []OllamaMessage) (string, error) { return m[2].Role, nil }
+	if got, _ := withSystemFallback(c, "qwen2.5-3b-instruct", history, lenient); got != "system" {
+		t.Errorf("a model that accepts later system messages must get them unchanged, got %q", got)
 	}
 }

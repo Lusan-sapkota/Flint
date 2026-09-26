@@ -723,8 +723,37 @@ number is in no snippet; only reading the page itself would give it,
 which would send requests to sites other than Brave. A saved search
 from before this still parses, without dates.
 
+## E22: qwen3.5 refuses a system message that isn't first
+
+`@memory lcore` on qwen3.5-4b failed with Ollama 500: "Jinja Exception:
+System message must be at the beginning". Its template has an explicit
+`raise_exception` for any system message past the first. Flint places
+several there on purpose (summaries, context notes, `@web` results,
+`@memory` recalls, a folder attached mid-chat), so on qwen3.5 every chat
+using one broke. Direct curl, [user, assistant, system, user]: qwen3.5
+500, qwen2.5-3b and phi3:3.8b fine. The same content as a user message:
+qwen3.5 accepted it and answered from the recalled memory.
+
+- **Adopted:** on that exact error, resend once with every later system
+  message as a user message, and remember the model (in memory, until
+  restart). The rejection comes before any token, so nothing is shown
+  twice. Models that accept later system messages are untouched, since
+  E9-E19's placement results were measured on qwen2.5.
+- **Rejected:** always sending them as user messages. Simpler, but it
+  changes the tuned qwen2.5 prompts and would need the benchmark rerun.
+
+Live, fresh chat, "hi" then `@memory lcore`: qwen3.5 3/3 answered from
+the memory ("lcore is your single-file Python WSGI framework..."); a
+fourth run streamed its thinking but produced no answer and nothing was
+saved, so it went through but likely ran out of room thinking, a separate
+problem. qwen2.5-3b and phi3 never trigger the fallback; phi3 echoed the
+memory block and misdescribed it, which is the model.
+
 ## Open questions
 
+- **qwen3.5 thinking with no answer.** Once in E22 it streamed a long
+  thought and never answered, leaving nothing saved. Unmeasured: how
+  often, and whether the 1024-token reply reserve is what runs out.
 - **Commands for questions that don't need one.** E17 fixed explicit
   "don't run commands". Simple arithmetic still goes to `bc` or
   `python3 -c`, with or without the nudge.

@@ -42,6 +42,10 @@ Notable changes in each release. The measurements behind a change are in
 
 ### Fixed
 
+- qwen3.5 no longer fails with "System message must be at the beginning"
+  after `@memory`, a later `@web`, or once a long chat is summarized. Its
+  chat template allows one system message, first; Flint now resends
+  such messages as user messages for models that refuse them (E22).
 - `nomic-embed-text` unloads as soon as an `@web` search has re-ranked
   its results, instead of staying in memory for Ollama's default 5
   minutes beside the chat model.
