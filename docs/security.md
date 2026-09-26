@@ -17,6 +17,12 @@ to make it safe to share with other people.
   to its owner. Another account's resources return **404, not 403**, so their
   existence isn't revealed.
 - Recovery lookups answer the same way whether or not the email exists.
+- Deleting an account (`DELETE /api/me`) needs the password, plus every
+  security answer when questions are set, so a stolen session alone can't
+  erase an account. A wrong password or answer gets the same message. It
+  deletes the user row, which cascades to every session, conversation,
+  message, command, summary, memory and security question, then removes
+  the attachment files from disk.
 
 ## Rate limits
 
@@ -27,6 +33,7 @@ An in-memory sliding window per client IP (`r.RemoteAddr`):
 | login | 5 per 5 minutes |
 | signup | 5 per 5 minutes, separate from login |
 | recovery questions + reset (shared) | 5 per 30 minutes |
+| account deletion | 5 per 30 minutes |
 
 `X-Forwarded-For` is ignored on purpose. Without a trusted-proxy list,
 anyone could set it to get around the limit. Behind a reverse proxy, every

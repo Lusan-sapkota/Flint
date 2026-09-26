@@ -165,6 +165,31 @@
       </div>
     </section>
 
+    <section class="flint-settings-section">
+      <h3>Delete account</h3>
+      <p>Deletes your account and everything in it: chats, attachments, memories and settings.
+        This cannot be undone. Enter your password<span x-show="existingQuestions.length"> and
+        the answers to your security questions</span> to confirm.</p>
+
+      <label for="delete_password">Password
+        <div class="flint-password-wrap" x-data="{ show: false }">
+          <input :type="show ? 'text' : 'password'" id="delete_password" x-model="deletePassword" autocomplete="current-password">
+          {{template "password-toggle"}}
+        </div>
+      </label>
+      <template x-for="(q, i) in existingQuestions" :key="i">
+        <label>
+          <span x-text="q.question"></span>
+          <input type="text" x-model="deleteAnswers[i]" autocomplete="off">
+        </label>
+      </template>
+
+      <p class="flint-error" x-text="deleteAccountError"></p>
+      <div class="flint-settings-actions">
+        <button type="button" class="flint-danger-btn" @click="deleteAccount" :aria-busy="deletingAccount" :disabled="deletingAccount">Delete my account</button>
+      </div>
+    </section>
+
   </div>
 </div>
 {{end}}

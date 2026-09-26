@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/google/uuid"
@@ -141,5 +143,58 @@ func (s *Server) handleRecoveryReset(w http.ResponseWriter, r *http.Request) {
 		log.Printf("warning: failed to invalidate sessions after password recovery: %v", err)
 	}
 
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleDeleteAccount requires the password, and also every security answer
+// when questions are set: a stolen session alone must not be enough to
+// erase an account for good.
+func (s *Server) handleDeleteAccount(w http.ResponseWriter, r *http.Request) {
+	user := userFromContext(r)
+	var body struct {
+		Password string   `json:"password"`
+		Answers  []string `json:"answers"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	const wrong = "incorrect password or answers"
+	if bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(body.Password)) != nil {
+		writeError(w, http.StatusUnauthorized, wrong)
+		return
+	}
+	questions, err := getSecurityQuestionsForUser(s.db, user.ID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if len(body.Answers) != len(questions) {
+		writeError(w, http.StatusUnauthorized, wrong)
+		return
+	}
+	for i, q := range questions {
+		if bcrypt.CompareHashAndPassword([]byte(q.AnswerHash), []byte(normalizeAnswer(body.Answers[i]))) != nil {
+			writeError(w, http.StatusUnauthorized, wrong)
+			return
+		}
+	}
+
+	paths, err := getAttachmentPathsForUser(s.db, user.ID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if err := deleteUser(s.db, user.ID); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	for _, p := range paths {
+		if err := os.Remove(filepath.Join(s.attachmentsDir, p)); err != nil && !os.IsNotExist(err) {
+			log.Printf("warning: failed to remove attachment file %s: %v", p, err)
+		}
+	}
+	clearSessionCookie(w)
 	w.WriteHeader(http.StatusNoContent)
 }

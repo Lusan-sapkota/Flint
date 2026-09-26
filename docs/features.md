@@ -15,7 +15,11 @@ feature change.
   Settings. To recover, enter your email, answer the questions, and choose
   a new password. Answers are compared case- and whitespace-insensitively.
   A reset signs out every session of that account.
-- **Rate limiting** on login, signup and recovery (see
+- **Delete your account** in Settings. It asks for your password and, if
+  you've set security questions, their answers, then a typed `DELETE`
+  confirmation. Every chat, attachment, memory and setting is deleted for
+  good, and every session is signed out.
+- **Rate limiting** on login, signup, recovery and account deletion (see
   [security.md](security.md)).
 
 ## Chat

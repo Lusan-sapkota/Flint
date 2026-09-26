@@ -3,6 +3,19 @@
 Notable changes in each release. The measurements behind a change are in
 [docs/experiments.md](docs/experiments.md).
 
+## [0.1.3] - 2026-09-26
+
+### Added
+
+- Delete your account from Settings. It asks for your password and, if
+  you've set security questions, their answers, then a typed `DELETE`
+  confirmation. Everything in the account is deleted for good, including
+  attachment files, and every session is signed out.
+
+### Fixed
+
+- Display math no longer shows a small vertical scrollbar.
+
 ## [0.1.2] - 2026-09-26
 
 ### Changed
@@ -55,6 +68,7 @@ First release.
 - A Docker image for amd64 and arm64 on ghcr.io, run with Docker Compose
   against the Ollama already on your machine.
 
+[0.1.3]: https://github.com/Lusan-sapkota/Flint/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Lusan-sapkota/Flint/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Lusan-sapkota/Flint/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Lusan-sapkota/Flint/releases/tag/v0.1.0

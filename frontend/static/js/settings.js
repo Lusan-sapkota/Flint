@@ -21,6 +21,10 @@ document.addEventListener('alpine:init', () => {
     savingQuestions: false,
     questionsStatus: '',
     questionsError: '',
+    deletePassword: '',
+    deleteAnswers: [],
+    deletingAccount: false,
+    deleteAccountError: '',
 
     runningModels: [],
     runningLoading: false,
@@ -278,10 +282,42 @@ document.addEventListener('alpine:init', () => {
         this.existingQuestions = this.editQuestions.map((q) => ({ question: q.question.trim() }));
         this.editQuestions = this.existingQuestions.map((q) => ({ question: q.question, answer: '' }));
         this.questionsStatus = 'Saved. All prior answers were replaced.';
+        this.deleteAnswers = [];
       } catch (e) {
         this.questionsError = 'Could not reach the server.';
       } finally {
         this.savingQuestions = false;
+      }
+    },
+
+    async deleteAccount() {
+      this.deleteAccountError = '';
+      const answers = this.existingQuestions.map((_, i) => this.deleteAnswers[i] || '');
+      if (!this.deletePassword || answers.some((a) => !a.trim())) {
+        this.deleteAccountError = this.existingQuestions.length
+          ? 'Enter your password and answer every question.'
+          : 'Enter your password.';
+        return;
+      }
+      if (!(await flintConfirmDelete('Delete your account?', 'Every chat, attachment, memory and setting in this account is deleted for good. This cannot be undone.'))) return;
+
+      this.deletingAccount = true;
+      try {
+        const res = await fetch('/api/me', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: this.deletePassword, answers }),
+        });
+        if (res.status === 204) {
+          window.location.href = '/signup';
+          return;
+        }
+        const data = await res.json().catch(() => ({}));
+        this.deleteAccountError = data.error || res.statusText;
+      } catch (e) {
+        this.deleteAccountError = 'Could not reach the server.';
+      } finally {
+        this.deletingAccount = false;
       }
     },
   }));

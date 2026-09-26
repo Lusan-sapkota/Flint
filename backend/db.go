@@ -745,23 +745,36 @@ func createAttachment(db *sql.DB, id string, messageID int64, mimeType, filename
 }
 
 func getAttachmentPathsForConversation(db *sql.DB, conversationID string) ([]string, error) {
-	rows, err := db.Query(
-		`SELECT a.file_path FROM attachments a JOIN messages m ON m.id = a.message_id WHERE m.conversation_id = ?`, conversationID,
-	)
+	return queryStrings(db, `SELECT a.file_path FROM attachments a JOIN messages m ON m.id = a.message_id WHERE m.conversation_id = ?`, conversationID)
+}
+
+func getAttachmentPathsForUser(db *sql.DB, userID string) ([]string, error) {
+	return queryStrings(db, `SELECT a.file_path FROM attachments a JOIN messages m ON m.id = a.message_id
+		JOIN conversations c ON c.id = m.conversation_id WHERE c.user_id = ?`, userID)
+}
+
+// deleteUser removes the account; every table cascades from users.
+func deleteUser(db *sql.DB, userID string) error {
+	_, err := db.Exec(`DELETE FROM users WHERE id = ?`, userID)
+	return err
+}
+
+func queryStrings(db *sql.DB, query string, args ...any) ([]string, error) {
+	rows, err := db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	paths := []string{}
+	out := []string{}
 	for rows.Next() {
-		var p string
-		if err := rows.Scan(&p); err != nil {
+		var s string
+		if err := rows.Scan(&s); err != nil {
 			return nil, err
 		}
-		paths = append(paths, p)
+		out = append(out, s)
 	}
-	return paths, rows.Err()
+	return out, rows.Err()
 }
 
 func getAttachmentOwned(db *sql.DB, attachmentID, userID string) (*Attachment, error) {
