@@ -249,10 +249,14 @@ func (c *OllamaClient) DeleteModel(ctx context.Context, baseURL, name string) er
 	return err
 }
 
+// Embed unloads the model right after: a web search embeds everything in
+// one call, and Ollama's default 5 minutes would keep it next to the chat
+// model in VRAM for nothing.
 func (c *OllamaClient) Embed(ctx context.Context, baseURL, model string, inputs []string) ([][]float64, error) {
 	data, err := c.doRaw(ctx, http.MethodPost, baseURL+"/api/embed", bytes.NewReader(mustMarshal(map[string]any{
-		"model": model,
-		"input": inputs,
+		"model":      model,
+		"input":      inputs,
+		"keep_alive": 0,
 	})))
 	if err != nil {
 		return nil, err

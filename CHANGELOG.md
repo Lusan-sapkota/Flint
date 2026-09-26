@@ -37,6 +37,9 @@ Notable changes in each release. The measurements behind a change are in
 
 ### Fixed
 
+- `nomic-embed-text` unloads as soon as an `@web` search has re-ranked
+  its results, instead of staying in memory for Ollama's default 5
+  minutes beside the chat model.
 - When Ollama isn't reachable, Flint says so plainly (where it looked
   and what to do) instead of showing Go's raw connection error, and says
   it once per page instead of in every section.
