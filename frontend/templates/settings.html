@@ -6,7 +6,9 @@
     preferredModels: {{.PreferredModelsJSON}},
     questions: {{.QuestionsJSON}},
     rankingModel: '{{.RankingModel | jsStr}}',
-    rankingModelMissing: {{.RankingModelMissing}}
+    rankingModelMissing: {{.RankingModelMissing}},
+    fullName: '{{.User.FullName | jsStr}}',
+    email: '{{.User.Email | jsStr}}'
   })" x-cloak>
   <nav class="flint-settings-nav" aria-label="Settings sections">
     <div class="flint-sidebar-header">
@@ -20,8 +22,8 @@
     </div>
     <div class="flint-sidebar-footer">
       <div class="flint-sidebar-user">
-        <span class="flint-sidebar-avatar">{{.User.FullName | initial}}</span>
-        <span class="flint-sidebar-user-name">{{.User.FullName}}</span>
+        <span class="flint-sidebar-avatar" x-text="savedName.trim().charAt(0).toUpperCase()">{{.User.FullName | initial}}</span>
+        <span class="flint-sidebar-user-name" x-text="savedName">{{.User.FullName}}</span>
         <a href="#" onclick="flintLogout(); return false;" class="flint-sidebar-logout" title="Log out" aria-label="Log out">{{template "icon-log-out"}}</a>
       </div>
     </div>
@@ -222,6 +224,60 @@
     </section>
 
     <section class="flint-settings-section" x-show="tab === 'account'">
+      <div class="flint-settings-group">
+        <h3>Profile</h3>
+        <label for="profile_name">Full name
+          <input type="text" id="profile_name" x-model="profileName" autocomplete="name">
+        </label>
+        <label for="profile_email">Email
+          <input type="email" id="profile_email" x-model="profileEmail" autocomplete="email">
+        </label>
+        <template x-if="profileEmail.trim().toLowerCase() !== savedEmail">
+          <label for="profile_password">Current password
+            <div class="flint-password-wrap" x-data="{ show: false }">
+              <input :type="show ? 'text' : 'password'" id="profile_password" x-model="profilePassword" autocomplete="current-password">
+              {{template "password-toggle"}}
+            </div>
+            <small class="flint-field-hint">Your email is how you log in, so changing it needs your password.</small>
+          </label>
+        </template>
+        <p class="flint-error" x-text="profileError"></p>
+        <div class="flint-settings-actions">
+          <button type="button" @click="saveProfile" :aria-busy="savingProfile" :disabled="savingProfile">Save profile</button>
+          <p class="flint-save-status" x-text="profileStatus"></p>
+        </div>
+      </div>
+
+      <div class="flint-settings-group">
+        <h3>Password</h3>
+        <label for="current_password">Current password
+          <div class="flint-password-wrap" x-data="{ show: false }">
+            <input :type="show ? 'text' : 'password'" id="current_password" x-model="currentPassword" autocomplete="current-password">
+            {{template "password-toggle"}}
+          </div>
+        </label>
+        <label for="new_password">New password
+          <div class="flint-password-wrap" x-data="{ show: false }">
+            <input :type="show ? 'text' : 'password'" id="new_password" x-model="newPassword" autocomplete="new-password" minlength="8">
+            {{template "password-toggle"}}
+          </div>
+        </label>
+        <label for="confirm_password">Confirm new password
+          <div class="flint-password-wrap" x-data="{ show: false }">
+            <input :type="show ? 'text' : 'password'" id="confirm_password" x-model="confirmPassword" autocomplete="new-password">
+            {{template "password-toggle"}}
+          </div>
+        </label>
+        <p class="flint-field-hint">Forgot your current password? Log out and use <strong>Forgot your
+          password?</strong> on the login page. That works only if you've set security questions,
+          which you can do below.</p>
+        <p class="flint-error" x-text="passwordError"></p>
+        <div class="flint-settings-actions">
+          <button type="button" @click="changePassword" :aria-busy="changingPassword" :disabled="changingPassword">Change password</button>
+          <p class="flint-save-status" x-text="passwordStatus"></p>
+        </div>
+      </div>
+
       <div class="flint-settings-group">
         <h3>Security questions</h3>
         <p>Used to recover your account without email. Answers are never shown back to you once

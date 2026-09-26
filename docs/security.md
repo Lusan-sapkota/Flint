@@ -13,6 +13,10 @@ to make it safe to share with other people.
 - Sessions are random ids stored in SQLite and sent as an `HttpOnly`,
   `SameSite=Lax` cookie. They last 30 days. Logging out deletes the
   session, and a password reset deletes all of that user's sessions.
+  Changing your password in Settings needs the current one and logs out
+  every other session, keeping the one you made the change from.
+- Changing your email needs your current password: the email is the
+  login, so a stolen session alone can't change it and lock you out.
 - Every conversation, message, attachment, command and memory is scoped
   to its owner. Another account's resources return **404, not 403**, so their
   existence isn't revealed.
@@ -34,6 +38,7 @@ An in-memory sliding window per client IP (`r.RemoteAddr`):
 | signup | 5 per 5 minutes, separate from login |
 | recovery questions + reset (shared) | 5 per 30 minutes |
 | account deletion | 5 per 30 minutes |
+| profile + password change (shared) | 10 per 15 minutes |
 
 `X-Forwarded-For` is ignored on purpose. Without a trusted-proxy list,
 anyone could set it to get around the limit. Behind a reverse proxy, every

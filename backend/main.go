@@ -77,6 +77,7 @@ func main() {
 	signupLimiter := newRateLimiter(5, 5*time.Minute)
 	recoveryLimiter := newRateLimiter(5, 30*time.Minute)
 	deleteAccountLimiter := newRateLimiter(5, 30*time.Minute)
+	accountLimiter := newRateLimiter(10, 15*time.Minute)
 
 	mux := http.NewServeMux()
 
@@ -93,6 +94,8 @@ func main() {
 	mux.HandleFunc("GET /api/me/security-questions", srv.requireAuth(srv.handleGetSecurityQuestions))
 	mux.HandleFunc("PUT /api/me/security-questions", srv.requireAuth(srv.handleSetSecurityQuestions))
 	mux.HandleFunc("GET /api/me/web-searches", srv.requireAuth(srv.handleListWebSearches))
+	mux.HandleFunc("PATCH /api/me/profile", accountLimiter.middleware(srv.requireAuth(srv.handleUpdateProfile)))
+	mux.HandleFunc("POST /api/me/password", accountLimiter.middleware(srv.requireAuth(srv.handleChangePassword)))
 	mux.HandleFunc("DELETE /api/me", deleteAccountLimiter.middleware(srv.requireAuth(srv.handleDeleteAccount)))
 
 	mux.HandleFunc("GET /api/models", srv.requireAuth(srv.handleListModels))

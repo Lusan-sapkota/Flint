@@ -17,6 +17,12 @@ feature change.
   Settings. To recover, enter your email, answer the questions, and choose
   a new password. Answers are compared case- and whitespace-insensitively.
   A reset signs out every session of that account.
+- **Edit your profile** in Settings → Account: name and email. Changing
+  the email asks for your current password, since it's how you log in.
+- **Change your password** in Settings → Account, with your current
+  password. Your other devices are logged out; this one stays in. If you've
+  forgotten the current one, log out and use **Forgot your password?**
+  (needs security questions).
 - **Delete your account** in Settings. It asks for your password and, if
   you've set security questions, their answers, then a typed `DELETE`
   confirmation. Every chat, attachment, memory and setting is deleted for

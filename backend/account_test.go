@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -76,5 +77,64 @@ func TestDeleteAccountNeedsPasswordAndAnswersAndWipesOnlyThatAccount(t *testing.
 	}
 	if _, err := os.Stat(filepath.Join(dir, "bob.png")); err != nil {
 		t.Error("another account's files must be untouched")
+	}
+}
+
+func TestProfileAndPasswordChanges(t *testing.T) {
+	db, err := openDB(filepath.Join(t.TempDir(), "t.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	s := &Server{db: db}
+	hash, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.MinCost)
+	createUser(db, "alice", "Alice", "alice@x.io", string(hash))
+	createUser(db, "bob", "Bob", "bob@x.io", string(hash))
+	createSession(db, "this-device", "alice", time.Hour)
+	createSession(db, "other-device", "alice", time.Hour)
+
+	call := func(h http.HandlerFunc, body string) int {
+		u, _ := getUserByID(db, "alice")
+		r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+		r.AddCookie(&http.Cookie{Name: sessionCookieName, Value: "this-device"})
+		r = r.WithContext(context.WithValue(r.Context(), userCtxKey, u))
+		w := httptest.NewRecorder()
+		h(w, r)
+		return w.Code
+	}
+
+	for body, want := range map[string]int{
+		`{"full_name":"Alice R","email":"alice@x.io"}`:                          http.StatusOK,
+		`{"full_name":"Alice R","email":"new@x.io"}`:                            http.StatusUnauthorized,
+		`{"full_name":"Alice R","email":"bob@x.io","password":"password123"}`:   http.StatusConflict,
+		`{"full_name":"","email":"alice@x.io"}`:                                 http.StatusBadRequest,
+		`{"full_name":"Alice R","email":" New@X.io ","password":"password123"}`: http.StatusOK,
+	} {
+		if code := call(s.handleUpdateProfile, body); code != want {
+			t.Errorf("profile %s: got %d, want %d", body, code, want)
+		}
+	}
+	if u, _ := getUserByID(db, "alice"); u.FullName != "Alice R" || u.Email != "new@x.io" {
+		t.Errorf("profile not saved: %+v", u)
+	}
+
+	if code := call(s.handleChangePassword, `{"current_password":"wrong","new_password":"newpassword1"}`); code != http.StatusUnauthorized {
+		t.Errorf("wrong current password: got %d", code)
+	}
+	if code := call(s.handleChangePassword, `{"current_password":"password123","new_password":"short"}`); code != http.StatusBadRequest {
+		t.Errorf("short new password: got %d", code)
+	}
+	if code := call(s.handleChangePassword, `{"current_password":"password123","new_password":"newpassword1"}`); code != http.StatusNoContent {
+		t.Fatalf("change: got %d", code)
+	}
+	u, _ := getUserByID(db, "alice")
+	if bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte("newpassword1")) != nil {
+		t.Error("new password should work")
+	}
+	if kept, _ := getSessionUser(db, "this-device"); kept == nil {
+		t.Error("this device should stay signed in")
+	}
+	if other, _ := getSessionUser(db, "other-device"); other != nil {
+		t.Error("other devices should be signed out")
 	}
 }

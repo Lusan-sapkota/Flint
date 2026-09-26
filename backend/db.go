@@ -430,6 +430,14 @@ func updateUserBraveAPIKey(db *sql.DB, userID string, key *string) error {
 	return err
 }
 
+func updateUserProfile(db *sql.DB, userID, fullName, email string) error {
+	_, err := db.Exec(
+		`UPDATE users SET full_name = ?, email = ?, updated_at = ? WHERE id = ?`,
+		fullName, email, time.Now().UnixMilli(), userID,
+	)
+	return err
+}
+
 func updateUserPassword(db *sql.DB, userID, passwordHash string) error {
 	_, err := db.Exec(
 		`UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?`,
@@ -472,6 +480,11 @@ func getSessionUser(db *sql.DB, sessionID string) (*User, error) {
 
 func deleteSession(db *sql.DB, sessionID string) error {
 	_, err := db.Exec(`DELETE FROM sessions WHERE id = ?`, sessionID)
+	return err
+}
+
+func deleteOtherSessions(db *sql.DB, userID, keepSessionID string) error {
+	_, err := db.Exec(`DELETE FROM sessions WHERE user_id = ? AND id != ?`, userID, keepSessionID)
 	return err
 }
 

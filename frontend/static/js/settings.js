@@ -48,6 +48,21 @@ document.addEventListener('alpine:init', () => {
     savingQuestions: false,
     questionsStatus: '',
     questionsError: '',
+    savedName: config.fullName,
+    savedEmail: config.email,
+    profileName: config.fullName,
+    profileEmail: config.email,
+    profilePassword: '',
+    savingProfile: false,
+    profileStatus: '',
+    profileError: '',
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+    changingPassword: false,
+    passwordStatus: '',
+    passwordError: '',
+
     deletePassword: '',
     deleteAnswers: [],
     deletingAccount: false,
@@ -400,6 +415,72 @@ document.addEventListener('alpine:init', () => {
         this.questionsError = 'Could not reach the server.';
       } finally {
         this.savingQuestions = false;
+      }
+    },
+
+    async saveProfile() {
+      this.profileError = '';
+      this.profileStatus = '';
+      if (!this.profileName.trim() || !this.profileEmail.trim()) {
+        this.profileError = 'Enter your name and email.';
+        return;
+      }
+      this.savingProfile = true;
+      try {
+        const res = await fetch('/api/me/profile', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ full_name: this.profileName, email: this.profileEmail, password: this.profilePassword }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          this.profileError = data.error || res.statusText;
+          return;
+        }
+        this.savedName = this.profileName = data.full_name;
+        this.savedEmail = this.profileEmail = data.email;
+        this.profilePassword = '';
+        this.profileStatus = 'Profile saved.';
+      } catch (e) {
+        this.profileError = 'Could not reach the server.';
+      } finally {
+        this.savingProfile = false;
+      }
+    },
+
+    async changePassword() {
+      this.passwordError = '';
+      this.passwordStatus = '';
+      if (!this.currentPassword || !this.newPassword) {
+        this.passwordError = 'Enter your current password and a new one.';
+        return;
+      }
+      if (this.newPassword.length < 8) {
+        this.passwordError = 'The new password needs at least 8 characters.';
+        return;
+      }
+      if (this.newPassword !== this.confirmPassword) {
+        this.passwordError = "The new passwords don't match.";
+        return;
+      }
+      this.changingPassword = true;
+      try {
+        const res = await fetch('/api/me/password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ current_password: this.currentPassword, new_password: this.newPassword }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          this.passwordError = data.error || res.statusText;
+          return;
+        }
+        this.currentPassword = this.newPassword = this.confirmPassword = '';
+        this.passwordStatus = 'Password changed. Your other devices were logged out.';
+      } catch (e) {
+        this.passwordError = 'Could not reach the server.';
+      } finally {
+        this.changingPassword = false;
       }
     },
 

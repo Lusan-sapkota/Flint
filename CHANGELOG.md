@@ -11,6 +11,9 @@ Notable changes in each release. The measurements behind a change are in
   chip. The new folder replaces the old one as the chat's standing
   context.
 - Log out from Settings too, at the bottom of its sidebar.
+- Edit your name and email, and change your password, in Settings →
+  Account. A new email or password needs your current password, and a
+  password change logs out your other devices.
 
 ### Changed
 
