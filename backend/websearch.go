@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -185,4 +186,21 @@ func parseSearchResults(content string) (string, []SearchResult, bool) {
 		results = append(results, r)
 	}
 	return query, results, true
+}
+
+func (s *Server) handleListWebSearches(w http.ResponseWriter, r *http.Request) {
+	user := userFromContext(r)
+	searches, err := listWebSearches(s.db, user.ID, 100)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	now := time.Now()
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	thisMonth, err := countWebSearchesSince(s.db, user.ID, monthStart.UnixMilli())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"searches": searches, "this_month": thisMonth})
 }

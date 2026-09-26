@@ -134,6 +134,11 @@ feature change.
   came from.
 - With no key configured, the flag is stripped from the saved message and
   you're shown a notice. The request still goes through.
+- **Search history** in Settings → Connection: every search still in your
+  chats, newest first, with the exact query sent, when, a link to its
+  chat, and how many this month (useful against your Brave quota). It's
+  read from the saved results, so deleting a chat removes its searches,
+  and a search that failed isn't listed.
 
 ## Memory (`@memory`)
 

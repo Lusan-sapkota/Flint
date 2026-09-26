@@ -11,6 +11,8 @@ Notable changes in each release. The measurements behind a change are in
   you've set security questions, their answers, then a typed `DELETE`
   confirmation. Everything in the account is deleted for good, including
   attachment files, and every session is signed out.
+- Settings → Connection lists your `@web` searches: the exact query sent
+  to Brave, when, which chat, and how many this month.
 
 ### Changed
 
@@ -21,6 +23,9 @@ Notable changes in each release. The measurements behind a change are in
 ### Fixed
 
 - Display math no longer shows a small vertical scrollbar.
+- A model's details button shows a readable summary (family, parameters,
+  quantization, context length, capabilities) instead of raw JSON or an
+  empty box.
 
 ## [0.1.2] - 2026-09-26
 

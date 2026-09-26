@@ -62,6 +62,11 @@ document.addEventListener('alpine:init', () => {
     pullPercent: null,
     pullError: '',
 
+    webSearches: [],
+    webSearchesMonth: 0,
+    webSearchesLoading: true,
+    webSearchesError: '',
+
     memories: [],
     memoriesLoading: true,
     memoriesError: '',
@@ -69,7 +74,25 @@ document.addEventListener('alpine:init', () => {
     init() {
       window.addEventListener('hashchange', () => { this.tab = tabFromHash(); });
       this.refreshRunning();
+      this.loadWebSearches();
       this.loadMemories();
+    },
+
+    async loadWebSearches() {
+      try {
+        const res = await fetch('/api/me/web-searches');
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          this.webSearchesError = data.error || res.statusText;
+          return;
+        }
+        this.webSearches = data.searches;
+        this.webSearchesMonth = data.this_month;
+      } catch (e) {
+        this.webSearchesError = 'Could not reach the server.';
+      } finally {
+        this.webSearchesLoading = false;
+      }
     },
 
     async loadMemories() {

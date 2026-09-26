@@ -92,6 +92,7 @@ func main() {
 	mux.HandleFunc("PATCH /api/me/settings", srv.requireAuth(srv.handleUpdateSettings))
 	mux.HandleFunc("GET /api/me/security-questions", srv.requireAuth(srv.handleGetSecurityQuestions))
 	mux.HandleFunc("PUT /api/me/security-questions", srv.requireAuth(srv.handleSetSecurityQuestions))
+	mux.HandleFunc("GET /api/me/web-searches", srv.requireAuth(srv.handleListWebSearches))
 	mux.HandleFunc("DELETE /api/me", deleteAccountLimiter.middleware(srv.requireAuth(srv.handleDeleteAccount)))
 
 	mux.HandleFunc("GET /api/models", srv.requireAuth(srv.handleListModels))

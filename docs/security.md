@@ -69,7 +69,8 @@ and their output is capped at 20,000 characters.
 ## Network
 
 - Flint talks to Ollama, and to Brave Search only for an explicit `@web`
-  message using that user's own key. Nothing else leaves the machine.
+  message using that user's own key. Nothing else leaves the machine. Settings → Connection
+  lists every search still in your chats, with the exact query sent.
 - The UI is same-origin with the API, so no CORS headers are set.
 - Flint listens on `127.0.0.1` by default (`HOST`), and Docker Compose
   keeps it there, because of open signup and the shell tool.

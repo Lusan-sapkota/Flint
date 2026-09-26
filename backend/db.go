@@ -1002,3 +1002,51 @@ func deleteMemory(db *sql.DB, id int64, userID string) (bool, error) {
 	n, err := res.RowsAffected()
 	return n > 0, err
 }
+
+type WebSearch struct {
+	Query             string `json:"query"`
+	At                int64  `json:"at"`
+	ConversationID    string `json:"conversation_id"`
+	ConversationTitle string `json:"conversation_title"`
+}
+
+// listWebSearches reads the user's `@web` history back from the saved
+// result messages, newest first. A deleted chat takes its searches with it.
+func listWebSearches(db *sql.DB, userID string, limit int) ([]WebSearch, error) {
+	rows, err := db.Query(
+		`SELECT m.content, m.created_at, c.id, c.title FROM messages m
+		 JOIN conversations c ON c.id = m.conversation_id
+		 WHERE c.user_id = ? AND m.role = 'system' AND m.content LIKE ?
+		 ORDER BY m.created_at DESC LIMIT ?`, userID, webResultsPrefix+"%", limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := []WebSearch{}
+	for rows.Next() {
+		var content string
+		var ws WebSearch
+		if err := rows.Scan(&content, &ws.At, &ws.ConversationID, &ws.ConversationTitle); err != nil {
+			return nil, err
+		}
+		query, _, ok := parseSearchResults(content)
+		if !ok {
+			continue
+		}
+		ws.Query = query
+		out = append(out, ws)
+	}
+	return out, rows.Err()
+}
+
+func countWebSearchesSince(db *sql.DB, userID string, since int64) (int, error) {
+	var n int
+	err := db.QueryRow(
+		`SELECT COUNT(*) FROM messages m JOIN conversations c ON c.id = m.conversation_id
+		 WHERE c.user_id = ? AND m.role = 'system' AND m.content LIKE ? AND m.created_at >= ?`,
+		userID, webResultsPrefix+"%", since,
+	).Scan(&n)
+	return n, err
+}

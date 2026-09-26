@@ -2,6 +2,7 @@ package main
 
 import (
 	"math"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -80,5 +81,32 @@ func TestSavedSearchShowsAsSourcesAfterTheQuestion(t *testing.T) {
 	}
 	if strings.Join(kinds, ",") != "user,sources,assistant" || len(timeline[1].Sources) != 2 {
 		t.Fatalf("expected user, sources, assistant; got %v", kinds)
+	}
+}
+
+func TestListWebSearchesIsScopedAndParsed(t *testing.T) {
+	db, err := openDB(filepath.Join(t.TempDir(), "t.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	for _, u := range []string{"alice", "bob"} {
+		createUser(db, u, u, u+"@x.io", "h")
+		createConversation(db, u+"-chat", u, "m")
+	}
+	insertMessage(db, "alice-chat", "user", "hi")
+	insertMessage(db, "alice-chat", "system", formatSearchResults(`who is "PM" of Nepal`, []SearchResult{{Title: "t", URL: "https://x.test"}}))
+	insertMessage(db, "alice-chat", "system", "folder manifest")
+	insertMessage(db, "bob-chat", "system", formatSearchResults("bob's query", nil))
+
+	got, err := listWebSearches(db, "alice", 10)
+	if err != nil || len(got) != 1 || got[0].Query != `who is "PM" of Nepal` || got[0].ConversationID != "alice-chat" {
+		t.Fatalf("want alice's one search with its query intact, got %+v err=%v", got, err)
+	}
+	if n, _ := countWebSearchesSince(db, "alice", 0); n != 1 {
+		t.Errorf("count = %d, want 1", n)
+	}
+	if n, _ := countWebSearchesSince(db, "alice", got[0].At+1); n != 0 {
+		t.Errorf("count after the search = %d, want 0", n)
 	}
 }

@@ -1593,6 +1593,30 @@ details.flint-thinking > summary:focus {
   color: #1c1c1e;
 }
 
+.flint-web-count {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+.flint-web-searches {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.flint-web-searches li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--flint-border);
+  list-style: none;
+}
+
+.flint-web-query {
+  overflow-wrap: anywhere;
+}
+
 .flint-model-details {
   margin-top: 0.5rem;
   background: var(--flint-surface);

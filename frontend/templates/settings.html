@@ -39,6 +39,28 @@
           <p class="flint-save-status" x-text="generalStatus"></p>
         </div>
       </div>
+
+      <div class="flint-settings-group">
+        <h3>Web searches</h3>
+        <p class="flint-field-hint">An <code>@web</code> search is the only thing Flint sends off your
+          machine, and it sends just the query to Brave Search. These are the searches still in
+          your chats; deleting a chat removes its searches from this list.</p>
+        <p class="flint-error" x-text="webSearchesError"></p>
+        <template x-if="!webSearchesLoading && !webSearchesError">
+          <p class="flint-web-count" x-text="`${webSearchesMonth} ${webSearchesMonth === 1 ? 'search' : 'searches'} this month`"></p>
+        </template>
+        <ul class="flint-web-searches">
+          <template x-for="w in webSearches" :key="w.at + w.conversation_id">
+            <li>
+              <span class="flint-web-query" x-text="w.query"></span>
+              <span class="flint-model-meta">
+                <span x-text="new Date(w.at).toLocaleString()"></span> in
+                <a :href="`/c/${w.conversation_id}`" x-text="w.conversation_title"></a>
+              </span>
+            </li>
+          </template>
+        </ul>
+      </div>
     </section>
 
     <section class="flint-settings-section" x-show="tab === 'models'">
