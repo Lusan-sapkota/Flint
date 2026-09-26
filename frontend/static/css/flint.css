@@ -1642,8 +1642,8 @@ details.flint-thinking > summary:focus {
 }
 
 .flint-saved-key-actions button {
-  width: auto;
-  padding: 0 1rem;
+  flex: 1;
+  margin: 0;
 }
 
 .flint-notice {
