@@ -80,10 +80,10 @@ clone needed, just the compose file and a folder for your data:
 mkdir flint && cd flint && mkdir data
 # Linux
 curl -O https://raw.githubusercontent.com/Lusan-sapkota/Flint/main/docker-compose.yml
-docker compose up -d
+docker compose up -d && echo "Flint is running at http://localhost:${FLINT_PORT:-3141}"
 # Mac, Windows (Docker Desktop)
 curl -O https://raw.githubusercontent.com/Lusan-sapkota/Flint/main/docker-compose.desktop.yml
-docker compose -f docker-compose.desktop.yml up -d
+docker compose -f docker-compose.desktop.yml up -d && echo "Flint is running at http://localhost:${FLINT_PORT:-3141}"
 ```
 
 Then open `http://localhost:3141`, a deliberately uncommon port so it
