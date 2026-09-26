@@ -54,7 +54,8 @@ frontend/
   static/css/       flint.css on top of Pico.css
 bench/              scored benchmark: run.py, tasks.py, fixture/
 docs/               this documentation
-Dockerfile, docker-compose.yml
+Dockerfile, docker-compose.yml (Linux), docker-compose.desktop.yml (Mac/Windows)
+.github/workflows/  docker.yml: publishes the image on version tags
 ```
 
 ## Data model

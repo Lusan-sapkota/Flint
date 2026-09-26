@@ -1,6 +1,6 @@
 services:
   flint:
-    build: .
+    image: ghcr.io/lusan-sapkota/flint:latest
     # Host networking, so Flint reaches the system Ollama at localhost:11434,
     # where the GPU and the models already are, without Ollama having to
     # listen beyond localhost. Linux only.

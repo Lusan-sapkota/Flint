@@ -73,12 +73,17 @@ go run .
 
 Open `http://localhost:8080` and sign up.
 
-Or run Flint in Docker, talking to the Ollama already on your machine:
+Or run Flint in Docker, talking to the Ollama already on your machine. No
+clone needed, just the compose file and a folder for your data:
 
 ```bash
-mkdir data                                             # once; your data lives here
-docker compose up -d                                   # Linux
-docker compose -f docker-compose.desktop.yml up -d     # Mac, Windows
+mkdir flint && cd flint && mkdir data
+# Linux
+curl -O https://raw.githubusercontent.com/Lusan-sapkota/Flint/main/docker-compose.yml
+docker compose up -d
+# Mac, Windows (Docker Desktop)
+curl -O https://raw.githubusercontent.com/Lusan-sapkota/Flint/main/docker-compose.desktop.yml
+docker compose -f docker-compose.desktop.yml up -d
 ```
 
 Then open `http://localhost:3141`, a deliberately uncommon port so it

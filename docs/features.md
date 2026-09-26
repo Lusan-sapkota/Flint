@@ -196,6 +196,7 @@ waiting for older messages to fill a quarter of the window.
 
 - One static binary with SQLite, no build step, no CDN. The frontend
   libraries ship with it.
-- Docker Compose setup that runs Flint in a container and uses the Ollama
+- A published Docker image (`ghcr.io/lusan-sapkota/flint`) and a Compose
+  file that runs Flint in a container using the Ollama
   already on your machine. See [deployment.md](deployment.md).
 - `/healthz` checks the database and Ollama.

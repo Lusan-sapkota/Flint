@@ -33,12 +33,16 @@ cd backend && CGO_ENABLED=0 go build -o flint .
 
 Docker runs **Flint only**. Ollama stays the normal app on your machine,
 where it already has your GPU and your models, and the container talks
-to it.
+to it. The image is published at `ghcr.io/lusan-sapkota/flint` (see
+[Publishing the image](#publishing-the-image)), and the compose files in
+the repository root are ready-to-use examples. Download one; there's no
+need to clone the repository.
 
 **Linux:**
 
 ```bash
-mkdir data            # once, before the first start
+mkdir flint && cd flint && mkdir data
+curl -O https://raw.githubusercontent.com/Lusan-sapkota/Flint/main/docker-compose.yml
 docker compose up -d
 ```
 
@@ -49,7 +53,8 @@ listen beyond localhost.
 **Mac and Windows (Docker Desktop):**
 
 ```bash
-mkdir data            # once, before the first start
+mkdir flint && cd flint && mkdir data
+curl -O https://raw.githubusercontent.com/Lusan-sapkota/Flint/main/docker-compose.desktop.yml
 docker compose -f docker-compose.desktop.yml up -d
 ```
 
@@ -83,6 +88,40 @@ Then open `http://localhost:3141`. Notes:
   `docker run -p` works. The Linux compose file narrows it back to
   `127.0.0.1`, since host networking would otherwise expose it to the
   network.
+
+- **Updating:** `docker compose pull && docker compose up -d` fetches the
+  newest `latest`. To stay on one version, change the tag in the compose
+  file, for example `ghcr.io/lusan-sapkota/flint:0.1.0`.
+
+### Building the image yourself
+
+From a clone of the repository:
+
+```bash
+docker build -t ghcr.io/lusan-sapkota/flint:latest .
+```
+
+The compose files then use that local image instead of downloading one.
+Remove it (`docker rmi ghcr.io/lusan-sapkota/flint:latest`) to go back to
+the published image, since otherwise the local copy keeps shadowing it.
+
+### Publishing the image
+
+`.github/workflows/docker.yml` builds the image for `linux/amd64` and
+`linux/arm64` and pushes it to GitHub Container Registry whenever a version
+tag is pushed, and at no other time:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+That publishes `0.1.0`, `0.1` and `latest`. It authenticates with the
+workflow's own `GITHUB_TOKEN`, so no secrets or extra accounts are needed.
+After the first publish, check the package's visibility on GitHub (profile
+→ Packages → flint → Package settings) and set it to **Public** if it isn't,
+or nobody else can pull it. The workflow file has to exist in the tagged
+commit, so tag a commit that includes it.
 
 ## Health
 

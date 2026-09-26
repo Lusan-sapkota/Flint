@@ -4,7 +4,7 @@
 #   docker compose -f docker-compose.desktop.yml up -d
 services:
   flint:
-    build: .
+    image: ghcr.io/lusan-sapkota/flint:latest
     ports:
       - "127.0.0.1:${FLINT_PORT:-3141}:8080"
     environment:
