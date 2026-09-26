@@ -18,6 +18,7 @@
 <body>
 {{template "content" .}}
 {{template "confirm-dialog"}}
+{{template "ask-dialog"}}
 </body>
 </html>
 {{end}}
@@ -35,6 +36,22 @@
       <div class="flint-settings-actions">
         <button value="cancel" class="secondary">Cancel</button>
         <button value="confirm" class="flint-danger-solid" disabled>{{template "icon-trash"}} Delete</button>
+      </div>
+    </form>
+  </article>
+</dialog>
+{{end}}
+
+{{/* Opened by flintAsk() in confirm.js: a plain yes/no question, for
+     actions that are easy to undo (logging out), unlike confirm-dialog. */}}
+{{define "ask-dialog"}}
+<dialog id="flint-ask-dialog" class="flint-confirm-dialog">
+  <article>
+    <h3></h3>
+    <form method="dialog">
+      <div class="flint-settings-actions">
+        <button value="no" class="secondary">No</button>
+        <button value="yes" autofocus>Yes</button>
       </div>
     </form>
   </article>

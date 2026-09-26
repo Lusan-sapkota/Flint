@@ -1,12 +1,3 @@
-async function flintLogout() {
-  try {
-    await fetch('/api/logout', { method: 'POST' });
-  } catch (e) {
-    // ignore - redirecting anyway
-  }
-  window.location.href = '/login';
-}
-
 async function flintDeleteConversation(id, button) {
   const row = button.closest('.flint-conversation-row');
   const title = row.querySelector('a').textContent;

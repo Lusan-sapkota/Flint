@@ -1,3 +1,23 @@
+function flintAsk(question) {
+  const dialog = document.getElementById('flint-ask-dialog');
+  dialog.querySelector('h3').textContent = question;
+  dialog.returnValue = '';
+  dialog.showModal();
+  return new Promise((resolve) => {
+    dialog.addEventListener('close', () => resolve(dialog.returnValue === 'yes'), { once: true });
+  });
+}
+
+async function flintLogout() {
+  if (!(await flintAsk('Are you sure you want to log out?'))) return;
+  try {
+    await fetch('/api/logout', { method: 'POST' });
+  } catch (e) {
+    // ignore - redirecting anyway
+  }
+  window.location.href = '/login';
+}
+
 function flintConfirmDelete(title, message) {
   const dialog = document.getElementById('flint-confirm-dialog');
   const input = dialog.querySelector('input');
@@ -24,5 +44,5 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.addEventListener('click', (e) => {
-  if (e.target.id === 'flint-confirm-dialog') e.target.close();
+  if (e.target.id === 'flint-confirm-dialog' || e.target.id === 'flint-ask-dialog') e.target.close();
 });

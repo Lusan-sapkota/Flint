@@ -7,7 +7,9 @@ feature change.
 
 - **Open signup**: full name, email, and a password of at least 8
   characters. Sessions last 30 days.
-- **Log in and log out.** Logging out ends the session on the server.
+- **Log in and log out.** Logging out asks first, then ends the session
+  on the server. It's at the bottom of the sidebar in both the chat and
+  Settings.
 - **Private per account.** Each account sees only its own conversations,
   attachments, commands and memories. Another account's items answer
   "not found".

@@ -1368,6 +1368,16 @@ details.flint-thinking > summary:focus {
   height: 1rem;
 }
 
+.flint-settings-logout-mobile {
+  display: none;
+  color: var(--flint-text-dim);
+}
+
+.flint-settings-logout-mobile svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
 .flint-settings-nav-list {
   display: flex;
   flex-direction: column;
@@ -2169,6 +2179,14 @@ button.flint-danger-solid:hover {
   .flint-settings-nav {
     border-right: 0;
     border-bottom: 1px solid var(--flint-border);
+  }
+
+  .flint-settings-nav .flint-sidebar-footer {
+    display: none;
+  }
+
+  .flint-settings-logout-mobile {
+    display: inline-flex;
   }
 
   .flint-settings-nav .flint-sidebar-header {

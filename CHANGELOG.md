@@ -10,6 +10,11 @@ Notable changes in each release. The measurements behind a change are in
 - Change a chat's attached folder with the Change link on the folder
   chip. The new folder replaces the old one as the chat's standing
   context.
+- Log out from Settings too, at the bottom of its sidebar.
+
+### Changed
+
+- Logging out asks "Are you sure you want to log out?" first.
 
 ### Fixed
 

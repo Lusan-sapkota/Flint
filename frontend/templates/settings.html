@@ -11,11 +11,19 @@
   <nav class="flint-settings-nav" aria-label="Settings sections">
     <div class="flint-sidebar-header">
       <a href="/" class="flint-settings-back">{{template "icon-arrow-left"}} Back to chat</a>
+      <a href="#" onclick="flintLogout(); return false;" class="flint-settings-logout-mobile" title="Log out" aria-label="Log out">{{template "icon-log-out"}}</a>
     </div>
     <div class="flint-settings-nav-list">
       <template x-for="t in tabs" :key="t.id">
         <a :href="`#${t.id}`" class="flint-settings-nav-item" :class="{ active: tab === t.id }" :aria-current="tab === t.id ? 'page' : null" x-text="t.label"></a>
       </template>
+    </div>
+    <div class="flint-sidebar-footer">
+      <div class="flint-sidebar-user">
+        <span class="flint-sidebar-avatar">{{.User.FullName | initial}}</span>
+        <span class="flint-sidebar-user-name">{{.User.FullName}}</span>
+        <a href="#" onclick="flintLogout(); return false;" class="flint-sidebar-logout" title="Log out" aria-label="Log out">{{template "icon-log-out"}}</a>
+      </div>
     </div>
   </nav>
 
