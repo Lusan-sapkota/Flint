@@ -27,6 +27,12 @@
   --pico-primary: var(--flint-accent);
   --pico-primary-background: var(--flint-accent);
   --pico-primary-hover-background: var(--flint-accent-dim);
+  /* Pico's own blue otherwise shows on link hover and focused <details>
+     summaries, which read these instead of the background ones. */
+  --pico-primary-hover: var(--flint-accent-dim);
+  --pico-accordion-close-summary-color: var(--flint-text-dim);
+  --pico-accordion-open-summary-color: var(--flint-text-dim);
+  --pico-accordion-active-summary-color: var(--flint-text);
   --pico-primary-border: var(--flint-accent);
   --pico-primary-hover-border: var(--flint-accent-dim);
   --pico-primary-underline: var(--flint-accent);
@@ -2318,10 +2324,11 @@ button.flint-danger-solid:hover {
 
 /* The web sources an @web answer was based on. Collapsed it hugs its one
    line; opened it grows up to the answer's width so titles stay on one line. */
+/* Full width like the other cards; sized to its content it also jumped
+   wider on the first frame of opening. */
 .flint-sources {
   align-self: flex-start;
-  width: fit-content;
-  max-width: 100%;
+  width: 100%;
   margin: 0;
   padding: 0.6rem 0.9rem;
   border: 1px solid var(--flint-border);

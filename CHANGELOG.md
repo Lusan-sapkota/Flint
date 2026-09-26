@@ -18,6 +18,8 @@ Notable changes in each release. The measurements behind a change are in
 ### Changed
 
 - Logging out asks "Are you sure you want to log out?" first.
+- The `@web` sources card spans the chat's full width too, and no longer
+  jumps wider as it opens.
 - Shell command cards span the chat's full width, so command output like
   `df -h` shows every column instead of scrolling sideways.
 - Deleting a chat asks Yes / No instead of making you type DELETE. Typing
@@ -32,6 +34,8 @@ Notable changes in each release. The measurements behind a change are in
   in the Settings page and in `/api/me`, where the eye button or the page
   source showed it in full. Settings now shows only its last four
   characters, with Replace and Remove.
+- Collapsible headers (sources, system messages) and link hovers no
+  longer flash Pico's default blue.
 - The "Attached folder" card no longer jumps sideways while it opens and
   closes.
 
