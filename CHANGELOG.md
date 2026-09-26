@@ -11,6 +11,8 @@ Notable changes in each release. The measurements behind a change are in
   you've set security questions, their answers, then a typed `DELETE`
   confirmation. Everything in the account is deleted for good, including
   attachment files, and every session is signed out.
+- Load and unload models from Settings → Models. Loading one unloads
+  whatever else is running first.
 - Settings → Connection lists your `@web` searches: the exact query sent
   to Brave, when, which chat, and how many this month.
 

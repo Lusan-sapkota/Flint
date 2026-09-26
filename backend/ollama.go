@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type OllamaToolCall struct {
@@ -177,9 +178,14 @@ func (c *OllamaClient) RunningModels(ctx context.Context, baseURL string) (json.
 // error counts as loaded: this only decides whether to show a "loading"
 // hint, never whether to send the request.
 func (c *OllamaClient) IsLoaded(ctx context.Context, baseURL, model string) bool {
+	names, err := c.runningNames(ctx, baseURL)
+	return err != nil || slices.Contains(names, model)
+}
+
+func (c *OllamaClient) runningNames(ctx context.Context, baseURL string) ([]string, error) {
 	raw, err := c.RunningModels(ctx, baseURL)
 	if err != nil {
-		return true
+		return nil, err
 	}
 	var ps struct {
 		Models []struct {
@@ -187,14 +193,47 @@ func (c *OllamaClient) IsLoaded(ctx context.Context, baseURL, model string) bool
 		} `json:"models"`
 	}
 	if err := json.Unmarshal(raw, &ps); err != nil {
-		return true
+		return nil, err
 	}
+	names := make([]string, 0, len(ps.Models))
 	for _, m := range ps.Models {
-		if m.Name == model {
-			return true
+		names = append(names, m.Name)
+	}
+	return names, nil
+}
+
+// LoadModel puts a model in memory without generating anything. Ollama
+// refuses /api/generate for embedding models, so those load through
+// /api/embed with no input instead.
+func (c *OllamaClient) LoadModel(ctx context.Context, baseURL, name string, embedding bool) error {
+	if embedding {
+		_, err := c.doRaw(ctx, http.MethodPost, baseURL+"/api/embed", bytes.NewReader(mustMarshal(map[string]any{"model": name, "input": []string{}})))
+		return err
+	}
+	_, err := c.doRaw(ctx, http.MethodPost, baseURL+"/api/generate", bytes.NewReader(mustMarshal(map[string]any{"model": name, "stream": false})))
+	return err
+}
+
+// UnloadModel frees a model's memory. Ollama answers before the memory is
+// actually released (about a second later), so this waits until /api/ps
+// stops listing it, or gives up after 10 seconds.
+func (c *OllamaClient) UnloadModel(ctx context.Context, baseURL, name string) error {
+	_, err := c.doRaw(ctx, http.MethodPost, baseURL+"/api/generate", bytes.NewReader(mustMarshal(map[string]any{"model": name, "keep_alive": 0, "stream": false})))
+	if err != nil {
+		return err
+	}
+	for range 40 {
+		names, err := c.runningNames(ctx, baseURL)
+		if err != nil || !slices.Contains(names, name) {
+			return err
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(250 * time.Millisecond):
 		}
 	}
-	return false
+	return fmt.Errorf("%s is still loaded after 10 seconds", name)
 }
 
 func (c *OllamaClient) ShowModel(ctx context.Context, baseURL, name string) (json.RawMessage, error) {

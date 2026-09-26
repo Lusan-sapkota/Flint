@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -158,6 +159,67 @@ func (s *Server) handleShowModel(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(info)
+}
+
+// handleLoadModel unloads every other running model first, so loading one
+// never has to squeeze in next to another on a small GPU.
+func (s *Server) handleLoadModel(w http.ResponseWriter, r *http.Request) {
+	user := userFromContext(r)
+	var body struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
+		writeError(w, http.StatusBadRequest, "name is required")
+		return
+	}
+	baseURL := s.ollamaURLFor(user)
+
+	running, err := s.ollama.runningNames(r.Context(), baseURL)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	for _, name := range running {
+		if name == body.Name {
+			continue
+		}
+		if err := s.ollama.UnloadModel(r.Context(), baseURL, name); err != nil {
+			writeError(w, http.StatusBadGateway, "couldn't unload "+name+": "+err.Error())
+			return
+		}
+	}
+
+	raw, err := s.ollama.ShowModel(r.Context(), baseURL, body.Name)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	var info struct {
+		Capabilities []string `json:"capabilities"`
+	}
+	json.Unmarshal(raw, &info)
+	embedding := slices.Contains(info.Capabilities, "embedding") && !slices.Contains(info.Capabilities, "completion")
+	if err := s.ollama.LoadModel(r.Context(), baseURL, body.Name, embedding); err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) handleUnloadModel(w http.ResponseWriter, r *http.Request) {
+	user := userFromContext(r)
+	var body struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
+		writeError(w, http.StatusBadRequest, "name is required")
+		return
+	}
+	if err := s.ollama.UnloadModel(r.Context(), s.ollamaURLFor(user), body.Name); err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *Server) handleDeleteModel(w http.ResponseWriter, r *http.Request) {

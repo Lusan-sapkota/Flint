@@ -211,8 +211,11 @@ a shared link opens the same one.
 - **Connection:** your own Ollama URL, falling back to the server default,
   and the Brave Search API key for `@web`.
 - **Models:** which models the new-chat picker shows, which are loaded,
-  details for each, pulling new ones with a progress bar, and deleting
-  them.
+  details for each (family, parameters, quantization, context length,
+  capabilities), pulling new ones with a progress bar, and deleting them.
+  **Load** puts a model in memory ahead of time and unloads whatever else
+  is running first, so it gets the memory to itself; **Unload** frees a
+  running one.
 - **Memories:** edit and delete.
 - **Account:** security questions for password recovery, and deleting the
   account.

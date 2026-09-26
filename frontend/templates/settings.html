@@ -98,14 +98,20 @@
         <ul class="flint-running-models">
           <template x-for="m in runningModels" :key="m.name">
             <li>
-              <span x-text="m.name"></span>
-              <span class="flint-model-meta" x-text="m.sizeLabel"></span>
+              <div class="flint-installed-model-info">
+                <strong x-text="m.name"></strong>
+                <span class="flint-model-meta" x-text="m.sizeLabel"></span>
+              </div>
+              <button type="button" class="secondary flint-unload-btn" @click="unloadModel(m.name)"
+                      :disabled="modelBusy !== null" :aria-busy="modelBusy === m.name">Unload</button>
             </li>
           </template>
         </ul>
+        <p class="flint-error" x-text="modelActionError"></p>
       </div>
       <div class="flint-settings-group">
         <h3>Installed</h3>
+        <p class="flint-field-hint">Loading a model unloads whatever is running first, so it gets the memory to itself.</p>
         {{if .ModelsErr}}
           <p class="flint-error">Couldn't reach Ollama: {{.ModelsErr}}</p>
         {{else if not .Models}}
@@ -121,6 +127,9 @@
                 </div>
                 <button type="button" class="secondary flint-icon-btn" @click="toggleDetails($data, '{{.Name | jsStr}}')"
                         :aria-expanded="open" title="Details">{{template "icon-info"}}</button>
+                <button type="button" class="secondary flint-icon-btn" @click="loadModel('{{.Name | jsStr}}')"
+                        :disabled="modelBusy !== null || isRunning('{{.Name | jsStr}}')" :aria-busy="modelBusy === '{{.Name | jsStr}}'"
+                        :title="isRunning('{{.Name | jsStr}}') ? 'Already loaded' : 'Load into memory'">{{template "icon-play"}}</button>
                 <button type="button" class="flint-icon-btn flint-danger-btn"
                         @click="deleteModel('{{.Name | jsStr}}')"
                         :disabled="deletingModel === '{{.Name | jsStr}}'" :aria-busy="deletingModel === '{{.Name | jsStr}}'" title="Delete">{{template "icon-trash"}}</button>

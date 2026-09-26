@@ -54,6 +54,8 @@ document.addEventListener('alpine:init', () => {
     runningModels: [],
     runningLoading: false,
     runningError: '',
+    modelBusy: null,
+    modelActionError: '',
     deletingModel: null,
     deleteError: '',
     pullName: '',
@@ -159,6 +161,38 @@ document.addEventListener('alpine:init', () => {
         this.runningError = 'Could not reach the server.';
       } finally {
         this.runningLoading = false;
+      }
+    },
+
+    isRunning(name) {
+      return this.runningModels.some((m) => m.name === name);
+    },
+
+    async loadModel(name) {
+      await this.modelAction('/api/models/load', name, `Couldn't load ${name}`);
+    },
+    async unloadModel(name) {
+      await this.modelAction('/api/models/unload', name, `Couldn't unload ${name}`);
+    },
+    // One load or unload at a time: each can wait on the others finishing.
+    async modelAction(url, name, failure) {
+      this.modelBusy = name;
+      this.modelActionError = '';
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          this.modelActionError = `${failure}: ${data.error || res.statusText}`;
+        }
+      } catch (e) {
+        this.modelActionError = 'Could not reach the server.';
+      } finally {
+        this.modelBusy = null;
+        await this.refreshRunning();
       }
     },
 

@@ -99,6 +99,8 @@ func main() {
 	mux.HandleFunc("GET /api/models/running", srv.requireAuth(srv.handleRunningModels))
 	mux.HandleFunc("POST /api/models/show", srv.requireAuth(srv.handleShowModel))
 	mux.HandleFunc("POST /api/models/pull", srv.requireAuth(srv.handlePullModel))
+	mux.HandleFunc("POST /api/models/load", srv.requireAuth(srv.handleLoadModel))
+	mux.HandleFunc("POST /api/models/unload", srv.requireAuth(srv.handleUnloadModel))
 	mux.HandleFunc("DELETE /api/models", srv.requireAuth(srv.handleDeleteModel))
 	mux.HandleFunc("GET /api/conversations", srv.requireAuth(srv.handleListConversations))
 	mux.HandleFunc("POST /api/conversations", srv.requireAuth(srv.handleCreateConversation))
