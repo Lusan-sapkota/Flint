@@ -106,7 +106,7 @@
     <div class="flint-conversations" x-show="!rail && q.trim()" x-cloak>
       <template x-for="r in results || []" :key="r.id">
         <a :href="`/c/${r.id}`" class="flint-search-result">
-          <span class="flint-search-title" x-text="r.title"></span>
+          <span class="flint-search-title" x-text="r.title" :title="r.title"></span>
           <span class="flint-search-snippet" x-show="r.snippet" x-text="r.snippet"></span>
         </a>
       </template>
@@ -116,7 +116,7 @@
     <div class="flint-conversations" x-show="!rail && !q.trim()">
       {{range .Conversations}}
         <div class="flint-conversation-row{{if eq .ID $.CurrentID}} active{{end}}">
-          <a href="/c/{{.ID}}" class="flint-conversation-link" data-conversation-link="{{.ID}}">{{.Title}}</a>
+          <a href="/c/{{.ID}}" class="flint-conversation-link" data-conversation-link="{{.ID}}" title="{{.Title}}"{{if eq .ID $.CurrentID}} aria-current="page" hx-boost="false" @click="if (!($event.ctrlKey || $event.metaKey || $event.shiftKey)) { $event.preventDefault(); navOpen = false }"{{end}}>{{.Title}}</a>
           <button type="button" class="flint-conversation-action" onclick="flintRenameConversation('{{.ID}}', this)" title="Rename conversation" aria-label="Rename conversation">{{template "icon-edit"}}</button>
           <button type="button" class="flint-conversation-action flint-conversation-delete" onclick="flintDeleteConversation('{{.ID}}', this)" title="Delete conversation" aria-label="Delete conversation">{{template "icon-trash"}}</button>
         </div>

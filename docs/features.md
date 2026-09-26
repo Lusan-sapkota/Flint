@@ -72,7 +72,8 @@ feature change.
 - **Sidebar.** It collapses to a narrow rail and remembers that choice.
   The rail has New chat and Search buttons; Search opens the sidebar with
   the cursor in the search box. On phones the sidebar becomes a slide-over
-  menu.
+  menu. Hovering a chat shows its full title. Clicking the chat you're
+  already in does nothing, rather than reloading it.
 
 ## Attachments
 

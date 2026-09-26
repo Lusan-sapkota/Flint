@@ -171,7 +171,7 @@ function flintRenameConversation(id, button) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title }),
       });
-      if (res.ok) link.textContent = (await res.json()).title;
+      if (res.ok) link.textContent = link.title = (await res.json()).title;
     }
     input.remove();
     link.hidden = false;
@@ -824,7 +824,7 @@ document.addEventListener('alpine:init', () => {
         if (!res.ok) return;
         const data = await res.json();
         const link = document.querySelector(`[data-conversation-link="${this.conversationId}"]`);
-        if (link) link.textContent = data.title;
+        if (link) link.textContent = link.title = data.title;
       } catch (e) {
         // non-critical - the sidebar just keeps its stale title until reload
       }
