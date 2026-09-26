@@ -1122,10 +1122,6 @@ details.flint-thinking > summary:focus {
   margin-bottom: 0.75rem;
 }
 
-.flint-memory-card {
-  max-width: 70ch;
-}
-
 .flint-memory-card textarea {
   margin: 0.25rem 0 0.75rem;
   font-size: 0.9rem;
