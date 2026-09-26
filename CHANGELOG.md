@@ -24,6 +24,9 @@ Notable changes in each release. The measurements behind a change are in
 
 ### Changed
 
+- `@web` results carry their publish dates, in the sources card and for
+  the model, which now answers "latest version" questions with its
+  source's date instead of presenting a month-old page as current (E21).
 - `@web` picks more relevant results: its re-ranking now sends
   `nomic-embed-text` the search prefixes it was trained with (E20).
 - Logging out asks "Are you sure you want to log out?" first.

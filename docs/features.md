@@ -154,10 +154,17 @@ feature change.
   while a search runs (Flint asks Ollama to unload it right after, not
   after its default 5 minutes), and Settings offers a Pull button when
   it's missing.
+- Each result carries its publish date from Brave, when it has one. The
+  model sees the dates with a note that snippets can be out of date, to
+  trust the newest, and to answer "what's the latest version" questions
+  with the source's date ("v1.2, according to a page from 2026-08-28; a
+  newer one may exist") rather than as today's fact (E21). Search
+  snippets are short, so a fresh page whose snippet doesn't state the
+  answer can't supply it.
 - While it runs, the chat shows *Searching the web for "…"*. Afterwards a
   collapsed one-line card above the answer (*Searched the web for "…" ·
   3 sources*) opens to list the results it was based on, as links with
-  their site names, so you can check the answer yourself. The
+  their site names and dates, so you can check the answer yourself. The
   card is also there after a reload. A small model can confidently state
   wrong facts from memory, and the sources show where the answer really
   came from.

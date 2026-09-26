@@ -22,6 +22,7 @@ type SearchResult struct {
 	Title   string
 	URL     string
 	Snippet string
+	Date    string // YYYY-MM-DD from Brave's page_age, empty when it has none
 }
 
 func stripWebFlag(content string) (bool, string) {
@@ -65,6 +66,7 @@ func braveSearch(ctx context.Context, apiKey, query string) ([]SearchResult, err
 				Title       string `json:"title"`
 				URL         string `json:"url"`
 				Description string `json:"description"`
+				PageAge     string `json:"page_age"`
 			} `json:"results"`
 		} `json:"web"`
 	}
@@ -74,7 +76,11 @@ func braveSearch(ctx context.Context, apiKey, query string) ([]SearchResult, err
 
 	results := make([]SearchResult, 0, len(parsed.Web.Results))
 	for _, r := range parsed.Web.Results {
-		results = append(results, SearchResult{Title: r.Title, URL: r.URL, Snippet: r.Description})
+		date := r.PageAge
+		if len(date) > len("2006-01-02") {
+			date = date[:len("2006-01-02")]
+		}
+		results = append(results, SearchResult{Title: r.Title, URL: r.URL, Snippet: r.Description, Date: date})
 	}
 	return results, nil
 }
@@ -139,20 +145,35 @@ func isRankingModel(name string) bool {
 	return name == embeddingModel || strings.HasPrefix(name, embeddingModel+":")
 }
 
-const webResultsPrefix = "Web search results for "
+const (
+	webResultsPrefix = "Web search results for "
+	publishedPrefix  = "Published: "
+)
+
+// staleResultsNote exists because snippets from old "latest version" pages
+// outranked fresh ones, and the model repeated a month-old version as
+// current with no way to tell it was old. It leaves out today's date:
+// given one, the model called the stale answer current "as of" today (E21).
+const staleResultsNote = "These snippets can be out of date: each shows its publish date. When results disagree, trust the most recently published. For a question about the latest or current version of something, answer like \"v1.2, according to a page from 2026-08-28; a newer one may exist\"."
 
 func formatSearchResults(query string, results []SearchResult) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, webResultsPrefix+"%q:\n\n", query)
 	for i, r := range results {
-		fmt.Fprintf(&b, "%d. %s\n%s\n%s\n\n", i+1, r.Title, r.URL, r.Snippet)
+		fmt.Fprintf(&b, "%d. %s\n%s\n", i+1, r.Title, r.URL)
+		if r.Date != "" {
+			fmt.Fprintf(&b, "%s%s\n", publishedPrefix, r.Date)
+		}
+		fmt.Fprintf(&b, "%s\n\n", r.Snippet)
 	}
+	b.WriteString(staleResultsNote)
 	return b.String()
 }
 
 type sourceLink struct {
 	Title string `json:"title"`
 	URL   string `json:"url"`
+	Date  string `json:"date,omitempty"`
 }
 
 type sourcesItem struct {
@@ -163,7 +184,7 @@ type sourcesItem struct {
 func sourcesView(query string, results []SearchResult) sourcesItem {
 	item := sourcesItem{Query: query, Sources: []sourceLink{}}
 	for _, r := range results {
-		item.Sources = append(item.Sources, sourceLink{Title: r.Title, URL: r.URL})
+		item.Sources = append(item.Sources, sourceLink{Title: r.Title, URL: r.URL, Date: r.Date})
 	}
 	return item
 }
@@ -190,6 +211,9 @@ func parseSearchResults(content string) (string, []SearchResult, bool) {
 		r := SearchResult{Title: title, URL: lines[1]}
 		if len(lines) == 3 {
 			r.Snippet = lines[2]
+			if rest, ok := strings.CutPrefix(r.Snippet, publishedPrefix); ok {
+				r.Date, r.Snippet, _ = strings.Cut(rest, "\n")
+			}
 		}
 		results = append(results, r)
 	}

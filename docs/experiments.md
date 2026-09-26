@@ -672,6 +672,42 @@ the `search_query: ` / `search_document: ` prefixes. Not tried: bigger
 embedding models (mxbai-embed-large, embeddinggemma, bge-m3) and
 arctic-embed2.
 
+## E21: `@web` stated a month-old version as the latest
+
+`@web what is the latest Ollama release?` answered 0.33.x on 2026-09-26,
+when GitHub's latest stable was 0.34.4 (v0.40.0 existed only as an rc).
+Of Brave's 10 results, no snippet contained 0.34.4: the fresh pages
+(GitHub releases, releases.sh) had snippets without a version, and the
+only version numbers came from SEO "latest version" posts dated
+2026-08-28 and 2026-04-10. The E20 re-rank kept exactly those, since
+they restate the query. Brave sends `page_age` per result and Flint
+dropped it, so neither the model nor the user could see they were old.
+
+Kept each result's date, shown in the sources card and given to the
+model as a `Published:` line, plus a note after the results. qwen2.5-3b,
+real Brave results, fresh chat per run:
+
+- **Before:** 3/3 stated v0.33.2 undated; all three did say to check the
+  official repository.
+- **Note naming today's date** ("Today is … trust the most recently
+  published … say how old your source is"): 3/3 dated the source, but
+  2/3 opened with "based on information available up to September 26,
+  2026", reading today's date as the information's date: more
+  confident than before.
+- **Same with an example answer format** and "never say the answer is
+  current as of today": 4/5 dated, 1/5 still "as of 2026-09-26".
+- **Adopted: the example format without today's date** ("v1.2, according
+  to a page from 2026-08-28; a newer one may exist"): 5/5 dated, 0/5
+  "as of today", 4/5 said a newer release may exist.
+- Leak check, `@web who won the 2026 FIFA World Cup final?`: 3/3
+  correct, two added the report date, none added version hedging.
+
+**Changed:** results keep `page_age` as a date; the note is the adopted
+wording. **Not fixed:** the answer is still 0.33.1, because the right
+number is in no snippet; only reading the page itself would give it,
+which would send requests to sites other than Brave. A saved search
+from before this still parses, without dates.
+
 ## Open questions
 
 - **Commands for questions that don't need one.** E17 fixed explicit

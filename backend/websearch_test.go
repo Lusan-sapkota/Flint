@@ -59,12 +59,18 @@ func TestFormatSearchResults(t *testing.T) {
 func TestSavedSearchShowsAsSourcesAfterTheQuestion(t *testing.T) {
 	results := []SearchResult{
 		{Title: "Nepal PM sworn in", URL: "https://example.test/a", Snippet: "text"},
-		{Title: "Profile", URL: "https://example.test/b", Snippet: "more\nlines"},
+		{Title: "Profile", URL: "https://example.test/b", Snippet: "more\nlines", Date: "2026-08-28"},
 	}
 	saved := formatSearchResults(`who is "PM" of Nepal`, results)
 	query, got, ok := parseSearchResults(saved)
 	if !ok || query != `who is "PM" of Nepal` || len(got) != 2 || got[0].Title != "Nepal PM sworn in" || got[1].URL != "https://example.test/b" {
 		t.Fatalf("round trip failed: ok=%v query=%q got=%+v", ok, query, got)
+	}
+	if got[0].Date != "" || got[1].Date != "2026-08-28" || got[1].Snippet != "more\nlines" {
+		t.Errorf("dates must round trip without leaking into snippets, got %+v", got)
+	}
+	if _, old, _ := parseSearchResults("Web search results for \"q\":\n\n1. T\nhttps://x.test\nsnippet\n\n"); len(old) != 1 || old[0].Snippet != "snippet" || old[0].Date != "" {
+		t.Errorf("a search saved before dates existed must still parse, got %+v", old)
 	}
 	if _, _, ok := parseSearchResults("Summary of the earlier part"); ok {
 		t.Error("an ordinary system message must not parse as search results")

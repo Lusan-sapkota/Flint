@@ -250,7 +250,7 @@
                       <a :href="sourceURL(s.url)" target="_blank" rel="noopener noreferrer" x-text="s.title || s.url"></a>
                     </template>
                     <template x-if="!sourceURL(s.url)"><span x-text="s.title || s.url"></span></template>
-                    <span class="flint-source-host" x-text="sourceHost(s.url)"></span>
+                    <span class="flint-source-host" x-text="sourceHost(s.url) + (s.date ? ' · ' + s.date : '')"></span>
                   </li>
                 </template>
               </ol>
