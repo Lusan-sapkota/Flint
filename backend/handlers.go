@@ -449,6 +449,7 @@ func (s *Server) handleGetAttachment(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleAttachFolder(w http.ResponseWriter, r *http.Request) {
 	user := userFromContext(r)
 	id := r.PathValue("id")
+	defer s.lockConversation(id)()
 
 	convo, err := getConversation(s.db, id, user.ID)
 	if err != nil {
@@ -479,12 +480,31 @@ func (s *Server) handleAttachFolder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if convo.AttachedFolder != nil {
+		// A pending command was approved-to-be against the old folder; running
+		// it in the new one would not be what the user read.
+		if pending, err := getPendingCommand(s.db, id); err != nil || pending != nil {
+			writeError(w, http.StatusConflict, "approve or deny the pending command before changing the folder")
+			return
+		}
+	}
+
 	manifest, included, err := readFolderManifest(folder)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if _, err := insertMessage(s.db, id, "system", manifest); err != nil {
+	// Changing folders rewrites the manifest where it sits instead of adding
+	// a new one: the first system message is the protected standing context,
+	// so an appended manifest would decay while the old one stayed.
+	if i := slices.IndexFunc(convo.Messages, func(m Message) bool {
+		return m.Role == "system" && strings.HasPrefix(m.Content, manifestPrefix)
+	}); i != -1 {
+		err = updateMessageContent(s.db, convo.Messages[i].ID, manifest)
+	} else {
+		_, err = insertMessage(s.db, id, "system", manifest)
+	}
+	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}

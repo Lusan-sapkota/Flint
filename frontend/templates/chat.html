@@ -317,14 +317,15 @@
 
     <div class="flint-inputbar">
       <div class="flint-inputbar-top" x-show="conversationId">
-        <template x-if="attachedFolder">
+        <template x-if="attachedFolder && !changingFolder">
           <div class="flint-folder-indicator">
             {{template "icon-folder"}}
             <span x-text="attachedFolder"></span>
+            <button type="button" class="flint-folder-change" @click="changingFolder = true; folderInput = attachedFolder" :disabled="streaming || pendingCommand" title="Attach a different folder to this chat">Change</button>
           </div>
         </template>
 
-        <template x-if="conversationId && !attachedFolder">
+        <template x-if="conversationId && (!attachedFolder || changingFolder)">
           <form class="flint-folder-indicator flint-folder-form" @submit.prevent="folderInput.trim() ? attachFolder() : openFolderBrowser()">
             {{template "icon-folder"}}
             <input type="text" x-model="folderInput" list="flint-folder-suggestions" placeholder="Attach a folder (absolute path)" autocomplete="off" spellcheck="false" @input.debounce.200ms="suggestFolders">
@@ -333,6 +334,7 @@
             </datalist>
             <button type="button" @click="openFolderBrowser()">Browse</button>
             <button type="submit" :disabled="folderBusy">Attach</button>
+            <button type="button" x-show="changingFolder" @click="changingFolder = false; folderInput = ''">Cancel</button>
           </form>
         </template>
         <div class="flint-context" x-show="contextMax" :class="{ 'flint-context-high': contextUsed / contextMax > 0.8 }"

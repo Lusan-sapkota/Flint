@@ -101,6 +101,11 @@ feature change.
   the files directly inside it (not subfolders), skips binaries and large
   files, and includes up to 12 KB of text as the chat's standing context.
   Files past that are listed as not included.
+- **Change the folder** with the Change link on the folder chip. The new
+  folder's contents replace the old ones in the same standing-context
+  slot, so the model sees only the new folder. It's disabled while a
+  command is waiting for approval, since that command was proposed for the
+  old folder.
 - **Shell commands with approval.** With a folder attached, the model can
   propose shell commands through Ollama's native tool calling. **Every
   command waits for you to approve or deny it.** Nothing runs

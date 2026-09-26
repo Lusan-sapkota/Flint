@@ -227,6 +227,7 @@ document.addEventListener('alpine:init', () => {
     attachments: [],
     attachmentError: '',
     streaming: false,
+    changingFolder: false,
     folderInput: '',
     folderSuggestions: [],
     abortController: null,
@@ -442,10 +443,13 @@ document.addEventListener('alpine:init', () => {
         }
         this.attachedFolder = data.folder;
         this.folderInput = '';
-        this.timeline.push({
-          kind: 'system',
-          content: `Attached folder: ${data.folder}\n${(data.files || []).length} file(s) included.`,
-        });
+        this.changingFolder = false;
+        // A change rewrites the existing manifest on the server, so update its
+        // card in place too rather than adding a second one.
+        const content = `Attached folder: ${data.folder}\n${(data.files || []).length} file(s) included.`;
+        const card = this.timeline.find((t) => t.kind === 'system' && t.content.startsWith('Attached folder: '));
+        if (card) card.content = content;
+        else this.timeline.push({ kind: 'system', content });
         this.scrollToBottom();
       } catch (e) {
         this.folderError = 'Could not reach the server.';

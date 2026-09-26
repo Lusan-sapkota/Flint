@@ -677,6 +677,11 @@ func setTokenRatio(db *sql.DB, id string, ratio float64) error {
 	return err
 }
 
+func updateMessageContent(db *sql.DB, id int64, content string) error {
+	_, err := db.Exec(`UPDATE messages SET content = ? WHERE id = ?`, content, id)
+	return err
+}
+
 func setAttachedFolder(db *sql.DB, id, folder string) error {
 	_, err := db.Exec(`UPDATE conversations SET attached_folder = ?, updated_at = ? WHERE id = ?`, folder, time.Now().UnixMilli(), id)
 	return err

@@ -1820,13 +1820,25 @@ details.flint-thinking > summary:focus {
   color: var(--flint-text-dim);
 }
 
-.flint-folder-form button {
+.flint-folder-form button,
+.flint-folder-change {
   all: unset;
   cursor: pointer;
   padding: 0 0.25rem;
 }
 
-.flint-folder-form button:hover {
+.flint-folder-change {
+  margin-left: 0.35rem;
+  color: var(--flint-text-dim);
+}
+
+.flint-folder-change:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.flint-folder-form button:hover,
+.flint-folder-change:not(:disabled):hover {
   text-decoration: underline;
 }
 

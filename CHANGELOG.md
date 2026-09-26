@@ -3,6 +3,14 @@
 Notable changes in each release. The measurements behind a change are in
 [docs/experiments.md](docs/experiments.md).
 
+## [0.1.4] - 2026-09-26
+
+### Added
+
+- Change a chat's attached folder with the Change link on the folder
+  chip. The new folder replaces the old one as the chat's standing
+  context.
+
 ## [0.1.3] - 2026-09-26
 
 ### Added
@@ -87,6 +95,7 @@ First release.
 - A Docker image for amd64 and arm64 on ghcr.io, run with Docker Compose
   against the Ollama already on your machine.
 
+[0.1.4]: https://github.com/Lusan-sapkota/Flint/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/Lusan-sapkota/Flint/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Lusan-sapkota/Flint/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Lusan-sapkota/Flint/compare/v0.1.0...v0.1.1

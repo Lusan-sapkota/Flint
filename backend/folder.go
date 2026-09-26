@@ -19,6 +19,8 @@ const maxAttachFileSize = 64 * 1024
 // the shell tool.
 const maxAttachTotalSize = 12 * 1024
 
+const manifestPrefix = "Attached folder: "
+
 func readFolderManifest(path string) (manifest string, included []string, err error) {
 	entries, err := os.ReadDir(path)
 	if err != nil {
@@ -75,7 +77,7 @@ func readFolderManifest(path string) (manifest string, included []string, err er
 	}
 
 	var header strings.Builder
-	header.WriteString("Attached folder: ")
+	header.WriteString(manifestPrefix)
 	header.WriteString(path)
 	header.WriteString("\n\n")
 	header.WriteString(body.String())
