@@ -120,6 +120,10 @@ feature change.
   automatically. The command text is shown exactly as proposed, and it
   runs with the folder as its working directory, which is a convenience,
   not a sandbox.
+- **Without a folder,** the model can't run commands. Asked to run or
+  check something, it gives you the command to run yourself and says you
+  can attach a folder if you want it to run commands, instead of
+  inventing output.
 - **Reply instead.** Besides Approve and Deny, a waiting command has
   **Reply instead**: it opens the message box so you can tell the model
   what to do ("we're on Plasma 6, not 5", or "`@web` it first"). Sending

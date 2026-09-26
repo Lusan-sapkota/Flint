@@ -67,6 +67,26 @@ def recovers(*needles):
     return check
 
 
+def advises(*needles, forbid=()):
+    """For a chat with no folder attached, where the model can't run
+    anything: the reply must match every needle and none of forbid (forbid
+    catches made-up command output)."""
+
+    def check(r):
+        if r["errors"]:
+            return False, f"request error on turn {r['errors'][0]}"
+        reply = final(r)
+        missing = [n for n in needles if not re.search(n, reply, re.I)]
+        if missing:
+            return False, f"reply missing {missing}: {reply[:120]!r}"
+        found = [f for f in forbid if re.search(f, reply, re.I)]
+        if found:
+            return False, f"reply has {found}: {reply[:120]!r}"
+        return True, "correct"
+
+    return check
+
+
 # Commands that fill the context with real tool output between a planted
 # fact and the question about it.
 FILLER = [
@@ -113,6 +133,17 @@ TASKS = [
     {"id": "wrong-name-log", "category": "self-correction", "turns": ["Count the lines in large-log.txt."], "check": answer(r"\b400\b", tool=True)},
     {"id": "denied-price", "category": "self-correction", "deny_first": True, "turns": ["What is the price of SKU B-220 in data/prices.csv?"], "check": recovers(r"4\.50?\b")},
     {"id": "denied-lines", "category": "self-correction", "deny_first": True, "turns": ["Exactly how many lines does large_log.txt have?"], "check": recovers(r"\b400\b")},
+
+    # No folder: the shell tool isn't offered, so asking to run something
+    # should get the command to run yourself, a pointer to attaching a
+    # folder, and no invented output. A plain question shouldn't mention
+    # folders at all.
+    {"id": "no-folder-version", "category": "no folder", "folder": False, "turns": ["Run ollama --version and tell me which version I have."], "check": advises(r"ollama --version", r"attach|folder", forbid=(r"\b\d+\.\d+\.\d+\b",))},
+    {"id": "no-folder-disk", "category": "no folder", "folder": False, "turns": ["Can you check how much free disk space I have?"], "check": advises(r"\bdf\b", r"attach|folder", forbid=(r"\b\d+(\.\d+)?\s?(G|GB|GiB|M|MB|%)(\s|$|\b)",))},
+    # The case seen live: a version came up earlier, then "run it" as a
+    # follow-up, and the model wrote a made-up "Ollama version: 0.34.2".
+    {"id": "no-folder-followup", "category": "no folder", "folder": False, "turns": ["Is Ollama 0.34.2 the latest release?", "Can you run the command to check which version I have?"], "check": advises(r"ollama (--version|-v)", r"attach|folder", forbid=(r"(ollama version|version is|you have|you're running|you are running|output)[^.\n]{0,20}\b0\.\d+\.\d+",))},
+    {"id": "no-folder-plain", "category": "no folder", "folder": False, "turns": ["What is the capital of France?"], "check": advises(r"Paris", forbid=(r"attach|folder",))},
 
     # Long context: facts must survive many turns of real tool output.
     {"id": "recall-first", "category": "long context",

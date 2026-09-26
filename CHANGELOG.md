@@ -27,6 +27,9 @@ Notable changes in each release. The measurements behind a change are in
   `df -h` shows every column instead of scrolling sideways.
 - Deleting a chat asks Yes / No instead of making you type DELETE. Typing
   DELETE stays for deleting a model, a memory or your account.
+- In a chat without a folder, asking the model to run or check something
+  gets the command to run yourself and a note that attaching a folder
+  lets it run commands, instead of made-up output (E19).
 
 ### Fixed
 

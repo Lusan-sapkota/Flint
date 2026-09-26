@@ -20,3 +20,16 @@ func TestForbidsCommands(t *testing.T) {
 		t.Error("only the latest user message should count")
 	}
 }
+
+func TestAsksToRun(t *testing.T) {
+	for text, want := range map[string]bool{
+		"Can you run the command to check it?":           true,
+		"Can you check how much free disk space I have?": true,
+		"What is the capital of France?":                 false,
+		"Write me a haiku about autumn.":                 false,
+	} {
+		if got := asksToRun([]Message{{Role: "user", Content: text}}); got != want {
+			t.Errorf("%q: got %v, want %v", text, got, want)
+		}
+	}
+}

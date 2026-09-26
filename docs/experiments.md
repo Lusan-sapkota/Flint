@@ -576,6 +576,61 @@ The remaining failures have other causes. The model often looks for
 rejects the path. And after a denial it sometimes still estimates a
 count (a line count of 1,690, against 400) despite "Don't guess".
 
+## E19: Asked to run something in a chat without a folder
+
+The shell tool is only offered once a folder is attached. In a chat
+without one, asked "can you run the command to check it?" after a version
+had come up, qwen2.5-3b answered with a made-up "example output"
+(`Ollama version: 0.34.2`, copied from the conversation) and an invented
+endpoint (`localhost:1885/versions`), which reads as if a check was done.
+
+Offering the tool in every chat was considered and rejected: the tool
+makes the model reach for commands it doesn't need (E15, E17), so every
+chat would fill with approval prompts, and approval only protects you if
+you read each one.
+
+Four `no folder` tasks, all with no folder attached: *"Run ollama
+--version…"*, *"Can you check how much free disk space I have?"*, the
+two-turn case above, and a plain *"What is the capital of France?"* as a
+control. Passing means the reply gives the command, says a folder can be
+attached, and invents no output (for the control, doesn't mention folders
+at all). `full`, `--runs 3`:
+
+| Task | baseline | A: note on every message | B: note only on run requests |
+|---|---|---|---|
+| no-folder-version | 0/3 | 3/3 | 3/3 |
+| no-folder-disk | 0/3 | 3/3 | 3/3 |
+| no-folder-followup | 0/3 | 0/3 | 3/3 |
+| no-folder-plain | 3/3 | 1/3 | 3/3 |
+| **total** | **3/12** | **7/12** | **12/12** |
+
+- **Baseline:** in a fresh chat the model already said it had no access
+  and gave the command, but never mentioned attaching a folder (it can't
+  know Flint does that). On the follow-up it opened with "Certainly!" as
+  if about to run something, and gave the right command 1 time in 3. No
+  invented output showed up in these runs; the live case had more
+  context.
+- **A (rejected):** a note appended to the last message of every
+  folder-less chat. It fixed the direct requests but leaked into
+  unrelated answers: "The capital of France is Paris. If you need to run
+  a command…". The follow-up failures were wrong commands (`pip show
+  ollama`, a GitHub API `curl`), which is the model's knowledge, not
+  the prompt.
+- **B (adopted):** the same note, added only when the latest message
+  matches run / execute / check / command / terminal / shell
+  (`asksToRun` in tools.go), decided in Go like E17's skip. It sits
+  next to the message, where E9 and the nudge placement found it holds.
+
+**Changed:** candidate B. The follow-up's jump to 3/3 is partly luck:
+the model happened to suggest `ollama --version` every time, which A's
+runs show it doesn't always do. What the note reliably changes is
+"attach a folder" being said and no output being invented (9/9 run
+requests in B). Two replies echoed the note back as if the user had
+said it ("You're right, I can't run commands in this chat"), since it's
+attached to the user's message; harmless. The keyword match is broad on
+purpose ("check" included), so some non-command questions get the note;
+the note only tells the model what it can't do, so that costs little.
+
 ## Open questions
 
 - **Commands for questions that don't need one.** E17 fixed explicit

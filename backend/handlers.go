@@ -953,6 +953,8 @@ func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Reque
 		if anchor := buildAnchorHeader(*convo.AttachedFolder); anchor != "" && !ablated["anchor"] {
 			suffix = strings.TrimLeft(anchor+"\n\n"+suffix, "\n")
 		}
+	} else if (convo.AttachedFolder == nil || *convo.AttachedFolder == "") && asksToRun(convo.Messages) {
+		suffix = noFolderNote
 	}
 	// Folder memories go with the anchor, next to the generation point: as
 	// a system message after the manifest, qwen2.5-3b ignored them (the same
