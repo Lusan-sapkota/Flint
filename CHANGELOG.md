@@ -52,6 +52,9 @@ Notable changes in each release. The measurements behind a change are in
 
 ### Fixed
 
+- A chat whose first reply failed no longer tries to generate a title
+  anyway, which cost a model call (quota, on a cloud model) and kept
+  the input blocked while it ran.
 - The "waiting for the reply" dots no longer stay on forever after an
   instant response, such as the `@compact` "Nothing to compact" notice or
   an error Ollama returns right away.

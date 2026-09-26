@@ -41,3 +41,21 @@ func TestSearchConversations(t *testing.T) {
 		t.Errorf("deleted messages should drop out of the index, got %+v", got)
 	}
 }
+
+func TestHasAssistantMessage(t *testing.T) {
+	db, err := openDB(filepath.Join(t.TempDir(), "t.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	createUser(db, "alice", "alice", "a@x.io", "h")
+	createConversation(db, "c1", "alice", "m")
+	insertMessage(db, "c1", "user", "hi")
+	if hasAssistantMessage(db, "c1") {
+		t.Fatal("a chat whose reply failed has no assistant message")
+	}
+	insertAssistantMessage(db, "c1", "hello", "", 0)
+	if !hasAssistantMessage(db, "c1") {
+		t.Fatal("a replied chat has an assistant message")
+	}
+}

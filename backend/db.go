@@ -827,6 +827,12 @@ func getAttachmentOwned(db *sql.DB, attachmentID, userID string) (*Attachment, e
 	return &a, nil
 }
 
+func hasAssistantMessage(db *sql.DB, conversationID string) bool {
+	var ok bool
+	db.QueryRow(`SELECT EXISTS(SELECT 1 FROM messages WHERE conversation_id = ? AND role = 'assistant')`, conversationID).Scan(&ok)
+	return ok
+}
+
 func insertToolCallMessage(db *sql.DB, conversationID, content, thinking, toolCallsJSON string) error {
 	_, err := db.Exec(
 		`INSERT INTO messages (conversation_id, role, content, thinking, tool_calls, created_at) VALUES (?, 'assistant', ?, ?, ?, ?)`,

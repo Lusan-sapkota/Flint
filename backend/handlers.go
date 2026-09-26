@@ -729,7 +729,10 @@ func (s *Server) runUserTurn(w http.ResponseWriter, r *http.Request, user *User,
 	}
 	s.streamAssistantTurn(w, r, user, convo)
 
-	if firstMessage {
+	// A failed reply saves no assistant message. Titling it anyway spent a
+	// model call (quota, on a cloud model) and held the request open, with
+	// the input still blocked, right when the user wants to retry.
+	if firstMessage && hasAssistantMessage(s.db, id) {
 		s.generateTitle(r.Context(), user, convo.Model, s.numCtxFor(user, convo.Conversation), id, placeholderTitle, content)
 	}
 }

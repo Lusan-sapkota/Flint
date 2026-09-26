@@ -88,7 +88,8 @@ feature change.
 - **New chat** with a model picker. It defaults to the model you used
   most recently.
 - **Automatic titles.** The first message sets a placeholder right away.
-  After the first reply, the model writes a 2-6 word title, unless you've
+  After the first reply (not after a failed one, which keeps the
+  placeholder), the model writes a 2-6 word title, unless you've
   already renamed the chat.
 - **Rename and delete.** Deleting asks Yes / No first, and also removes
   the chat's attachment files.
