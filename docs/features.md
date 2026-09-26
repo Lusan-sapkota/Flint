@@ -33,7 +33,9 @@ feature change.
 ## Chat
 
 - **Cloud models.** An Ollama cloud model (`ollama pull <name>:cloud`)
-  works like any other, but runs on ollama.com: the whole chat, attached
+  works like any other, under the same rules (every command waits for
+  approval and passes the shield and precondition checks), but runs on
+  ollama.com: the whole chat, attached
   folder files and command output included, leaves your machine. It's
   tagged "cloud" in the New chat picker, in Settings and next to the
   model name, and a line at the top of the chat says where it goes. If

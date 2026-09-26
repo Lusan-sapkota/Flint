@@ -18,6 +18,10 @@ Brave Search API with your own key, only when you ask, sending only the
 query text. Ollama cloud models (`:cloud`) run on ollama.com, so Flint tags
 them "cloud" and says so in the chat.
 
+<p align="center">
+  <img src="docs/images/hero-approval.png" alt="A shell command proposed by the model, waiting for Approve, Deny or Reply instead" width="900">
+</p>
+
 ## Why
 
 Local-LLM web UIs tend to be either too heavy (bundled RAG, Whisper and
@@ -47,6 +51,11 @@ becoming heavy itself.
   to a folder load whenever that folder is attached.
 - **Web search on request.** `@web <query>`, re-ranked locally with
   Ollama embeddings.
+- **Local first, cloud when you choose.** Built and tuned for small local
+  models, and Ollama cloud models work too, under the same rules: every
+  command still waits for your approval and passes the same safety
+  checks. A cloud model is tagged "cloud", its chat says it's sent to
+  ollama.com, and it gets its own context window setting.
 - **Everything a chat UI needs:** streaming, thinking toggle, images and
   file attachments, chat search, offline math rendering, editable last
   message, automatic titles, model management.
@@ -56,6 +65,15 @@ becoming heavy itself.
   the attempts that failed, and a scored benchmark measures each piece of
   scaffolding by switching it off. ([experiments](docs/experiments.md),
   [benchmark](docs/benchmark.md))
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/images/web-query.png" alt="An @web question answered from three ranked sources, listed above the answer" width="900">
+</p>
+<p align="center">
+  <img src="docs/images/memory.png" alt="@memory save marks where a memory was saved; @memory recalls it in the chat" width="900">
+</p>
 
 ## Who it's for
 
