@@ -1413,16 +1413,13 @@ details.flint-thinking > summary:focus {
   min-width: 0;
 }
 
-/* The title shares the form column's width and centering, so the header
-   lines up with the fields under it on any screen width. */
+/* Same left edge as the form column below it. */
 .flint-settings-main .flint-topbar {
   padding: 0 2.5rem;
 }
 
 .flint-settings-title {
-  width: 100%;
-  max-width: 40rem;
-  margin: 0 auto;
+  margin: 0;
   font-size: 1rem;
   font-weight: 600;
 }
@@ -1434,8 +1431,7 @@ details.flint-thinking > summary:focus {
 }
 
 .flint-settings-section {
-  max-width: 40rem;
-  margin: 0 auto;
+  max-width: 48rem;
 }
 
 .flint-settings-group {
