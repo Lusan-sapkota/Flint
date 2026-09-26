@@ -237,7 +237,7 @@
           </template>
 
           <template x-if="item.kind === 'sources'">
-            <details class="flint-sources" open>
+            <details class="flint-sources">
               <summary>
                 <span x-text="'Searched the web for “' + item.query + '”'"></span>
                 <span class="flint-sources-count" x-text="item.sources.length + (item.sources.length === 1 ? ' source' : ' sources')"></span>

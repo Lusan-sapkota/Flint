@@ -2044,11 +2044,12 @@ button.flint-danger-solid:hover {
   white-space: pre-wrap;
 }
 
-/* The web sources an @web answer was based on. */
+/* The web sources an @web answer was based on. Collapsed it hugs its one
+   line; opened it grows up to the answer's width so titles stay on one line. */
 .flint-sources {
   align-self: flex-start;
-  max-width: 70ch;
-  width: 100%;
+  width: fit-content;
+  max-width: 100%;
   margin: 0;
   padding: 0.6rem 0.9rem;
   border: 1px solid var(--flint-border);
