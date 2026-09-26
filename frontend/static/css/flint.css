@@ -2031,9 +2031,13 @@ button.flint-danger-solid:hover {
   background: var(--flint-border);
 }
 
-/* Wide equations scroll instead of pushing the chat sideways. */
+/* Wide equations scroll instead of pushing the chat sideways. overflow-x
+   alone makes overflow-y auto too, and a fraction's few extra pixels then
+   got their own vertical scrollbar; the padding keeps tall glyphs unclipped. */
 .flint-math-block {
   overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25em 0;
   margin: 0.75rem 0;
 }
 
