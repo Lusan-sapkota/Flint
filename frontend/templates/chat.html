@@ -318,7 +318,10 @@
           </template>
         </div>
       </template>
-      <div class="flint-typing" x-show="streaming && !streamingBubble" role="status" aria-label="Waiting for the reply">
+      {{/* :hidden, not x-show: x-show defers showing to a setTimeout, so when an
+           instant reply (a notice, an early error) flips this several times in a
+           few ms, a stale show landed after the last hide and the dots stayed. */}}
+      <div class="flint-typing" :hidden="!streaming || streamingBubble" role="status" aria-label="Waiting for the reply">
         <span></span><span></span><span></span>
         <em class="flint-typing-label" x-show="searchingQuery" x-text="'Searching the web for “' + searchingQuery + '”…'"></em>
         <em class="flint-typing-label" x-show="modelLoading && !searchingQuery" x-text="'Loading ' + model + ' into memory…'"></em>

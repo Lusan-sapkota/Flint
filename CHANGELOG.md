@@ -52,6 +52,9 @@ Notable changes in each release. The measurements behind a change are in
 
 ### Fixed
 
+- The "waiting for the reply" dots no longer stay on forever after an
+  instant response, such as the `@compact` "Nothing to compact" notice or
+  an error Ollama returns right away.
 - A cloud model's details in Settings → Models show its context length.
 - qwen3.5 no longer fails with "System message must be at the beginning"
   after `@memory`, a later `@web`, or once a long chat is summarized. Its
