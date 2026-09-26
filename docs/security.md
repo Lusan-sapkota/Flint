@@ -78,7 +78,13 @@ and their output is capped at 20,000 characters.
 ## Network
 
 - Flint talks to Ollama, and to Brave Search only for an explicit `@web`
-  message using that user's own key. Nothing else leaves the machine.
+  message using that user's own key. Nothing else leaves the machine,
+  unless you chat with an Ollama cloud model (`:cloud`): Ollama then
+  forwards the whole chat, attached folder files and command output
+  included, to ollama.com. Flint doesn't block that, since you pulled the
+  model yourself, but tags it "cloud" in the picker, Settings and the
+  chat, and says so at the top of the chat. It's detected from the
+  `remote_host` Ollama reports, not the name.
   Settings → Connection lists every search still in your chats, with the
   exact query sent.
 - The UI is same-origin with the API, so no CORS headers are set.

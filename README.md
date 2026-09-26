@@ -15,7 +15,8 @@ No CDN calls, no telemetry, no cloud dependency. Everything the frontend
 needs is vendored, and the backend only talks to your local Ollama. The one
 deliberate exception is `@web <query>`, which searches the web through the
 Brave Search API with your own key, only when you ask, sending only the
-query text.
+query text. Ollama cloud models (`:cloud`) run on ollama.com, so Flint tags
+them "cloud" and says so in the chat.
 
 ## Why
 

@@ -7,6 +7,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -233,6 +234,7 @@ type chatViewData struct {
 	ContextMax          int
 	Condensed           int
 	CurrentFolder       string
+	CurrentModelHost    string
 	TimelineJSON        string
 	Models              []OllamaModelInfo
 	ModelsErr           string
@@ -307,6 +309,7 @@ func (s *Server) handleChatPage(w http.ResponseWriter, r *http.Request, user *Us
 			caps := s.ollama.Capabilities(r.Context(), s.ollamaURLFor(user), m)
 			data.CanThink = slices.Contains(caps, "thinking")
 			data.CanSee = caps == nil || slices.Contains(caps, "vision")
+			data.CurrentModelHost = remoteHostName(m.RemoteHost)
 		}
 	}
 
@@ -425,4 +428,12 @@ func preferredOrAll(models []OllamaModelInfo, preferred []string) []OllamaModelI
 
 func hasModel(models []OllamaModelInfo, name string) bool {
 	return slices.ContainsFunc(models, func(m OllamaModelInfo) bool { return m.Name == name })
+}
+
+// remoteHostName shows a cloud model's host as a plain name, "ollama.com".
+func remoteHostName(host string) string {
+	if u, err := url.Parse(host); err == nil && u.Host != "" {
+		return u.Host
+	}
+	return host
 }

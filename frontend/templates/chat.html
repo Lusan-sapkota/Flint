@@ -83,7 +83,7 @@
             <option value="">No models available</option>
           {{end}}
           {{range .Models}}
-            <option value="{{.Name}}" {{if eq .Name $.SelectedModel}}selected{{end}}>{{.Name}}</option>
+            <option value="{{.Name}}" {{if eq .Name $.SelectedModel}}selected{{end}}>{{.Name}}{{if .RemoteHost}} (cloud){{end}}</option>
           {{end}}
         </select>
         <button type="submit" class="flint-new-chat-btn" {{if not .Models}}disabled{{end}}>{{template "icon-plus"}} New chat</button>
@@ -156,13 +156,14 @@
     <header class="flint-topbar">
       <button type="button" class="flint-menu-btn" @click="navOpen = true" aria-label="Open sidebar">{{template "icon-sidebar"}}</button>
       <div class="flint-topbar-model">
-        <template x-if="model"><span>Model: <strong x-text="model"></strong>{{if .CurrentModelMissing}} <span class="flint-model-missing" title="This model is no longer installed on the Ollama server. Pull it again in Settings, or start a new chat with another model.">not installed</span>{{end}}<span class="flint-topbar-date" x-show="lastActive" x-text="formatDate(lastActive)" title="Last activity in this chat"></span></span></template>
+        <template x-if="model"><span>Model: <strong x-text="model"></strong>{{if .CurrentModelHost}} <span class="flint-model-cloud" title="Runs on {{.CurrentModelHost}}, not on this machine">cloud</span>{{end}}{{if .CurrentModelMissing}} <span class="flint-model-missing" title="This model is no longer installed on the Ollama server. Pull it again in Settings, or start a new chat with another model.">not installed</span>{{end}}<span class="flint-topbar-date" x-show="lastActive" x-text="formatDate(lastActive)" title="Last activity in this chat"></span></span></template>
         <template x-if="!model"><span>No conversation selected</span></template>
       </div>
       <a href="/settings" class="flint-settings-gear" title="Settings">{{template "icon-settings"}}</a>
     </header>
 
     <main class="flint-thread" x-ref="thread">
+      {{if .CurrentModelHost}}<p class="flint-cloud-notice">Cloud model: this chat, including attached folder files and command output, is sent to {{.CurrentModelHost}}.</p>{{end}}
       <template x-if="!conversationId">
         <div class="flint-empty-state">
           <p>Pick a conversation from the sidebar, or start a new chat with a model.</p>

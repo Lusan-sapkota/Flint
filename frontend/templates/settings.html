@@ -114,7 +114,7 @@
             {{range .ChatModels}}
             <label>
               <input type="checkbox" :checked="isPreferred('{{.Name | jsStr}}')" @change="toggleModel('{{.Name | jsStr}}')">
-              {{.Name}}
+              {{.Name}}{{if .RemoteHost}} <span class="flint-model-meta">cloud</span>{{end}}
             </label>
             {{end}}
           </div>
@@ -160,7 +160,7 @@
             <li x-data="{ open: false, loading: false, info: null, error: '' }">
               <div class="flint-installed-model-row">
                 <div class="flint-installed-model-info">
-                  <strong>{{.Name}}</strong>
+                  <strong>{{.Name}}</strong>{{if .RemoteHost}} <span class="flint-model-meta">cloud, runs on {{.RemoteHost}}</span>{{end}}
                   <span class="flint-model-meta" x-show="isRankingModel('{{.Name | jsStr}}')">Optional: ranks <code>@web</code> results, loaded only while a search runs</span>
                   <span class="flint-model-meta">{{.Size | humanSize}}{{if .Details.ParameterSize}} &middot; {{.Details.ParameterSize}}{{end}}{{if .Details.QuantizationLevel}} &middot; {{.Details.QuantizationLevel}}{{end}}</span>
                 </div>

@@ -7,6 +7,10 @@ Notable changes in each release. The measurements behind a change are in
 
 ### Added
 
+- Ollama cloud models (`:cloud`) are tagged "cloud" in the model picker,
+  Settings and the chat, with a line saying the chat is sent to
+  ollama.com. Not being signed in to Ollama now says to run
+  `ollama signin`.
 - Change a chat's attached folder with the Change link on the folder
   chip. The new folder replaces the old one as the chat's standing
   context.

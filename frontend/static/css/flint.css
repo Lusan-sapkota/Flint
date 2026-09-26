@@ -1568,6 +1568,22 @@ details.flint-thinking > summary:focus {
   margin-bottom: 0;
 }
 
+.flint-model-cloud {
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--flint-accent);
+  border-radius: 0.3rem;
+  color: var(--flint-accent);
+  font-size: 0.75rem;
+}
+
+.flint-cloud-notice {
+  margin: 0 auto 1rem;
+  text-align: center;
+  color: var(--flint-text-dim);
+  font-size: 0.85rem;
+}
+
 .flint-model-meta {
   color: var(--flint-text-dim);
   font-size: 0.8rem;

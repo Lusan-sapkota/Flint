@@ -32,6 +32,15 @@ feature change.
 
 ## Chat
 
+- **Cloud models.** An Ollama cloud model (`ollama pull <name>:cloud`)
+  works like any other, but runs on ollama.com: the whole chat, attached
+  folder files and command output included, leaves your machine. It's
+  tagged "cloud" in the New chat picker, in Settings and next to the
+  model name, and a line at the top of the chat says where it goes. If
+  Ollama isn't signed in, the error says to run `ollama signin`. The
+  scaffolding (compaction, tool nudge, retry budget) is tuned for small
+  local models and isn't measured on cloud ones.
+
 - **Streaming replies**, rendered as Markdown (sanitized with DOMPurify):
   headings, lists, tables, quotes, links, task lists and strikethrough.
   Code blocks show their language and have their own Copy button, with no

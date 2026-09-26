@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -79,5 +80,15 @@ func TestSavedMemoriesArePlacedWhereTheyWereSaved(t *testing.T) {
 	want := "user:first,assistant:reply,memorySaved:mid,user:second,memorySaved:end"
 	if strings.Join(got, ",") != want {
 		t.Fatalf("got %s\nwant %s", strings.Join(got, ","), want)
+	}
+}
+
+func TestCloudModelHostAndSignInError(t *testing.T) {
+	if got := remoteHostName("https://ollama.com"); got != "ollama.com" {
+		t.Errorf("remoteHostName = %q, want ollama.com", got)
+	}
+	msg := describeOllamaError(errors.New(`ollama returned status 401: {"error":"Unauthorized"}`), "http://localhost:11434")
+	if !strings.Contains(msg, "ollama signin") {
+		t.Errorf("a 401 must tell the user to sign in, got %q", msg)
 	}
 }

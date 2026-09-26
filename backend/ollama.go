@@ -90,6 +90,9 @@ type OllamaModelInfo struct {
 	Size       int64              `json:"size,omitempty"`
 	Digest     string             `json:"digest,omitempty"`
 	Details    OllamaModelDetails `json:"details,omitempty"`
+	// Set for an Ollama cloud model (":cloud"), which runs on this host,
+	// not locally: every request to it leaves the machine.
+	RemoteHost string `json:"remote_host,omitempty"`
 }
 
 type ollamaTagsResponse struct {
@@ -511,6 +514,10 @@ func describeOllamaError(err error, baseURL string) string {
 	var opErr *net.OpError
 	if errors.As(err, &opErr) {
 		return fmt.Sprintf("Can't reach Ollama at %s. Check that it's running (start it with: ollama serve), or change the address in Settings → Connection.", baseURL)
+	}
+	// Only a cloud model gets a 401 from a local Ollama.
+	if strings.Contains(err.Error(), "status 401") {
+		return "Ollama isn't signed in to ollama.com, which cloud models need. Run: ollama signin, then send again."
 	}
 	return err.Error()
 }
