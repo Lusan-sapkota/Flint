@@ -247,8 +247,11 @@ decides what runs.
   web for facts that were in the folder. A web search is only ever
   something you add on the plan card.
 - **Agents that look for themselves.** With a model that supports tool
-  calls and a folder attached, an agent can also propose shell commands
-  (`ls`, `grep`, `cat`, ...) to look through the folder. Each one appears
+  calls, an agent that was given no files (and no web search) proposes
+  shell commands (`ls`, `grep`, `cat`, ...) to look through the folder.
+  An agent given files works from those only: offered commands too,
+  qwen2.5-3b agents ran failing greps instead of reading the file in
+  front of them. Each command appears
   in the main chat as "Agent 2 wants to run" with the literal command,
   and runs only after you approve it, the same flow as the chat's own
   commands, with the same safety shield and precondition checks. An agent
@@ -256,10 +259,11 @@ decides what runs.
   full, after 5 failed or denied commands in a row (a command that works,
   or a **Reply instead**, starts the count over), or after 8 commands
   (Commands per agent in Settings). **Reply instead** on an agent's card
-  sends it what you type in place of running the command. Files named in the
-  plan are then a head start, and a subtask with none is fine. A model
-  without tool support (phi3, for one) only gets what the plan gives it,
-  so each of its subtasks needs a file or a web search.
+  sends it what you type in place of running the command. So picking
+  files is optional: pick one and the agent reads it; leave a subtask
+  empty and its agent searches. A model without tool support (phi3, for
+  one) only gets what the plan gives it, so each of its subtasks needs a
+  file or a web search.
 - **Checked in code, not trusted.** A file that isn't directly in the
   folder is dropped (so `../x`, `/etc/passwd` or a made-up name can't be
   given), a file named in a subtask's text is added to its inputs, and a
@@ -280,7 +284,8 @@ decides what runs.
   edited plan is checked again the same way before it runs. The card
   stays after a reload.
 - **Running.** After **Run** the card folds to one line, and an **Agents**
-  pill appears after the context meter ("Agents 1/3 · 1 waiting" while
+  label appears after the context meter, past a thin divider like the
+  meter's own ("Agents 1/3 · 1 waiting" while
   it runs, highlighted when an agent is waiting for your approval). The
   pill, or **View agents** on the card, opens a large window listing each
   agent with its task, inputs and status; select one to see its result
@@ -297,8 +302,18 @@ decides what runs.
   that was given nothing and ran no command that worked has its answer
   replaced with "nothing to answer from": whatever it wrote, it can't have
   read it anywhere.
+- **The answer, in the chat.** When the agents are done, one more call to
+  the chat's model writes the answer from their results, and it streams
+  into the chat like any reply, after a collapsed "From 3 agents" block
+  listing what each agent found (with **View agents** to open them). The
+  model is told to say plainly when a part is missing or an agent failed.
+  Your task, the agents' short results and the answer become part of the
+  chat's history, so later messages can build on them; the agents'
+  transcripts never do. If no agent produced a result there's nothing to
+  combine, a line says so, and nothing is added to the history. Stop
+  during the answer keeps what was already shown, like any reply.
 - `@agent` isn't added to the chat history while it's only a plan, and an
-  edit can't turn a message into one. The agents' transcripts never are.
+  edit can't turn a message into one.
 
 ## Long conversations
 

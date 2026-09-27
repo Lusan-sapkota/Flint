@@ -120,6 +120,16 @@ func buildTimeline(messages []Message, pending *Command, saved []Memory, runs []
 		}
 	}
 
+	// A finished run saved its task as a user message; the run already
+	// shows that task, and its results message becomes the results block.
+	byMessage := map[int64]*AgentRun{}
+	for i := range runs {
+		if runs[i].MessageID != nil {
+			byMessage[*runs[i].MessageID] = &runs[i]
+		}
+	}
+	var lastRun *AgentRun
+
 	out := []timelineItem{}
 	flushSaved := func(before int64) {
 		for len(saved) > 0 && saved[0].CreatedAt < before {
@@ -135,6 +145,10 @@ func buildTimeline(messages []Message, pending *Command, saved []Memory, runs []
 		flushSaved(m.CreatedAt)
 		switch m.Role {
 		case "user":
+			if run, ok := byMessage[m.ID]; ok {
+				lastRun = run
+				continue
+			}
 			item := timelineItem{Kind: "user", Content: m.Content}
 			// The tags are stripped before saving so the model sees plain
 			// text; show them again the way the user typed them.
@@ -154,6 +168,11 @@ func buildTimeline(messages []Message, pending *Command, saved []Memory, runs []
 				out = append(out, item)
 			}
 		case "system":
+			if lastRun != nil && strings.HasPrefix(m.Content, agentResultsPrefix) {
+				out = append(out, timelineItem{Kind: "agentResults", Run: lastRun})
+				lastRun = nil
+				continue
+			}
 			if query, results, ok := parseSearchResults(m.Content); ok {
 				view := sourcesView(query, results)
 				out = append(out, timelineItem{Kind: "sources", Query: view.Query, Sources: view.Sources})

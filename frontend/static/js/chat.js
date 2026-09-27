@@ -192,9 +192,9 @@ document.addEventListener('alpine:init', () => {
   const MEMORY_SAVED_MARKER = '<<<MEMORY_SAVED>>>';
   const AGENT_PLAN_MARKER = '<<<AGENT_PLAN>>>';
   const AGENTS_MARKER = '<<<AGENTS>>>';
-  const MARKERS = [TOOL_CALL_MARKER, STATS_MARKER, THINK_MARKER, LOADING_MARKER, CONTEXT_MARKER, MEMORY_DRAFT_MARKER, SEARCHING_MARKER, SOURCES_MARKER, MEMORY_SAVED_MARKER, AGENT_PLAN_MARKER];
+  const MARKERS = [TOOL_CALL_MARKER, STATS_MARKER, THINK_MARKER, LOADING_MARKER, CONTEXT_MARKER, MEMORY_DRAFT_MARKER, SEARCHING_MARKER, SOURCES_MARKER, MEMORY_SAVED_MARKER, AGENT_PLAN_MARKER, AGENTS_MARKER];
   // One JSON value per line, consumed in place while the stream continues.
-  const LINE_MARKERS = [CONTEXT_MARKER, THINK_MARKER, SEARCHING_MARKER, SOURCES_MARKER, MEMORY_SAVED_MARKER];
+  const LINE_MARKERS = [CONTEXT_MARKER, THINK_MARKER, SEARCHING_MARKER, SOURCES_MARKER, MEMORY_SAVED_MARKER, AGENTS_MARKER];
   const COMMANDS = [
     { cmd: '@agent ', hint: "split a task over the folder's files into separate agents" },
     { cmd: '@web ', hint: 'search the web first (needs a Brave key in Settings)' },
@@ -251,6 +251,7 @@ document.addEventListener('alpine:init', () => {
     commandIndex: 0,
     suggestDismissed: false,
     switchingModel: false,
+    runItem: null,
     agentsRun: null,
     agentsSelectedId: null,
     agentTranscript: [],
@@ -662,21 +663,25 @@ document.addEventListener('alpine:init', () => {
       const web = run.agents.filter((a) => a.webOn && a.web_query.trim() && !a.files.length).length;
       let text = `${n} agent${n === 1 ? '' : 's'}, then 1 call to combine their results: ${n + 1} model calls`;
       if (web) text += `, ${web} web search${web === 1 ? '' : 'es'}`;
-      if (run.can_explore) text += `. Agents may also ask to run up to ${run.max_commands} commands each, every one needing your approval`;
+      // Mirrors runAgent: only an agent given no files or search explores.
+      const exploring = run.can_explore ? run.agents.filter((a) => !a.files.length && !(a.webOn && a.web_query.trim())).length : 0;
+      if (exploring) text += `. ${exploring === n ? 'Each agent' : `${exploring} without files`} will look through the folder and may ask to run up to ${run.max_commands} commands, every one needing your approval`;
       return text + '.';
     },
 
     // The server validates the edited plan again against the folder, so
     // whatever is typed here can only narrow what the agents may read.
-    // The response then streams the run: <<<AGENTS>>> lines with each
-    // agent's state, and each command an agent asks to run.
+    // The response then streams the run as <<<AGENTS>>> lines (each
+    // agent's state, each command an agent asks to run), followed by the
+    // combined answer like any reply, so the chat's own reader handles it.
     async runPlan(item) {
       item.planError = '';
       const agents = item.run.agents.map((a) => ({ task: a.task, files: a.files, web_query: a.webOn ? a.web_query : '' }));
       this.streaming = true;
       this.abortController = new AbortController();
+      this.runItem = item;
       try {
-        const res = await fetch(`/api/agent-runs/${item.run.id}/run`, {
+        const res = await fetch(`/api/agent-runs/${item.run.id}/run${this.thinkQuery}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ agents }),
@@ -687,22 +692,11 @@ document.addEventListener('alpine:init', () => {
           item.planError = data.error || res.statusText;
           return;
         }
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buf = '';
-        for (;;) {
-          const { done, value } = await reader.read();
-          if (value) buf += decoder.decode(value, { stream: true });
-          let nl;
-          while ((nl = buf.indexOf('\n')) !== -1) {
-            const line = buf.slice(0, nl);
-            buf = buf.slice(nl + 1);
-            if (line.startsWith(AGENTS_MARKER)) this.applyAgentEvent(item, JSON.parse(line.slice(AGENTS_MARKER.length)));
-          }
-          if (done) break;
-        }
+        await this.consumeStream(res.body, { expectResultMarker: false });
+        this.refreshTitle();
       } catch (e) {
         if (e.name === 'AbortError') {
+          this.finishStopped();
           item.run.status = 'cancelled';
           for (const a of item.run.agents) if (['queued', 'running', 'waiting'].includes(a.status)) a.status = 'cancelled';
           for (const t of this.timeline) if (t.agentRunId === item.run.id && t.commandStatus === 'pending') t.commandStatus = 'cancelled';
@@ -711,12 +705,20 @@ document.addEventListener('alpine:init', () => {
         }
       } finally {
         this.streaming = false;
+        this.streamingBubble = null;
         this.abortController = null;
+        this.runItem = null;
         this.lastActive = Date.now();
+        this.modelLoading = false;
       }
     },
 
     applyAgentEvent(item, ev) {
+      if (ev.type === 'results') {
+        this.timeline.push({ kind: 'agentResults', run: item.run });
+        this.scrollToBottom();
+        return;
+      }
       // Running saves the edited plan under new agent ids, so the stream's
       // list replaces the card's rather than being matched to it.
       if (ev.type === 'state') {
@@ -1021,6 +1023,8 @@ document.addEventListener('alpine:init', () => {
               this.condensed = value.condensed;
             } else if (lineMarker === SEARCHING_MARKER) {
               this.searchingQuery = value.query;
+            } else if (lineMarker === AGENTS_MARKER) {
+              if (this.runItem) this.applyAgentEvent(this.runItem, value);
             } else if (lineMarker === MEMORY_SAVED_MARKER) {
               this.timeline.push({ kind: 'memorySaved', content: value.content });
               this.scrollToBottom();

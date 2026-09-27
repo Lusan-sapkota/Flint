@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -153,8 +154,14 @@ func (s *Server) runAgent(ctx context.Context, st *agentRunStream, i int, env ag
 		fail(err.Error())
 		return
 	}
+	// Only an agent given nothing looks through the folder. qwen2.5-3b
+	// agents that had their file in the prompt still went off running
+	// greps (failing ones) and Python one-liners, then answered "not
+	// found" for what was in front of them, so given inputs mean inputs
+	// only.
+	explore := env.explore && len(a.Files) == 0 && a.WebQuery == ""
 	extra := ""
-	if env.explore {
+	if explore {
 		extra = agentExplorePrompt
 		if anchor := buildAnchorHeader(*env.convo.AttachedFolder); anchor != "" {
 			extra += "\n\n" + anchor
@@ -192,9 +199,9 @@ func (s *Server) runAgent(ctx context.Context, st *agentRunStream, i int, env ag
 	// Whether the agent has read anything at all: given files or web
 	// results, or a command that ran. Without that, whatever it answers is
 	// made up (qwen2.5:1.5b answered "John Doe" as found), so it isn't kept.
-	evidence := len(a.Files) > 0 || a.WebQuery != ""
+	evidence := !explore
 	proposed, failures := 0, 0
-	for env.explore {
+	for explore {
 		room := env.numCtx - responseReserve - estimateAgentTokens(messages)
 		if proposed >= env.commands || failures >= agentFailureLimit || room < agentMinToolRoom {
 			break
@@ -463,4 +470,118 @@ func (s *Server) handleDecideAgentCommand(w http.ResponseWriter, r *http.Request
 		log.Printf("warning: agent command %s decided with no agent waiting", r.PathValue("cmdId"))
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+const agentResultsPrefix = "Results from the agents that worked on this task, each on one part with only its own inputs:"
+
+const combinePrompt = `You write the answer to the user's task from the results of helper agents, each of which worked on one part of it. Use only these results; keep exact names, numbers and quotes. If a part wasn't found or its agent failed, say plainly that it's missing instead of guessing. Answer the task directly; don't describe the agents.`
+
+// formatAgentResults is what the model sees of a run, now and in every
+// later turn: each agent's bounded result, or why it has none.
+func formatAgentResults(run *AgentRun) string {
+	var b strings.Builder
+	b.WriteString(agentResultsPrefix)
+	for _, a := range run.Agents {
+		fmt.Fprintf(&b, "\n\nAgent %d (%s): ", a.Position+1, a.Task)
+		var r struct {
+			Answer string `json:"answer"`
+			Found  bool   `json:"found"`
+		}
+		switch {
+		case a.Status == "done" && json.Unmarshal([]byte(a.Result), &r) == nil && r.Found:
+			b.WriteString(r.Answer)
+		case a.Status == "done":
+			b.WriteString("not found in its inputs. " + r.Answer)
+		case a.Status == "failed":
+			b.WriteString("failed: " + a.Error)
+		default:
+			b.WriteString("stopped before it finished.")
+		}
+	}
+	return b.String()
+}
+
+// combineAgents writes the answer from the finished agents and ends the
+// run's stream. The task, the agents' results and the answer enter the
+// chat's history, in that order, like any turn; transcripts never do.
+func (s *Server) combineAgents(w http.ResponseWriter, r *http.Request, st *agentRunStream, user *User, convo *ConversationWithMessages) {
+	run := st.run
+	end := func(status, answer string, msgID *int64) {
+		if err := finishAgentRun(s.db, run.ID, status, answer, msgID); err != nil {
+			log.Printf("warning: saving agent run: %v", err)
+		}
+		st.setStatus(status)
+	}
+	done := 0
+	for _, a := range run.Agents {
+		if a.Status == "done" {
+			done++
+		}
+	}
+	if done == 0 {
+		fmt.Fprint(w, "[None of the agents produced a result, so there's nothing to combine. Open the agents to see why each one failed.]\n")
+		end("failed", "", nil)
+		return
+	}
+
+	msgID, err := insertMessage(s.db, convo.ID, "user", run.Task)
+	if err != nil {
+		fmt.Fprintf(w, "[error: %v]\n", err)
+		end("failed", "", nil)
+		return
+	}
+	placeholder, first, err := maybeSetTitle(s.db, convo.ID, run.Task)
+	if err != nil {
+		log.Printf("warning: failed to set title: %v", err)
+	}
+	results := formatAgentResults(run)
+	if _, err := insertMessage(s.db, convo.ID, "system", results); err != nil {
+		log.Printf("warning: saving agent results: %v", err)
+	}
+	if err := finishAgentRun(s.db, run.ID, "running", "", &msgID); err != nil {
+		log.Printf("warning: saving agent run: %v", err)
+	}
+	st.mu.Lock()
+	st.line(map[string]any{"type": "results", "run_id": run.ID})
+	st.mu.Unlock()
+
+	numCtx := s.numCtxFor(user, convo.Conversation)
+	res, err := s.ollama.StreamChat(r.Context(), s.ollamaURLFor(user), convo.Model, []OllamaMessage{
+		{Role: "system", Content: combinePrompt},
+		{Role: "user", Content: "Task: " + run.Task + "\n\n" + results},
+	}, nil, map[string]any{"num_ctx": numCtx}, thinkParam(r), func(token string) {
+		w.Write([]byte(token))
+		st.flush()
+	}, func(t string) {
+		line, _ := json.Marshal(t)
+		fmt.Fprintf(w, "<<<THINK>>>%s\n", line)
+		st.flush()
+	})
+	// Stopped mid-answer keeps what was already shown, like a chat reply.
+	if res.Content != "" || res.Thinking != "" {
+		if err := insertAssistantMessage(s.db, convo.ID, res.Content, res.Thinking, res.TokensPerSec); err != nil {
+			log.Printf("warning: saving the combined answer: %v", err)
+		}
+	}
+	touchConversation(s.db, convo.ID)
+	switch {
+	case r.Context().Err() != nil:
+		end("cancelled", res.Content, nil)
+		return
+	case err != nil:
+		fmt.Fprintf(w, "\n[error: %s]\n", describeOllamaError(err, s.ollamaURLFor(user)))
+		end("failed", res.Content, nil)
+		return
+	}
+	fmt.Fprint(w, "\n")
+	end("done", res.Content, nil)
+	if res.TokensPerSec > 0 {
+		stats, _ := json.Marshal(map[string]float64{"tokensPerSec": math.Round(res.TokensPerSec*10) / 10})
+		fmt.Fprintf(w, "<<<STATS>>>%s\n", stats)
+		st.flush()
+	}
+	if first {
+		s.generateTitle(r.Context(), user, convo.Model, numCtx, convo.ID, placeholder, run.Task)
+	}
+	s.summarizeInBackground(user, convo.ID)
 }

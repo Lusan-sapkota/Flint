@@ -1283,7 +1283,7 @@ details.flint-thinking > summary:focus {
 }
 
 .flint-agent-remove {
-  margin: 0.35rem 0 0;
+  margin: 0;
   width: auto;
   padding: 0.15rem 0.6rem;
   font-size: 0.8rem;
@@ -1305,20 +1305,48 @@ details.flint-thinking > summary:focus {
   font-size: 0.85rem;
 }
 
-.flint-agents-pill {
+.flint-agent-results ol {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+  font-size: 0.85rem;
+}
+
+.flint-agent-results li {
+  margin-bottom: 0.4rem;
+}
+
+.flint-agent-results-task {
+  display: block;
+  color: var(--flint-text-dim);
+}
+
+.flint-agent-results button {
   margin: 0;
   width: auto;
-  padding: 0.15rem 0.65rem;
+  padding: 0.2rem 0.7rem;
   font-size: 0.8rem;
-  border-radius: 999px;
-  background: var(--flint-surface);
-  border: 1px solid var(--flint-border);
+}
+
+/* Plain text after a divider, like the folder chip and context meter. */
+.flint-agents-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 2rem;
+  margin: 0;
+  width: auto;
+  padding: 0;
+  font-size: 0.8rem;
+  background: none;
+  border: none;
   color: var(--flint-text-dim);
   white-space: nowrap;
 }
 
+.flint-agents-pill:hover {
+  color: var(--flint-text);
+}
+
 .flint-agents-pill.flint-agents-waiting {
-  border-color: var(--flint-accent);
   color: var(--flint-accent);
 }
 
@@ -2668,7 +2696,8 @@ button.flint-danger-solid:hover {
   padding-left: 0;
   padding-right: 0;
 }
-.flint-inputbar-top .flint-context::before {
+.flint-inputbar-top .flint-context::before,
+.flint-agents-pill::before {
   content: "";
   align-self: center;
   width: 1px;

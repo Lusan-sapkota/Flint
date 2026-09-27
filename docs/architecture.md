@@ -130,17 +130,25 @@ Each step is idempotent.
 3. **One agent.** Go reads its files (a big file keeps its start and end,
    sized at 1.5 chars per token so the prompt really fits) or runs its
    search, and builds a fresh history: instructions and the subtask with
-   its inputs. With a tool-capable model and a folder, it may call the
-   shell tool without a JSON format (a format suppresses tool calls,
-   E25), with the tool nudge on the last message. Each call is checked by
+   its inputs. An agent given no files or search, on a tool-capable
+   model, may call the shell tool without a JSON format (a format
+   suppresses tool calls, E25), with the tool nudge on the last message;
+   one given inputs works from them only. Each call is checked by
    the shield and preconditions and waits for the user in the main chat;
    the decision arrives through
    `POST /api/agent-runs/{id}/commands/{cmdId}/{approve|deny}`, which
    doesn't take the conversation's lock. Then one call with the result
    schema gives `{"answer","found"}`, which Go checks and bounds. The
    whole transcript goes to `agent_messages`, never to the chat.
-4. **Stop.** Closing the run's request (Stop, a closed tab) cancels every
-   agent and every waiting command.
+4. **Combine.** On the same stream: the task is saved as a user message
+   (linked from the run's `message_id`, so the chat shows it once), then
+   the agents' bounded results as a system message, then one call with
+   no tools and a clean window streams the answer, saved as the
+   assistant message, followed by the stats line, title generation and a
+   summary pass, as after any turn. With no result at all there's no
+   call and nothing is saved.
+5. **Stop.** Closing the run's request (Stop, a closed tab) cancels every
+   agent, every waiting command and the answer; what was shown is kept.
 
 ## Streaming protocol
 
@@ -162,6 +170,7 @@ client consumes:
 | `<<<AGENT_PLAN>>>{run}` | an `@agent` plan awaiting Run or Discard; ends the stream |
 | `<<<AGENTS>>>{"type":"state",..}` | on an `@agent` run's own stream (`POST /api/agent-runs/{id}/run`): the run's status and every agent's status, result and error, sent on each change |
 | `<<<AGENTS>>>{"type":"command",..}` | an agent asked to run a command (`status` pending), or what it did once decided (with `output`) |
+| `<<<AGENTS>>>{"type":"results",..}` | the agents are done and their results are saved; the combined answer streams next, as ordinary reply text |
 
 ## Fixed decisions
 

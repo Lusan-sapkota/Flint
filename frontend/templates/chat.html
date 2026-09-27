@@ -325,6 +325,7 @@
                         </template>
                       </select>
                       <button type="button" class="secondary flint-agent-addweb" x-show="item.run.status === 'planned' && item.run.web_available && !agent.webOn && !agent.files.length" @click="agent.webOn = true">Add web search</button>
+                      <button type="button" class="secondary flint-agent-remove" x-show="item.run.status === 'planned' && item.run.agents.length > 1" @click="item.run.agents.splice(i, 1)">Remove subtask</button>
                       <template x-if="agent.webOn && !agent.files.length">
                         <label class="flint-agent-web">Web search
                           <span class="flint-agent-web-row">
@@ -337,7 +338,6 @@
                     <p class="flint-field-hint" x-show="agent.note" x-text="agent.note"></p>
                     <p class="flint-field-hint" x-show="item.run.status === 'planned' && !agent.files.length && !(agent.webOn && agent.web_query.trim())"
                        x-text="item.run.can_explore ? 'No files: this agent looks through the folder itself, with commands you approve in the chat.' : 'Add a file or a web search: this model can\'t look through the folder itself, so a subtask with neither is dropped.'"></p>
-                    <button type="button" class="secondary flint-agent-remove" x-show="item.run.status === 'planned' && item.run.agents.length > 1" @click="item.run.agents.splice(i, 1)">Remove subtask</button>
                   </li>
                 </template>
               </ol>
@@ -349,6 +349,21 @@
               </template>
               <p class="flint-error" x-show="item.planError" x-text="item.planError"></p>
             </div>
+          </template>
+
+          <template x-if="item.kind === 'agentResults'">
+            <details class="flint-msg flint-msg-system flint-agent-results">
+              <summary x-text="`From ${item.run.agents.length} agent${item.run.agents.length === 1 ? '' : 's'}`"></summary>
+              <ol>
+                <template x-for="a in item.run.agents" :key="a.id">
+                  <li>
+                    <span class="flint-agent-results-task" x-text="a.task"></span>
+                    <span :class="{ 'flint-error': a.status !== 'done' }" x-text="agentAnswer(a) || a.error || agentStatusLabel(a.status)"></span>
+                  </li>
+                </template>
+              </ol>
+              <button type="button" class="secondary" @click="openAgents(item.run)">View agents</button>
+            </details>
           </template>
 
           <template x-if="item.kind === 'command'">

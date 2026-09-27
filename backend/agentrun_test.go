@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -180,6 +181,14 @@ func newAgentFixture(t *testing.T, f *fakeAgentOllama, tasks ...string) (*agentF
 	return &agentFixture{s: s, user: user, convo: convo}, st, out
 }
 
+// exploring gives every agent of the run no files, so on a tool-capable
+// model it looks through the folder with commands.
+func exploring(st *agentRunStream) {
+	for i := range st.run.Agents {
+		st.run.Agents[i].Files = []string{}
+	}
+}
+
 type lockedWriter struct {
 	b  *strings.Builder
 	mu *sync.Mutex
@@ -270,6 +279,7 @@ func TestStopCancelsRunningQueuedAndWaitingAgents(t *testing.T) {
 		return ""
 	}, delay: 200 * time.Millisecond}
 	fx, st, _ := newAgentFixture(t, f, "cmd one", "slow two", "three")
+	exploring(st)
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		for {
@@ -312,6 +322,7 @@ func TestAgentCommandsNeedApprovalAndStopAtTheLimits(t *testing.T) {
 		return "cat README.md"
 	}}
 	fx, st, out := newAgentFixture(t, f, "keeps reading", "fails", "replied")
+	exploring(st)
 	fx.s.db.Exec(`UPDATE users SET agent_commands = 7 WHERE id = 'alice'`)
 	fx.user, _ = getUserByID(fx.s.db, "alice")
 
@@ -374,6 +385,7 @@ func TestAgentCommandsNeedApprovalAndStopAtTheLimits(t *testing.T) {
 func TestAgentCommandsCantBeDecidedByOthersOrTheChatRoute(t *testing.T) {
 	f := &fakeAgentOllama{tools: true, script: func(string, int) string { return "ls" }}
 	fx, st, _ := newAgentFixture(t, f, "cmd")
+	exploring(st)
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
 	go func() { fx.s.runAgents(ctx, st, fx.user, fx.convo, 1); close(done) }()
@@ -424,6 +436,7 @@ func TestAgentTimeLimitSkipsApprovalWaits(t *testing.T) {
 		return ""
 	}}
 	fx, st, _ := newAgentFixture(t, f, "waits for approval")
+	exploring(st)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go decide(ctx, fx, "alice", func(string) (string, string) {
@@ -451,9 +464,7 @@ func TestAnAgentThatReadNothingHasNoAnswer(t *testing.T) {
 		return ""
 	}}
 	fx, st, _ := newAgentFixture(t, f, "guesses", "looks first")
-	for i := range st.run.Agents {
-		st.run.Agents[i].Files = []string{}
-	}
+	exploring(st)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go decide(ctx, fx, "alice", func(string) (string, string) { return "approve", "" })
@@ -465,5 +476,98 @@ func TestAnAgentThatReadNothingHasNoAnswer(t *testing.T) {
 	}
 	if !strings.Contains(agents[1].Result, `"found":true`) {
 		t.Errorf("an agent whose command ran keeps its answer, got %q", agents[1].Result)
+	}
+}
+
+func TestFormatAgentResultsSaysWhatEachAgentFound(t *testing.T) {
+	got := formatAgentResults(&AgentRun{Agents: []Agent{
+		{Position: 0, Task: "port", Status: "done", Result: `{"answer":"7070","found":true}`},
+		{Position: 1, Task: "owner", Status: "done", Result: `{"answer":"no owner line","found":false}`},
+		{Position: 2, Task: "log", Status: "failed", Error: "ran out of its 5-minute limit"},
+		{Position: 3, Task: "on call", Status: "cancelled"},
+	}})
+	for _, want := range []string{agentResultsPrefix, "Agent 1 (port): 7070", "Agent 2 (owner): not found in its inputs. no owner line", "Agent 3 (log): failed: ran out", "Agent 4 (on call): stopped before it finished."} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %q in:\n%s", want, got)
+		}
+	}
+}
+
+func runViaHandler(t *testing.T, fx *agentFixture, tasks ...string) string {
+	fx.s.db.Exec(`UPDATE agent_runs SET status = 'planned' WHERE id = 'run1'`)
+	var agents []map[string]any
+	for _, task := range tasks {
+		agents = append(agents, map[string]any{"task": task, "files": []string{"README.md"}, "web_query": ""})
+	}
+	body, _ := json.Marshal(map[string]any{"agents": agents})
+	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(string(body)))
+	r.SetPathValue("id", "run1")
+	r = r.WithContext(context.WithValue(r.Context(), userCtxKey, fx.user))
+	w := httptest.NewRecorder()
+	fx.s.handleRunAgentRun(w, r)
+	return w.Body.String()
+}
+
+func TestCombineSavesTaskResultsAndAnswerOnly(t *testing.T) {
+	f := &fakeAgentOllama{script: func(string, int) string { return "" }}
+	fx, _, _ := newAgentFixture(t, f, "one", "two")
+	out := runViaHandler(t, fx, "port", "owner")
+
+	c, _ := getConversation(fx.s.db, "c1", "alice")
+	var roles []string
+	for _, m := range c.Messages {
+		roles = append(roles, m.Role)
+		if strings.Contains(m.Content, "helper agent") {
+			t.Errorf("an agent's own prompt leaked into the chat history: %q", m.Content)
+		}
+	}
+	if !slices.Equal(roles, []string{"user", "system", "assistant"}) {
+		t.Fatalf("want the task, the agents' results and the answer, got %v", roles)
+	}
+	if c.Messages[0].Content != "t" || !strings.HasPrefix(c.Messages[1].Content, agentResultsPrefix) || c.Messages[2].Content != "done looking" {
+		t.Errorf("unexpected history: %+v", c.Messages)
+	}
+	run, _ := getAgentRun(fx.s.db, "run1", "alice")
+	if run.Status != "done" || run.Answer != "done looking" || run.MessageID == nil || *run.MessageID != c.Messages[0].ID {
+		t.Errorf("the run should be done, keep its answer and point at its task message, got %+v", run)
+	}
+	if !strings.Contains(out, `"type":"results"`) || !strings.Contains(out, "done looking") || !strings.Contains(out, `"status":"done"`) {
+		t.Errorf("the stream should carry the results line, the answer and the final state, got %q", out)
+	}
+
+	timeline := buildTimeline(c.Messages, nil, nil, []AgentRun{*run})
+	var kinds []string
+	for _, it := range timeline {
+		kinds = append(kinds, it.Kind)
+	}
+	if !slices.Equal(kinds, []string{"user", "agentPlan", "agentResults", "assistant"}) {
+		t.Errorf("after a reload the task shows once, as the run, then the results and the answer; got %v", kinds)
+	}
+}
+
+func TestNoResultsMeansNothingToCombine(t *testing.T) {
+	f := &fakeAgentOllama{script: func(string, int) string { return "" }}
+	fx, _, _ := newAgentFixture(t, f, "junk")
+	out := runViaHandler(t, fx, "junk one", "junk two")
+
+	c, _ := getConversation(fx.s.db, "c1", "alice")
+	if len(c.Messages) != 0 {
+		t.Errorf("with no agent result nothing enters the history, got %+v", c.Messages)
+	}
+	run, _ := getAgentRun(fx.s.db, "run1", "alice")
+	if run.Status != "failed" || !strings.Contains(out, "nothing to combine") {
+		t.Errorf("want a failed run and a notice, got %s %q", run.Status, out)
+	}
+}
+
+func TestAnAgentWithFilesWorksFromThemOnly(t *testing.T) {
+	f := &fakeAgentOllama{tools: true, script: func(string, int) string { return "ls" }}
+	fx, st, _ := newAgentFixture(t, f, "has README")
+	fx.s.runAgents(context.Background(), st, fx.user, fx.convo, 1)
+	if f.withTools != 0 {
+		t.Errorf("an agent given its file must not be offered the shell, saw %d tool requests", f.withTools)
+	}
+	if a := agentsOf(t, fx)[0]; a.Status != "done" || !strings.Contains(a.Result, `"found":true`) {
+		t.Errorf("it answers from its file, got %s %q", a.Status, a.Result)
 	}
 }

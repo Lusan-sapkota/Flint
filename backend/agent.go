@@ -470,14 +470,14 @@ func (s *Server) handleRunAgentRun(w http.ResponseWriter, r *http.Request) {
 	st.setStatus("running")
 	s.runAgents(r.Context(), st, user, convo, s.maxAgentsFor(user, convo.Conversation))
 
-	status := "done"
 	if r.Context().Err() != nil {
-		status = "cancelled"
+		if err := setAgentRunStatus(s.db, run.ID, "cancelled"); err != nil {
+			log.Printf("warning: saving agent run status: %v", err)
+		}
+		st.setStatus("cancelled")
+		return
 	}
-	if err := setAgentRunStatus(s.db, run.ID, status); err != nil {
-		log.Printf("warning: saving agent run status: %v", err)
-	}
-	st.setStatus(status)
+	s.combineAgents(w, r, st, user, convo)
 }
 
 func (s *Server) handleGetAgentTranscript(w http.ResponseWriter, r *http.Request) {

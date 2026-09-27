@@ -924,9 +924,19 @@ Found live on the fixture, before the benchmark:
   and answered Omar). 1.5b still answered those without a tool call, so
   an agent given nothing that ran no working command now has its answer
   replaced in Go with "nothing to answer from".
-- A qwen2.5-3b agent that already had config.yaml as input still asked
-  for more commands (a grep, then Python one-liners) instead of reading
-  its input; denying, and the commands-per-agent limit, end that.
+- **Given its file, an agent should just read it.** A qwen2.5-3b agent
+  that had config.yaml as input asked for more commands (a grep, then
+  Python one-liners); another, with README.md in its prompt, ran three
+  greps that failed (`+` without `-E`) and reported the owner's email as
+  not found, so the combined answer said it was missing. Now only an
+  agent given no files or search is offered the shell. The same task
+  then answered 4471 and dana@stockroom.test with no commands asked.
+- **The combined answer** (phase 5), log + README task: qwen2.5-3b and
+  qwen2.5:1.5b both answered both parts correctly once agents read their
+  inputs, in 3-4 s after Run. On the three-part task, qwen2.5-3b's
+  planner gave the on-call subtask utils.py; its agent said "not found"
+  and the answer said the on-call information wasn't found, rather than
+  inventing a name.
 
 ## Open questions
 

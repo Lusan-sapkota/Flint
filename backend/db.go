@@ -319,6 +319,9 @@ func migrate(db *sql.DB) error {
 		// approved through the run, never through the chat's own approve
 		// route, and never count as the chat's pending command.
 		`ALTER TABLE commands ADD COLUMN agent_id TEXT REFERENCES agents(id) ON DELETE CASCADE`,
+		// The user message a finished @agent run saved its task as, so the
+		// chat shows that task once, as the run, not twice.
+		`ALTER TABLE agent_runs ADD COLUMN message_id INTEGER REFERENCES messages(id) ON DELETE SET NULL`,
 	} {
 		if _, err := db.Exec(stmt); err != nil && !strings.Contains(err.Error(), "duplicate column") {
 			return err
@@ -1189,6 +1192,7 @@ type AgentRun struct {
 	Task           string  `json:"task"`
 	Status         string  `json:"status"`
 	Answer         string  `json:"answer"`
+	MessageID      *int64  `json:"-"`
 	CreatedAt      int64   `json:"created_at"`
 	UpdatedAt      int64   `json:"updated_at"`
 	Agents         []Agent `json:"agents"`
@@ -1247,10 +1251,10 @@ func createAgentRun(db *sql.DB, run AgentRun) error {
 // account, so callers answer 404 either way.
 func getAgentRun(db *sql.DB, runID, userID string) (*AgentRun, error) {
 	var run AgentRun
-	err := db.QueryRow(`SELECT r.id, r.conversation_id, r.task, r.status, r.answer, r.created_at, r.updated_at
+	err := db.QueryRow(`SELECT r.id, r.conversation_id, r.task, r.status, r.answer, r.message_id, r.created_at, r.updated_at
 		FROM agent_runs r JOIN conversations c ON c.id = r.conversation_id
 		WHERE r.id = ? AND c.user_id = ?`, runID, userID,
-	).Scan(&run.ID, &run.ConversationID, &run.Task, &run.Status, &run.Answer, &run.CreatedAt, &run.UpdatedAt)
+	).Scan(&run.ID, &run.ConversationID, &run.Task, &run.Status, &run.Answer, &run.MessageID, &run.CreatedAt, &run.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -1405,5 +1409,11 @@ func startAgent(db *sql.DB, agentID string) error {
 func finishAgent(db *sql.DB, agentID, status, result, errText string) error {
 	_, err := db.Exec(`UPDATE agents SET status = ?, result = ?, error = ?, finished_at = ? WHERE id = ?`,
 		status, result, errText, time.Now().UnixMilli(), agentID)
+	return err
+}
+
+func finishAgentRun(db *sql.DB, runID, status, answer string, messageID *int64) error {
+	_, err := db.Exec(`UPDATE agent_runs SET status = ?, answer = ?, message_id = COALESCE(?, message_id), updated_at = ? WHERE id = ?`,
+		status, answer, messageID, time.Now().UnixMilli(), runID)
 	return err
 }
