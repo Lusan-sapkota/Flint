@@ -3,6 +3,50 @@
 Notable changes in each release. The measurements behind a change are in
 [experiments](experiments.md).
 
+## [Unreleased]
+
+### Added
+
+- `@agent <task>` splits a task over the attached folder into subtasks,
+  each run by its own agent with a clean context window, and writes one
+  answer from their results.
+  - **You approve the plan first.** One model call proposes the subtasks
+    and their files, checked in code: only files directly in the folder,
+    never a web search from the model. The plan appears as a card where
+    you edit the instructions, add or remove files, add a web search
+    yourself, remove subtasks, then **Run** or **Discard**. A task that
+    doesn't split is answered as a normal chat.
+  - **Agents read what they're given, or look for it.** An agent with
+    files works from them (big files keep their start and end, sized to
+    fit its window). An agent with no files, on a model with tool
+    support, looks through the folder with shell commands that appear in
+    the main chat as "Agent 2 wants to run", each waiting for your
+    Approve, Deny or Reply instead, with the same safety checks as the
+    chat's own commands. Models without tool support, like phi3, work
+    from their inputs only.
+  - **Bounded, and visible.** At most "max agents" run at once (2 locally,
+    10 for cloud models, both changeable in Settings), an agent asks for
+    at most "commands per agent" commands (8 by default) and stops after 5
+    failures in a row, and each has 5 minutes of model time (waiting for
+    you doesn't count). **Stop** cancels everything. An **Agents** label
+    after the context meter opens a window with each agent's task,
+    inputs, status and full transcript, live while it runs.
+  - **The answer comes back to the chat.** It streams in like any reply,
+    under a "From 3 agents" block listing what each agent found, and says
+    plainly when a part is missing. Your task, the agents' short results
+    and the answer join the chat's history; the transcripts never do. An
+    agent that read nothing can't give an answer, since a small model
+    otherwise invents one.
+- Typing `@` at the start of a message lists the commands (`@agent`,
+  `@web`, `@memory`, `@memory save`, `@compact`) with what each does.
+- Switch an empty chat's model from the header; it locks once the chat
+  has its first message.
+
+### Changed
+
+- The context meter shows from the start of a chat, not only after the
+  first reply.
+
 ## [0.1.4] - 2026-09-26
 
 ### Added

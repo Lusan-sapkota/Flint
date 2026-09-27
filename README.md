@@ -47,6 +47,12 @@ becoming heavy itself.
   waits for your approval, a shield blocks catastrophic ones outright, and
   commands that can't work are caught before they reach you.
   ([security](docs/security.md))
+- **Agents for questions that span a folder.** `@agent <task>` splits a
+  task into subtasks, each run by its own agent with a clean context
+  window, then writes one answer from their results. You review and edit
+  the plan first; an agent reads the files you give it, or looks through
+  the folder with commands you approve, and you can open any agent to
+  see exactly what it did. ([agents](docs/features.md#agents-agent))
 - **Memory across chats.** `@memory save` keeps what matters (drafts are
   reviewed before saving), `@memory <words>` recalls it, and memories tied
   to a folder load whenever that folder is attached.
@@ -69,6 +75,18 @@ becoming heavy itself.
 
 ## Screenshots
 
+<p align="center">
+  <img src="docs/images/agent-plan.png" alt="An @agent plan: three subtasks with their files, one left to look through the folder itself, waiting for Run or Discard" width="900">
+</p>
+<p align="center">
+  <img src="docs/images/agent-approval.png" alt="Agent 3 asks to run cat config.yaml in the main chat, with Approve, Deny and Reply instead; the label reads Agents 2/3, 1 waiting" width="900">
+</p>
+<p align="center">
+  <img src="docs/images/agent-answer.png" alt="The combined answer in the chat, under a From 3 agents block listing what each agent found" width="900">
+</p>
+<p align="center">
+  <img src="docs/images/agents-window.png" alt="The agents window: each agent with its task and inputs, and Agent 3's transcript with the commands it ran and their output" width="900">
+</p>
 <p align="center">
   <img src="docs/images/web-query.png" alt="An @web question answered from three ranked sources, listed above the answer" width="900">
 </p>

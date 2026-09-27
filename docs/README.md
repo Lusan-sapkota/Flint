@@ -81,6 +81,14 @@ Then open `http://localhost:8080` and sign up.
 
 ## Screenshots
 
+![An @agent plan: three subtasks with their files, one left to look through the folder itself, waiting for Run or Discard](images/agent-plan.png)
+
+![Agent 3 asks to run cat config.yaml in the main chat, with Approve, Deny and Reply instead; the label reads Agents 2/3, 1 waiting](images/agent-approval.png)
+
+![The combined answer in the chat, under a From 3 agents block listing what each agent found](images/agent-answer.png)
+
+![The agents window: each agent with its task and inputs, and Agent 3's transcript with the commands it ran and their output](images/agents-window.png)
+
 ![An @web question answered from three ranked sources, listed above the answer](images/web-query.png)
 
 ![@memory save marks where a memory was saved; @memory recalls it in the chat](images/memory.png)

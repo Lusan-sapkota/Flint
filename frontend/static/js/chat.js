@@ -797,8 +797,11 @@ document.addEventListener('alpine:init', () => {
       const n = run.agents.length;
       const finished = run.agents.filter((a) => ['done', 'failed', 'cancelled'].includes(a.status)).length;
       if (run.status !== 'running') return `${n} agent${n === 1 ? '' : 's'}`;
+      // "queued" shows the max-agents limit at work: those wait for a free
+      // slot; "waiting" ones wait for the user's approval.
+      const queued = this.agentCount(run, 'queued');
       const waiting = this.agentCount(run, 'waiting');
-      return `Agents ${finished}/${n}` + (waiting ? ` · ${waiting} waiting` : '');
+      return `Agents ${finished}/${n}` + (queued ? ` · ${queued} queued` : '') + (waiting ? ` · ${waiting} waiting` : '');
     },
 
     agentSummary(run) {
@@ -857,7 +860,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     agentStatusLabel(status) {
-      return { queued: 'Waiting to start', running: 'Working…', waiting: 'Waiting for your approval', done: 'Done', failed: 'Failed', cancelled: 'Stopped' }[status] || status;
+      return { queued: 'Queued: waiting for a free slot', running: 'Working…', waiting: 'Waiting for your approval', done: 'Done', failed: 'Failed', cancelled: 'Stopped' }[status] || status;
     },
 
     agentAnswer(agent) {

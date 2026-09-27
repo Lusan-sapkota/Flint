@@ -209,13 +209,19 @@ func TestValidatePlan(t *testing.T) {
 		t.Errorf("a subtask with files keeps them and loses its web query, got %+v", both)
 	}
 
-	named := validatePlan([]planSubtask{
+	named0 := []planSubtask{
 		{Task: "Find TAX_RATE in main.py and README.md.", Files: []string{}},
 		{Task: "Check domain.py and main.pyc", Files: []string{}},
 		{Task: "Who is on call?", Files: []string{}},
-	}, files, false, false)
+	}
+	edited := validatePlan(named0, files, false, false)
+	if len(edited) != 0 {
+		t.Errorf("an edited plan keeps the files the user left, even if the text names others, got %+v", edited)
+	}
+	addNamedFiles(named0, files)
+	named := validatePlan(named0, files, false, false)
 	if len(named) != 1 || !slices.Equal(named[0].Files, []string{"README.md", "main.py"}) {
-		t.Errorf("files named in the task should become its inputs, whole names only, got %+v", named)
+		t.Errorf("in the model's plan, files named in the task become its inputs, whole names only, got %+v", named)
 	}
 
 	long := planSubtask{Task: strings.Repeat("é", maxAgentTask+50), Files: []string{}, WebQuery: strings.Repeat("q", 300)}

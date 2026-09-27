@@ -238,6 +238,8 @@ chat history makes a small model lose track. Like `@web` and `@memory`,
 it only happens when you ask for it, and Flint's own code, not the model,
 decides what runs.
 
+![An @agent plan: three subtasks with their files, one left to look through the folder itself](images/agent-plan.png)
+
 - **Planning.** `@agent` works on the attached folder; without one, the
   message is answered as a normal chat, with a note. One model call,
   constrained to a JSON schema, lists the subtasks and the files each one
@@ -285,13 +287,15 @@ decides what runs.
   stays after a reload.
 - **Running.** After **Run** the card folds to one line, and an **Agents**
   label appears after the context meter, past a thin divider like the
-  meter's own ("Agents 1/3 · 1 waiting" while
-  it runs, highlighted when an agent is waiting for your approval). The
-  pill, or **View agents** on the card, opens a large window listing each
+  meter's own ("Agents 1/3 · 1 queued · 1 waiting" while it runs,
+  highlighted when an agent is waiting for your approval). The label,
+  or **View agents** on the card, opens a large window listing each
   agent with its task, inputs and status; select one to see its result
   and everything it did (its instructions, what it was given, the
   commands it asked for and their output), refreshed while it works. At
-  most "max agents" run at once (Settings → Connection); the rest wait.
+  most "max agents" run at once (Settings → Connection, 2 by default
+  locally): a plan can have more subtasks than that, and the rest are
+  shown as queued until a slot frees.
   **Stop** ends every agent, and any command still waiting is cancelled,
   never run.
 - **Results.** Each agent ends with a fixed JSON result: its answer (at
@@ -314,6 +318,12 @@ decides what runs.
   during the answer keeps what was already shown, like any reply.
 - `@agent` isn't added to the chat history while it's only a plan, and an
   edit can't turn a message into one.
+
+![An agent asks to run a command in the main chat; the label reads Agents 2/3, 1 waiting](images/agent-approval.png)
+
+![The combined answer under a From 3 agents block](images/agent-answer.png)
+
+![The agents window, with Agent 3's commands and their output](images/agents-window.png)
 
 ## Long conversations
 

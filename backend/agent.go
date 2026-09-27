@@ -118,6 +118,24 @@ func agentFiles(folder string) (map[string]int64, error) {
 	return out, nil
 }
 
+// addNamedFiles gives each subtask the folder files its text names. Only
+// for the model's plan: qwen2.5:1.5b split correctly but named the file
+// only in the task ("Find TAX_RATE in utils.py") and left files empty. On
+// an edited plan it would put back a file the user just removed.
+func addNamedFiles(subtasks []planSubtask, files map[string]int64) {
+	for i := range subtasks {
+		st := &subtasks[i]
+		var named []string
+		for f := range files {
+			if namesFile(st.Task, f) && !slices.Contains(st.Files, f) {
+				named = append(named, f)
+			}
+		}
+		sort.Strings(named)
+		st.Files = append(st.Files, named...)
+	}
+}
+
 // validatePlan applies E24's rules: files must be in the folder's list,
 // and a web query needs a Brave key and a subtask without files. A subtask
 // left with no input at all is kept only when agents can explore the
@@ -134,15 +152,6 @@ func validatePlan(subtasks []planSubtask, files map[string]int64, webOK, explore
 				kept = append(kept, f)
 			}
 		}
-		// qwen2.5:1.5b split correctly but named the file only in the task
-		// ("Find TAX_RATE in utils.py") and left files empty.
-		planned := len(kept)
-		for f := range files {
-			if namesFile(task, f) && !slices.Contains(kept, f) {
-				kept = append(kept, f)
-			}
-		}
-		sort.Strings(kept[planned:])
 		// Files or one web query, never both: qwen2.5:1.5b added searches
 		// like "Stockroom server port" next to the file that answers it,
 		// which only sends a private detail to Brave for nothing.
@@ -308,6 +317,7 @@ func (s *Server) planAgentRun(ctx context.Context, user *User, convo *Conversati
 	if err := json.Unmarshal([]byte(out), &plan); err != nil {
 		return nil, fmt.Errorf("the model's plan wasn't valid JSON: %w", err)
 	}
+	addNamedFiles(plan.Subtasks, files)
 	agents := validatePlan(plan.Subtasks, files, false, explore)
 	if len(agents) < 2 {
 		return nil, nil

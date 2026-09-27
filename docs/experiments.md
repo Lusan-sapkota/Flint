@@ -937,6 +937,19 @@ Found live on the fixture, before the benchmark:
   planner gave the on-call subtask utils.py; its agent said "not found"
   and the answer said the on-call information wasn't found, rather than
   inventing a name.
+- **The whole flow in Brave** (phase 6, Playwright, fresh server): plan,
+  card edits, Run, approvals in the main chat, the answer, the agents
+  window and a reload all worked with no console errors. It caught one
+  bug: files named in a subtask's text were also added back to an
+  edited plan, so clearing a subtask's file on the card didn't stick
+  when its instruction mentioned the file. That rescue now only applies
+  to the model's own plan. phi3:3.8b (no tool support) answered the log
+  + README task correctly with no commands asked. With a clean
+  instruction ("Find who is on call this week") and no files, a
+  qwen2.5-3b agent read config.yaml, then notes.txt, and answered Omar;
+  with the planner's own wording ("... If no schedule is available,
+  state 'On-call schedule not available.'") it gave up after one failed
+  command, and the evidence check reported that honestly.
 
 ## Open questions
 
