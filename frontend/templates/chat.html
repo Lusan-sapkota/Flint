@@ -156,7 +156,10 @@
     <header class="flint-topbar">
       <button type="button" class="flint-menu-btn" @click="navOpen = true" aria-label="Open sidebar">{{template "icon-sidebar"}}</button>
       <div class="flint-topbar-model">
-        <template x-if="model"><span>Model: <strong x-text="model"></strong>{{if .CurrentModelHost}} <span class="flint-model-cloud" title="Runs on {{.CurrentModelHost}}, not on this machine">cloud</span>{{end}}{{if .CurrentModelMissing}} <span class="flint-model-missing" title="This model is no longer installed on the Ollama server. Pull it again in Settings, or start a new chat with another model.">not installed</span>{{end}}<span class="flint-topbar-date" x-show="lastActive" x-text="formatDate(lastActive)" title="Last activity in this chat"></span></span></template>
+        <template x-if="model"><span>Model: <strong x-show="chatStarted" x-text="model"></strong><select class="flint-model-switch" x-show="!chatStarted" :value="model" @change="switchModel($event.target.value)" :disabled="switchingModel" aria-label="Model for this chat" title="You can change the model until the chat starts">
+          {{range .Models}}<option value="{{.Name}}" {{if eq .Name $.CurrentModel}}selected{{end}}>{{.Name}}{{if .RemoteHost}} (cloud){{end}}</option>{{end}}
+          {{if .CurrentModelMissing}}<option value="{{.CurrentModel}}" selected>{{.CurrentModel}}</option>{{end}}
+        </select>{{if .CurrentModelHost}} <span class="flint-model-cloud" title="Runs on {{.CurrentModelHost}}, not on this machine">cloud</span>{{end}}{{if .CurrentModelMissing}} <span class="flint-model-missing" title="This model is no longer installed on the Ollama server. Pull it again in Settings, or start a new chat with another model.">not installed</span>{{end}}<span class="flint-topbar-date" x-show="lastActive" x-text="formatDate(lastActive)" title="Last activity in this chat"></span></span></template>
         <template x-if="!model"><span>No conversation selected</span></template>
       </div>
       <a href="/settings" class="flint-settings-gear" title="Settings">{{template "icon-settings"}}</a>

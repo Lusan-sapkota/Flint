@@ -403,3 +403,54 @@ func TestTimelinePlacesAgentRunsByTime(t *testing.T) {
 		t.Fatalf("want the task and plan card between the reply and the next message, got %v %+v", kinds, got)
 	}
 }
+
+func TestModelSwitchesOnlyBeforeTheChatStarts(t *testing.T) {
+	db, err := openDB(filepath.Join(t.TempDir(), "t.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{"models": []map[string]string{{"name": "a"}, {"name": "b"}}})
+	}))
+	defer srv.Close()
+	s := &Server{db: db, ollama: NewOllamaClient(), defaultOllamaURL: srv.URL}
+	for _, u := range []string{"alice", "bob"} {
+		createUser(db, u, u, u+"@x.io", "h")
+	}
+	createConversation(db, "c1", "alice", "a")
+	insertMessage(db, "c1", "system", "Attached folder: /x")
+
+	patch := func(user, model string) int {
+		u, _ := getUserByID(db, user)
+		r := httptest.NewRequest(http.MethodPatch, "/", strings.NewReader(`{"model":"`+model+`"}`))
+		r.SetPathValue("id", "c1")
+		r = r.WithContext(context.WithValue(r.Context(), userCtxKey, u))
+		w := httptest.NewRecorder()
+		s.handleRenameConversation(w, r)
+		return w.Code
+	}
+	if code := patch("alice", "b"); code != 200 {
+		t.Fatalf("a chat with only its folder card can switch, got %d", code)
+	}
+	if code := patch("alice", "nope"); code != 400 {
+		t.Errorf("a model that isn't installed: want 400, got %d", code)
+	}
+	if code := patch("bob", "a"); code != 404 {
+		t.Errorf("another account: want 404, got %d", code)
+	}
+	insertMessage(db, "c1", "user", "hi")
+	if code := patch("alice", "a"); code != 409 {
+		t.Errorf("after the first message: want 409, got %d", code)
+	}
+	c, _ := getConversation(db, "c1", "alice")
+	if c.Model != "b" {
+		t.Errorf("want the switched model kept, got %q", c.Model)
+	}
+
+	createConversation(db, "c2", "alice", "a")
+	createAgentRun(db, AgentRun{ID: "r", ConversationID: "c2", Task: "t", Status: "planned"})
+	if started, _, _ := conversationStarted(db, "c2", "alice"); !started {
+		t.Error("an agent plan starts the chat too")
+	}
+}

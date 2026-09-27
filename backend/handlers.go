@@ -382,9 +382,14 @@ func (s *Server) handleRenameConversation(w http.ResponseWriter, r *http.Request
 
 	var body struct {
 		Title string `json:"title"`
+		Model string `json:"model"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if body.Model != "" {
+		s.switchConversationModel(w, r, user, id, body.Model)
 		return
 	}
 	title := normalizeTitle(body.Title)
@@ -403,6 +408,40 @@ func (s *Server) handleRenameConversation(w http.ResponseWriter, r *http.Request
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"title": title})
+}
+
+// switchConversationModel changes an empty chat's model. Once it has a
+// message or an agent run, the model is fixed: its history, summaries and
+// token calibration all came from that model.
+func (s *Server) switchConversationModel(w http.ResponseWriter, r *http.Request, user *User, id, model string) {
+	models, err := s.ollama.ListModels(r.Context(), s.ollamaURLFor(user))
+	if err != nil {
+		writeError(w, http.StatusBadGateway, describeOllamaError(err, s.ollamaURLFor(user)))
+		return
+	}
+	if !hasModel(models, model) {
+		writeError(w, http.StatusBadRequest, "that model isn't installed")
+		return
+	}
+	defer s.lockConversation(id)()
+	started, found, err := conversationStarted(s.db, id, user.ID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if !found {
+		writeError(w, http.StatusNotFound, "conversation not found")
+		return
+	}
+	if started {
+		writeError(w, http.StatusConflict, "the model can't change once the chat has started")
+		return
+	}
+	if err := setConversationModel(s.db, id, model); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"model": model})
 }
 
 func (s *Server) handleListDirs(w http.ResponseWriter, r *http.Request) {

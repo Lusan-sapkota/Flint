@@ -951,6 +951,25 @@ func renameConversation(db *sql.DB, id, userID, title string) (bool, error) {
 	return n > 0, err
 }
 
+// conversationStarted reports whether the chat has anything the model
+// wrote or was asked: a non-system message or an agent run. The folder
+// manifest alone doesn't count.
+func conversationStarted(db *sql.DB, id, userID string) (started, found bool, err error) {
+	err = db.QueryRow(`SELECT
+		EXISTS(SELECT 1 FROM messages WHERE conversation_id = c.id AND role != 'system')
+		OR EXISTS(SELECT 1 FROM agent_runs WHERE conversation_id = c.id)
+		FROM conversations c WHERE c.id = ? AND c.user_id = ?`, id, userID).Scan(&started)
+	if err == sql.ErrNoRows {
+		return false, false, nil
+	}
+	return started, err == nil, err
+}
+
+func setConversationModel(db *sql.DB, id, model string) error {
+	_, err := db.Exec(`UPDATE conversations SET model = ? WHERE id = ?`, model, id)
+	return err
+}
+
 func createCommand(db *sql.DB, id, conversationID, toolCallID, command, cwd string) (Command, error) {
 	now := time.Now().UnixMilli()
 	c := Command{ID: id, ConversationID: conversationID, ToolCallID: toolCallID, Command: command, Cwd: cwd, Status: "pending", CreatedAt: now}

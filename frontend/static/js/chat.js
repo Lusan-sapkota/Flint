@@ -250,6 +250,7 @@ document.addEventListener('alpine:init', () => {
     searchingQuery: '',
     commandIndex: 0,
     suggestDismissed: false,
+    switchingModel: false,
     agentsRun: null,
     agentsSelectedId: null,
     agentTranscript: [],
@@ -746,6 +747,35 @@ document.addEventListener('alpine:init', () => {
       } catch (e) {
         cmd.commandStatus = 'unknown';
       }
+    },
+
+    // Mirrors conversationStarted on the server: the folder card alone
+    // doesn't start a chat.
+    get chatStarted() {
+      return this.streaming || this.timeline.some((t) => t.kind !== 'system');
+    },
+
+    // A reload picks up everything that follows from the model (thinking,
+    // vision, the cloud tag, the window size) instead of patching each.
+    async switchModel(name) {
+      if (name === this.model) return;
+      this.switchingModel = true;
+      try {
+        const res = await fetch(`/api/conversations/${this.conversationId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: name }),
+        });
+        if (res.ok) {
+          window.location.reload();
+          return;
+        }
+        const data = await res.json().catch(() => ({}));
+        this.timeline.push({ kind: 'system', content: `Error: ${data.error || res.statusText}` });
+      } catch (e) {
+        this.timeline.push({ kind: 'system', content: 'Error: could not reach the server.' });
+      }
+      this.switchingModel = false;
     },
 
     // The pill follows the newest run that has started.

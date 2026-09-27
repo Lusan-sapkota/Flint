@@ -88,7 +88,10 @@ Everything Flint does, grouped by area.
 ## Conversations
 
 - **New chat** with a model picker. It defaults to the model you used
-  most recently.
+  most recently. Until the chat has its first message (or `@agent`
+  plan), the model name in the header is a dropdown to switch it;
+  attaching a folder doesn't count. After that the model is fixed, since
+  the history, summaries and token calibration all came from it.
 - **Automatic titles.** The first message sets a placeholder right away.
   After the first reply (not after a failed one, which keeps the
   placeholder), the model writes a 2-6 word title, unless you've

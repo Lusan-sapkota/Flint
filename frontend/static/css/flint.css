@@ -622,6 +622,17 @@ html.flint-rail-pre .flint-sidebar-avatar {
   color: var(--flint-text);
 }
 
+.flint-model-switch {
+  display: inline-block;
+  width: auto;
+  margin: 0 0 0 0.25rem;
+  padding: 0.15rem 1.8rem 0.15rem 0.5rem;
+  height: auto;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--flint-text);
+}
+
 .flint-topbar-date {
   margin-left: 0.75rem;
   padding-left: 0.75rem;
