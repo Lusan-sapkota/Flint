@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Testing · Flint</title>
+  <meta name="description" content="Unit tests, live verification, long chats, and re-ranking">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body>
+  <div class="docs-layout">
+    <!-- Mobile Header -->
+    <header class="mobile-header" aria-label="Mobile header">
+      <button class="mobile-menu-toggle" id="menuToggle" aria-label="Open navigation menu" aria-expanded="false">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <a href="index.html" class="mobile-brand">
+        <img src="images/logo.png" alt="Flint logo" width="28" height="28" class="mobile-logo">
+        <span class="mobile-brand-name">Flint</span>
+        <span class="version-badge">v0.2.0</span>
+      </a>
+      <a href="https://github.com/Lusan-sapkota/Flint" class="mobile-github" aria-label="GitHub repository" target="_blank" rel="noopener noreferrer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+        </svg>
+      </a>
+    </header>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="docs-sidebar" id="sidebar" aria-label="Documentation navigation">
+      <div class="sidebar-header">
+        <a href="index.html" class="sidebar-brand">
+          <img src="images/logo.png" alt="Flint logo" width="36" height="36" class="brand-logo">
+          <div class="brand-text">
+            <div class="brand-title-wrap">
+              <span class="brand-title">Flint</span>
+              <span class="version-badge">v0.2.0</span>
+            </div>
+            <span class="brand-tagline">Offline Ollama UI</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="sidebar-links">
+        <a href="https://github.com/Lusan-sapkota/Flint" class="sidebar-link-btn" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+          </svg>
+          <span>GitHub</span>
+          <span class="external-icon">↗</span>
+        </a>
+        <a href="https://github.com/Lusan-sapkota/Flint/releases" class="sidebar-link-btn" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Releases</span>
+          <span class="external-icon">↗</span>
+        </a>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="Documentation pages">
+        <div class="nav-group">
+  <div class="nav-group-title">Get started</div>
+  <ul class="nav-group-items">
+    <li><a href="index.html" class="nav-item">Overview</a></li>
+    <li><a href="deployment.html" class="nav-item">Install and run</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Using Flint</div>
+  <ul class="nav-group-items">
+    <li><a href="features.html" class="nav-item">Features</a></li>
+    <li><a href="security.html" class="nav-item">Security</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">How it works</div>
+  <ul class="nav-group-items">
+    <li><a href="architecture.html" class="nav-item">Architecture</a></li>
+    <li><a href="context-management.html" class="nav-item">Context management</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Evidence</div>
+  <ul class="nav-group-items">
+    <li><a href="experiments.html" class="nav-item">Experiments</a></li>
+    <li><a href="benchmark.html" class="nav-item">Benchmark</a></li>
+    <li><a href="testing.html" class="nav-item active" aria-current="page">Testing</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Project</div>
+  <ul class="nav-group-items">
+    <li><a href="changelog.html" class="nav-item">Changelog</a></li>
+    <li><a href="https://github.com/Lusan-sapkota/Flint/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" class="nav-item">Contributing <span class="external-icon" aria-hidden="true">↗</span></a></li>
+  </ul>
+</div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span class="sidebar-footer-text">Flint Documentation</span>
+        <span class="sidebar-footer-sub">Zero build step · 100% offline</span>
+      </div>
+    </aside>
+
+    <!-- Main Content Container -->
+    <main class="docs-main" id="mainContent">
+      <article class="docs-content">
+        <h1 id="testing">Testing</h1>
+<p>For the scored benchmark, see <a href="benchmark.html">benchmark.md</a>.</p>
+<h2 id="unit-tests">Unit tests<a aria-label="Link to Unit tests" class="header-anchor" href="#unit-tests">#</a></h2>
+<div class="highlight"><div class="code-block"><button aria-label="Copy code to clipboard" class="copy-code-btn" title="Copy code" type="button">Copy</button><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>backend
+go<span class="w"> </span><span class="nb">test</span><span class="w"> </span>./...
+</code></pre></div></div>
+<p>These need no Ollama and no network. <code>context_test.go</code> and
+<code>summary_test.go</code> cover the context pipeline: the budget, summaries
+replacing the messages they cover, drop and cut to fit, chunk boundaries,
+merge candidates and verbatim user notes. <code>memory_test.go</code> covers
+<code>@memory</code> parsing, per-account scoping, any-word search, the index
+following edits, and the memory budget. <code>summary_test.go</code> also covers the forced chunk
+behind <code>@compact</code>.</p>
+<h2 id="rendering">Rendering<a aria-label="Link to Rendering" class="header-anchor" href="#rendering">#</a></h2>
+<p>Markdown, math and the no-remote-content rule run in the browser, so
+there's no Go test for them. They were checked by rendering these inputs
+through <code>renderMarkdown</code> on a live page, and confirming no request left
+localhost: <code>\(\pi r^2\)</code>, <code>$E=mc^2$</code>, <code>$$\sum…$$</code>, <code>\[…\]</code>, "costs $5 and
+$10, or $5-$10", <code>$</code> inside inline code and a fenced block, broken
+<code>\(\frac{1}{\)</code>, <code>![cat](https://…)</code>, raw <code>&lt;img src="https://…"&gt;</code> next to a
+<code>data:</code> image, and <code>&lt;p style="background:url(…)"&gt;</code>, <code>&lt;svg&gt;&lt;image href&gt;</code>,
+<code>&lt;video src&gt;</code>. Recheck these after changing chat.js's markdown setup.</p>
+<h2 id="live-checks">Live checks<a aria-label="Link to Live checks" class="header-anchor" href="#live-checks">#</a></h2>
+<p><code>backend/live_test.go</code> is behind the <code>live</code> build tag, so <code>go test ./...</code>
+never runs it. It needs Ollama running and a <strong>copy</strong> of a Flint database
+with at least one conversation:</p>
+<div class="highlight"><div class="code-block"><button aria-label="Copy code to clipboard" class="copy-code-btn" title="Copy code" type="button">Copy</button><pre><span></span><code>sqlite3<span class="w"> </span>backend/data/chat.db<span class="w"> </span><span class="s2">".backup /tmp/copy.db"</span><span class="w">   </span><span class="c1"># .backup, not cp: the DB runs in WAL mode</span>
+<span class="nb">cd</span><span class="w"> </span>backend
+<span class="nv">LIVE_DB</span><span class="o">=</span>/tmp/copy.db<span class="w"> </span><span class="nv">LIVE_MODEL</span><span class="o">=</span>qwen2.5-3b-instruct<span class="w"> </span>go<span class="w"> </span><span class="nb">test</span><span class="w"> </span>-tags<span class="w"> </span>live<span class="w"> </span>-run<span class="w"> </span>TestLiveSummarizeChunk<span class="w"> </span>-v<span class="w"> </span>.
+<span class="nv">LIVE_DB</span><span class="o">=</span>/tmp/copy.db<span class="w"> </span>go<span class="w"> </span><span class="nb">test</span><span class="w"> </span>-tags<span class="w"> </span>live<span class="w"> </span>-run<span class="w"> </span>TestLiveDumpHistory<span class="w"> </span>-v<span class="w"> </span>.
+</code></pre></div></div>
+<ul>
+<li><code>TestLiveSummarizeChunk</code> prints the summary the model writes for the
+  oldest chunk that can be summarized. Add <code>SHOW=1</code> to also print the
+  transcript it was given. Use it to try out summary prompts on a fixed
+  input, without rerunning a whole chat.</li>
+<li><code>TestLiveDumpHistory</code> prints exactly what the next request would send:
+  role, tool-call count and the start of each message. This is how the
+  tool-call drift in E8 was found.</li>
+</ul>
+<h2 id="web-re-ranking">Web re-ranking<a aria-label="Link to Web re-ranking" class="header-anchor" href="#web-re-ranking">#</a></h2>
+<p><code>docs/tools/web_rerank.py</code> scores embedding models and prefixes for
+<code>@web</code> re-ranking on 15 saved, hand-graded Brave searches
+(<code>web_rerank_results.json</code>), with no Brave calls (E20). Add a setup to
+<code>CONFIGS</code>, pull its model, and run <code>python3 docs/tools/web_rerank.py</code>.</p>
+<h2 id="the-long-chat-run">The long-chat run<a aria-label="Link to The long-chat run" class="header-anchor" href="#the-long-chat-run">#</a></h2>
+<p><code>docs/tools/long_chat.py</code> drives one 19-turn chat with a folder attached
+through the real HTTP API and reports tool calls per turn, peak context
+use and overflow errors. It plants facts, makes the model use tools, and
+then asks for the facts back.</p>
+<p>Run it against a scratch backend and a scratch copy of a folder:</p>
+<div class="highlight"><div class="code-block"><button aria-label="Copy code to clipboard" class="copy-code-btn" title="Copy code" type="button">Copy</button><pre><span></span><code>mkdir<span class="w"> </span>-p<span class="w"> </span>/tmp/flint-run<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>cp<span class="w"> </span>backend/*.go<span class="w"> </span>/tmp/flint-run/
+<span class="nb">cd</span><span class="w"> </span>backend<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>go<span class="w"> </span>build<span class="w"> </span>-o<span class="w"> </span>/tmp/flint-test<span class="w"> </span>.
+<span class="nv">PORT</span><span class="o">=</span><span class="m">8097</span><span class="w"> </span><span class="nv">DB_PATH</span><span class="o">=</span>/tmp/flint-run.db<span class="w"> </span><span class="nv">ATTACHMENTS_DIR</span><span class="o">=</span>/tmp/flint-run-att<span class="w"> </span>/tmp/flint-test<span class="w"> </span><span class="p">&amp;</span>
+python3<span class="w"> </span>../docs/tools/long_chat.py<span class="w"> </span>/tmp/flint-run<span class="w"> </span>qwen2.5-3b-instruct<span class="w"> </span>http://localhost:8097
+</code></pre></div></div>
+<p>The script approves only commands that look read-only and denies the
+rest. The denials are part of the test, since they're what pushed the
+model into confused text-only replies in E8. Because summaries are
+written in the background, wait a minute after it finishes before looking
+at them:</p>
+<div class="highlight"><div class="code-block"><button aria-label="Copy code to clipboard" class="copy-code-btn" title="Copy code" type="button">Copy</button><pre><span></span><code>sqlite3<span class="w"> </span>/tmp/flint-run.db<span class="w"> </span><span class="s2">"select id, level, first_message_id, last_message_id, merged, user_notes, content from summaries"</span>
+</code></pre></div></div>
+<p>(The system <code>sqlite3</code> may be built without FTS5. The summaries table is a
+plain table, so this works either way.)</p>
+<p>To compare against another version, build it from a git worktree and run
+the same script on a different port against the same Ollama, one run
+after the other. Runs vary, so compare the tool-call and overflow counts
+across the whole run, not single replies.</p>
+<h2 id="using-your-installed-models-without-sudo">Using your installed models without sudo<a aria-label="Link to Using your installed models without sudo" class="header-anchor" href="#using-your-installed-models-without-sudo">#</a></h2>
+<p>The system Ollama service keeps its models in
+<code>/usr/share/ollama/.ollama/models</code>. That folder is world-readable, so a
+second Ollama started as your own user can serve those models read-only
+while the service is stopped:</p>
+<div class="highlight"><div class="code-block"><button aria-label="Copy code to clipboard" class="copy-code-btn" title="Copy code" type="button">Copy</button><pre><span></span><code><span class="nv">OLLAMA_NOPRUNE</span><span class="o">=</span><span class="m">1</span><span class="w"> </span><span class="nv">OLLAMA_MODELS</span><span class="o">=</span>/usr/share/ollama/.ollama/models<span class="w"> </span>ollama<span class="w"> </span>serve
+</code></pre></div></div>
+<p>A plain <code>ollama serve</code> as your own user looks in <code>~/.ollama/models</code>
+instead and won't see them.</p>
+        <nav class="page-nav" aria-label="Page navigation">
+
+            <a href="benchmark.html" class="page-nav-link prev">
+              <span class="page-nav-sub">← Previous</span>
+              <span class="page-nav-title">Benchmark</span>
+            </a>
+            
+
+            <a href="changelog.html" class="page-nav-link next">
+              <span class="page-nav-sub">Next →</span>
+              <span class="page-nav-title">Changelog</span>
+            </a>
+            
+</nav>
+      </article>
+
+      <footer class="docs-page-footer">
+        <div class="docs-footer-inner">
+          <p class="docs-footer-copy">Flint is licensed under <a href="https://github.com/Lusan-sapkota/Flint/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">AGPL-3.0</a>.</p>
+          <a href="#mainContent" class="back-to-top" aria-label="Back to top of page">
+            <span>Back to top</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </a>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script src="assets/js/docs.js"></script>
+</body>
+</html>

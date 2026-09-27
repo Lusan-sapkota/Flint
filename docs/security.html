@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security · Flint</title>
+  <meta name="description" content="Accounts, rate limits, command shield, and preconditions">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body>
+  <div class="docs-layout">
+    <!-- Mobile Header -->
+    <header class="mobile-header" aria-label="Mobile header">
+      <button class="mobile-menu-toggle" id="menuToggle" aria-label="Open navigation menu" aria-expanded="false">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <a href="index.html" class="mobile-brand">
+        <img src="images/logo.png" alt="Flint logo" width="28" height="28" class="mobile-logo">
+        <span class="mobile-brand-name">Flint</span>
+        <span class="version-badge">v0.2.0</span>
+      </a>
+      <a href="https://github.com/Lusan-sapkota/Flint" class="mobile-github" aria-label="GitHub repository" target="_blank" rel="noopener noreferrer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+        </svg>
+      </a>
+    </header>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="docs-sidebar" id="sidebar" aria-label="Documentation navigation">
+      <div class="sidebar-header">
+        <a href="index.html" class="sidebar-brand">
+          <img src="images/logo.png" alt="Flint logo" width="36" height="36" class="brand-logo">
+          <div class="brand-text">
+            <div class="brand-title-wrap">
+              <span class="brand-title">Flint</span>
+              <span class="version-badge">v0.2.0</span>
+            </div>
+            <span class="brand-tagline">Offline Ollama UI</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="sidebar-links">
+        <a href="https://github.com/Lusan-sapkota/Flint" class="sidebar-link-btn" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+          </svg>
+          <span>GitHub</span>
+          <span class="external-icon">↗</span>
+        </a>
+        <a href="https://github.com/Lusan-sapkota/Flint/releases" class="sidebar-link-btn" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Releases</span>
+          <span class="external-icon">↗</span>
+        </a>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="Documentation pages">
+        <div class="nav-group">
+  <div class="nav-group-title">Get started</div>
+  <ul class="nav-group-items">
+    <li><a href="index.html" class="nav-item">Overview</a></li>
+    <li><a href="deployment.html" class="nav-item">Install and run</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Using Flint</div>
+  <ul class="nav-group-items">
+    <li><a href="features.html" class="nav-item">Features</a></li>
+    <li><a href="security.html" class="nav-item active" aria-current="page">Security</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">How it works</div>
+  <ul class="nav-group-items">
+    <li><a href="architecture.html" class="nav-item">Architecture</a></li>
+    <li><a href="context-management.html" class="nav-item">Context management</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Evidence</div>
+  <ul class="nav-group-items">
+    <li><a href="experiments.html" class="nav-item">Experiments</a></li>
+    <li><a href="benchmark.html" class="nav-item">Benchmark</a></li>
+    <li><a href="testing.html" class="nav-item">Testing</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Project</div>
+  <ul class="nav-group-items">
+    <li><a href="changelog.html" class="nav-item">Changelog</a></li>
+    <li><a href="https://github.com/Lusan-sapkota/Flint/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" class="nav-item">Contributing <span class="external-icon" aria-hidden="true">↗</span></a></li>
+  </ul>
+</div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span class="sidebar-footer-text">Flint Documentation</span>
+        <span class="sidebar-footer-sub">Zero build step · 100% offline</span>
+      </div>
+    </aside>
+
+    <!-- Main Content Container -->
+    <main class="docs-main" id="mainContent">
+      <article class="docs-content">
+        <h1 id="security">Security</h1>
+<p>Flint is a personal tool for your own machine. It runs model-proposed shell
+commands as the user it runs as, and anyone who can reach the page can sign
+up, so keep it on localhost (the default, and what Docker Compose publishes).
+Accounts exist to keep your own conversations and settings organized, not
+to make it safe to share with other people.</p>
+<h2 id="accounts-and-sessions">Accounts and sessions<a aria-label="Link to Accounts and sessions" class="header-anchor" href="#accounts-and-sessions">#</a></h2>
+<ul>
+<li>Passwords and security-question answers are hashed with bcrypt and
+  never returned.</li>
+<li>The Brave Search key is stored as entered (Flint has to send it to
+  Brave), but it's never sent back to the browser: not in the Settings
+  page, not in <code>/api/me</code>, not in any API response. Settings shows only its
+  last four characters, with Replace and Remove.</li>
+<li>Sessions are random ids stored in SQLite and sent as an <code>HttpOnly</code>,
+  <code>SameSite=Lax</code> cookie. They last 30 days. Logging out deletes the
+  session, and a password reset deletes all of that user's sessions.
+  Changing your password in Settings needs the current one and logs out
+  every other session, keeping the one you made the change from.</li>
+<li>Changing your email needs your current password: the email is the
+  login, so a stolen session alone can't change it and lock you out.</li>
+<li>Every conversation, message, attachment, command and memory is scoped
+  to its owner. Another account's resources return <strong>404, not 403</strong>, so their
+  existence isn't revealed.</li>
+<li>Recovery lookups answer the same way whether or not the email exists.</li>
+<li>Deleting an account (<code>DELETE /api/me</code>) needs the password, plus every
+  security answer when questions are set, so a stolen session alone can't
+  erase an account. A wrong password or answer gets the same message. It
+  deletes the user row, which cascades to every session, conversation,
+  message, command, summary, memory and security question, then removes
+  the attachment files from disk.</li>
+</ul>
+<h2 id="rate-limits">Rate limits<a aria-label="Link to Rate limits" class="header-anchor" href="#rate-limits">#</a></h2>
+<p>An in-memory sliding window per client IP (<code>r.RemoteAddr</code>):</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Endpoints</th>
+<th>Limit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>login</td>
+<td>5 per 5 minutes</td>
+</tr>
+<tr>
+<td>signup</td>
+<td>5 per 5 minutes, separate from login</td>
+</tr>
+<tr>
+<td>recovery questions + reset (shared)</td>
+<td>5 per 30 minutes</td>
+</tr>
+<tr>
+<td>account deletion</td>
+<td>5 per 30 minutes</td>
+</tr>
+<tr>
+<td>profile + password change (shared)</td>
+<td>10 per 15 minutes</td>
+</tr>
+</tbody>
+</table></div>
+<p><code>X-Forwarded-For</code> is ignored on purpose. Without a trusted-proxy list,
+anyone could set it to get around the limit. Behind a reverse proxy, every
+client therefore shares the proxy's IP and its limit.</p>
+<h2 id="shell-commands">Shell commands<a aria-label="Link to Shell commands" class="header-anchor" href="#shell-commands">#</a></h2>
+<p>Layers, in order:</p>
+<ol>
+<li><strong>Human approval.</strong> Every command is held as pending, and its exact
+   text is shown unchanged. Nothing runs without an explicit approve.
+   This is the real safety net.</li>
+<li><strong>Shield</strong> (<code>shield.go</code>). Blocked when proposed and again when run:
+   <code>rm -rf</code> aimed at <code>/</code>, <code>~</code>, or the whole current directory (<code>.</code>, <code>*</code>), fork bombs, <code>sudo</code>, piping <code>curl</code>/<code>wget</code>
+   into a shell, <code>mkfs</code>, <code>dd</code> to <code>/dev/*</code>, and reading <code>/etc/shadow</code> or
+   SSH private keys. The model is told to ask you to run a genuinely
+   needed blocked command yourself, not to work around the block. This is
+   a floor, not a guarantee: a Turing-complete shell can evade any pattern
+   list.</li>
+<li><strong>Preconditions</strong> (<code>preconditions.go</code>). The program must exist, and a
+   simple read (<code>cat</code>, <code>head</code>, <code>tail</code>, ...) must target a path that
+   exists. Compound commands skip the path check. A failure goes straight
+   back to the model, without asking you to approve something that can't
+   work.</li>
+<li><strong>Serialization.</strong> Every request touching a conversation takes that
+   conversation's lock, and approve/deny re-reads the command's status
+   inside the lock. A double-clicked approve can't run a command twice.</li>
+</ol>
+<p>The working directory is the attached folder, but a command can still
+<code>cd</code> elsewhere or use absolute paths. Commands time out after 60 seconds,
+and their output is capped at 20,000 characters.</p>
+<p>Commands an <code>@agent</code> agent proposes go through the same four layers:
+shown in the chat as "Agent N wants to run" with the exact text, held
+until approved, checked by the shield when proposed and again when run,
+and checked for preconditions. They are approved through their run
+(<code>POST /api/agent-runs/{id}/commands/{cmdId}/approve</code>), never through the
+chat's own approve route, which ignores them, and they never count as the
+chat's pending command. Approving flips the command from pending in one
+SQL statement that also checks the run belongs to the caller, so two
+racing approvals, or an approval and Stop, can't both win. Stop cancels
+every waiting command, and one approved in the same instant is cancelled
+too, never left to run. Each agent may propose at most the "Commands per
+agent" setting (8 by default), and stops after 5 failed or denied
+commands in a row.</p>
+<h2 id="network">Network<a aria-label="Link to Network" class="header-anchor" href="#network">#</a></h2>
+<ul>
+<li>Flint talks to Ollama, and to Brave Search only for an explicit <code>@web</code>
+  message using that user's own key. Nothing else leaves the machine,
+  unless you chat with an Ollama cloud model (<code>:cloud</code>): Ollama then
+  forwards the whole chat, attached folder files and command output
+  included, to ollama.com. Flint doesn't block that, since you pulled the
+  model yourself, but tags it "cloud" in the picker, Settings and the
+  chat, and says so at the top of the chat. It's detected from the
+  <code>remote_host</code> Ollama reports, not the name.
+  Settings → Connection lists every search still in your chats, with the
+  exact query sent.</li>
+<li>The UI is same-origin with the API, so no CORS headers are set.</li>
+<li>Flint listens on <code>127.0.0.1</code> by default (<code>HOST</code>), and Docker Compose
+  keeps it there, because of open signup and the shell tool.</li>
+<li>Model output is rendered as Markdown through DOMPurify, restricted to
+  HTML and MathML (no SVG). Rendering must never fetch from the network:
+  remote markdown images become links, <code>&lt;img&gt;</code> keeps only local or <code>data:</code>
+  sources, and media tags plus <code>style</code>, <code>srcset</code>, <code>poster</code> and
+  <code>background</code> are stripped, since any of them could load a remote URL
+  (for example, a tracking pixel in a reply).</li>
+<li>Web search sources are shown as links only if they're <code>http(s)</code>, so a
+  result can't smuggle in a <code>javascript:</code> link.</li>
+</ul>
+<h2 id="memory">Memory<a aria-label="Link to Memory" class="header-anchor" href="#memory">#</a></h2>
+<p>A saved memory is sent back to the model in later chats, so a wrong one
+keeps misleading it. That's why a model-drafted memory is only saved after
+the user has read and approved it, and why memories are only written or
+searched on an explicit <code>@memory</code> command.</p>
+<p>The Settings list names the chat a memory came from by joining on
+conversations owned by the same user, so it can never show the title of
+another account's chat.</p>
+<h2 id="agents">Agents<a aria-label="Link to Agents" class="header-anchor" href="#agents">#</a></h2>
+<ul>
+<li><strong>What an agent can read.</strong> Only direct files of the attached folder
+  that the plan names (anything else, such as <code>../x</code> or <code>/etc/passwd</code>, is
+  dropped in code, both from the model's plan and from edits on the plan
+  card), the web results for its one query, and the output of commands
+  the user approved. Files are read in Go, never by the model.</li>
+<li><strong>The web.</strong> The planner never proposes a search, and any web query in
+  its output is dropped. A search runs only if the user added it on the
+  plan card, needs the account's Brave key, and is never combined with
+  files in one subtask, so a local fact isn't sent to Brave.</li>
+<li><strong>Isolation.</strong> Agent runs, agents and transcripts are reached only
+  through conversations the caller owns; another account gets 404.
+  Transcripts are shown to their owner and never sent back to the model.</li>
+<li><strong>Made-up answers.</strong> An agent that was given no files or web results
+  and ran no command that worked has its answer replaced with "nothing
+  to answer from", whatever it wrote, since it can't have read anything.</li>
+</ul>
+<h2 id="reporting-a-vulnerability">Reporting a vulnerability<a aria-label="Link to Reporting a vulnerability" class="header-anchor" href="#reporting-a-vulnerability">#</a></h2>
+<p>Please report security problems privately through the repository's
+<strong>Security → Report a vulnerability</strong> on GitHub, not in a public issue.
+That matters especially for anything that gets around the shell-command
+safety layers.</p>
+        <nav class="page-nav" aria-label="Page navigation">
+
+            <a href="features.html" class="page-nav-link prev">
+              <span class="page-nav-sub">← Previous</span>
+              <span class="page-nav-title">Features</span>
+            </a>
+            
+
+            <a href="architecture.html" class="page-nav-link next">
+              <span class="page-nav-sub">Next →</span>
+              <span class="page-nav-title">Architecture</span>
+            </a>
+            
+</nav>
+      </article>
+
+      <footer class="docs-page-footer">
+        <div class="docs-footer-inner">
+          <p class="docs-footer-copy">Flint is licensed under <a href="https://github.com/Lusan-sapkota/Flint/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">AGPL-3.0</a>.</p>
+          <a href="#mainContent" class="back-to-top" aria-label="Back to top of page">
+            <span>Back to top</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </a>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script src="assets/js/docs.js"></script>
+</body>
+</html>

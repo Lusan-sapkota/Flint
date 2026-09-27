@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://github.com/Lusan-sapkota/Flint/releases"><img src="https://img.shields.io/github/v/tag/Lusan-sapkota/Flint?sort=semver&label=version" alt="Latest version"></a>
   <a href="https://flint.lusansapkota.com.np">Docs</a> ·
-  <a href="docs/changelog.md">Changelog</a>
+  <a href="docs/changelog.html">Changelog</a>
 </p>
 
 No CDN calls, no telemetry, no cloud dependency. Everything the frontend
@@ -23,7 +23,7 @@ them "cloud" and says so in the chat.
 subtasks, each run by its own agent with a clean context window, and
 writes one answer from their results. You approve the plan and every
 command an agent asks to run.
-([agents](docs/features.md#agents-agent), [changelog](docs/changelog.md))
+([agents](docs/features.html#agents-agent), [changelog](docs/changelog.html))
 
 <p align="center">
   <img src="docs/images/hero-approval.png" alt="A shell command proposed by the model, waiting for Approve, Deny or Reply instead" width="900">
@@ -47,18 +47,18 @@ becoming heavy itself.
 - **Long chats that never overflow.** A real context budget per request,
   background layered summaries that keep your own words verbatim, and
   `@compact` to condense on demand.
-  ([context management](docs/context-management.md))
+  ([context management](docs/context-management.html))
 - **Shell tools you stay in control of.** Attach a folder and the model can
   propose commands through Ollama's native tool calling. Every command
   waits for your approval, a shield blocks catastrophic ones outright, and
   commands that can't work are caught before they reach you.
-  ([security](docs/security.md))
+  ([security](docs/security.html))
 - **Agents for questions that span a folder.** `@agent <task>` splits a
   task into subtasks, each run by its own agent with a clean context
   window, then writes one answer from their results. You review and edit
   the plan first; an agent reads the files you give it, or looks through
   the folder with commands you approve, and you can open any agent to
-  see exactly what it did. ([agents](docs/features.md#agents-agent))
+  see exactly what it did. ([agents](docs/features.html#agents-agent))
 - **Memory across chats.** `@memory save` keeps what matters (drafts are
   reviewed before saving), `@memory <words>` recalls it, and memories tied
   to a folder load whenever that folder is attached.
@@ -167,20 +167,20 @@ capabilities: [deployment](docs/deployment.md).
 ## Docs
 
 Read them at **[flint.lusansapkota.com.np](https://flint.lusansapkota.com.np)**.
-They're the Markdown files in [`docs/`](docs/), so they read the same here
-on GitHub:
+They're the HTML pages in [`docs/`](docs/) (backed up in [`docs_backup/`](docs_backup/)), also at
+[flint.lusansapkota.com.np](https://flint.lusansapkota.com.np):
 
 | | | |
 |---|---|---|
-| Get started | [Install and run](docs/deployment.md) | Docker or source, environment variables, models |
-| Using Flint | [Features](docs/features.md) | everything Flint does |
-| | [Security](docs/security.md) | accounts, the shell-command safety layers, what leaves the machine |
-| How it works | [Architecture](docs/architecture.md) | layout, data model, a chat turn, the streaming protocol |
-| | [Context management](docs/context-management.md) | how a chat fits a small window |
-| Evidence | [Experiments](docs/experiments.md) | the measurements behind the design |
-| | [Benchmark](docs/benchmark.md) | scored tasks, with and without each piece of scaffolding |
-| | [Testing](docs/testing.md) | unit tests, live checks, the long-chat run |
-| Project | [Changelog](docs/changelog.md) | what changed in each release |
+| Get started | [Install and run](docs/deployment.html) | Docker or source, environment variables, models |
+| Using Flint | [Features](docs/features.html) | everything Flint does |
+| | [Security](docs/security.html) | accounts, the shell-command safety layers, what leaves the machine |
+| How it works | [Architecture](docs/architecture.html) | layout, data model, a chat turn, the streaming protocol |
+| | [Context management](docs/context-management.html) | how a chat fits a small window |
+| Evidence | [Experiments](docs/experiments.html) | the measurements behind the design |
+| | [Benchmark](docs/benchmark.html) | scored tasks, with and without each piece of scaffolding |
+| | [Testing](docs/testing.html) | unit tests, live checks, the long-chat run |
+| Project | [Changelog](docs/changelog.html) | what changed in each release |
 | | [Contributing](CONTRIBUTING.md) | what fits, setup, what a pull request needs |
 
 ## Stack

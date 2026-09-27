@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Changelog · Flint</title>
+  <meta name="description" content="Release history and version comparisons">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body>
+  <div class="docs-layout">
+    <!-- Mobile Header -->
+    <header class="mobile-header" aria-label="Mobile header">
+      <button class="mobile-menu-toggle" id="menuToggle" aria-label="Open navigation menu" aria-expanded="false">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <a href="index.html" class="mobile-brand">
+        <img src="images/logo.png" alt="Flint logo" width="28" height="28" class="mobile-logo">
+        <span class="mobile-brand-name">Flint</span>
+        <span class="version-badge">v0.2.0</span>
+      </a>
+      <a href="https://github.com/Lusan-sapkota/Flint" class="mobile-github" aria-label="GitHub repository" target="_blank" rel="noopener noreferrer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+        </svg>
+      </a>
+    </header>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="docs-sidebar" id="sidebar" aria-label="Documentation navigation">
+      <div class="sidebar-header">
+        <a href="index.html" class="sidebar-brand">
+          <img src="images/logo.png" alt="Flint logo" width="36" height="36" class="brand-logo">
+          <div class="brand-text">
+            <div class="brand-title-wrap">
+              <span class="brand-title">Flint</span>
+              <span class="version-badge">v0.2.0</span>
+            </div>
+            <span class="brand-tagline">Offline Ollama UI</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="sidebar-links">
+        <a href="https://github.com/Lusan-sapkota/Flint" class="sidebar-link-btn" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+          </svg>
+          <span>GitHub</span>
+          <span class="external-icon">↗</span>
+        </a>
+        <a href="https://github.com/Lusan-sapkota/Flint/releases" class="sidebar-link-btn" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Releases</span>
+          <span class="external-icon">↗</span>
+        </a>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="Documentation pages">
+        <div class="nav-group">
+  <div class="nav-group-title">Get started</div>
+  <ul class="nav-group-items">
+    <li><a href="index.html" class="nav-item">Overview</a></li>
+    <li><a href="deployment.html" class="nav-item">Install and run</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Using Flint</div>
+  <ul class="nav-group-items">
+    <li><a href="features.html" class="nav-item">Features</a></li>
+    <li><a href="security.html" class="nav-item">Security</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">How it works</div>
+  <ul class="nav-group-items">
+    <li><a href="architecture.html" class="nav-item">Architecture</a></li>
+    <li><a href="context-management.html" class="nav-item">Context management</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Evidence</div>
+  <ul class="nav-group-items">
+    <li><a href="experiments.html" class="nav-item">Experiments</a></li>
+    <li><a href="benchmark.html" class="nav-item">Benchmark</a></li>
+    <li><a href="testing.html" class="nav-item">Testing</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Project</div>
+  <ul class="nav-group-items">
+    <li><a href="changelog.html" class="nav-item active" aria-current="page">Changelog</a></li>
+    <li><a href="https://github.com/Lusan-sapkota/Flint/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" class="nav-item">Contributing <span class="external-icon" aria-hidden="true">↗</span></a></li>
+  </ul>
+</div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span class="sidebar-footer-text">Flint Documentation</span>
+        <span class="sidebar-footer-sub">Zero build step · 100% offline</span>
+      </div>
+    </aside>
+
+    <!-- Main Content Container -->
+    <main class="docs-main" id="mainContent">
+      <article class="docs-content">
+        <h1 id="changelog">Changelog</h1>
+<p>Notable changes in each release. The measurements behind a change are in
+<a href="experiments.html">experiments</a>.</p>
+<h2 id="020---2026-09-27"><a href="https://github.com/Lusan-sapkota/Flint/compare/v0.1.4...v0.2.0">0.2.0</a> - 2026-09-27<a aria-label="Link to 0.2.0 - 2026-09-27" class="header-anchor" href="#020---2026-09-27">#</a></h2>
+<h3 id="added">Added<a aria-label="Link to Added" class="header-anchor" href="#added">#</a></h3>
+<ul>
+<li><code>@agent &lt;task&gt;</code> splits a task over the attached folder into subtasks,
+  each run by its own agent with a clean context window, and writes one
+  answer from their results.</li>
+<li><strong>You approve the plan first.</strong> One model call proposes the subtasks
+    and their files, checked in code: only files directly in the folder,
+    never a web search from the model. The plan appears as a card where
+    you edit the instructions, add or remove files, add a web search
+    yourself, remove subtasks, then <strong>Run</strong> or <strong>Discard</strong>. A task that
+    doesn't split is answered as a normal chat.</li>
+<li><strong>Agents read what they're given, or look for it.</strong> An agent with
+    files works from them (big files keep their start and end, sized to
+    fit its window). An agent with no files, on a model with tool
+    support, looks through the folder with shell commands that appear in
+    the main chat as "Agent 2 wants to run", each waiting for your
+    Approve, Deny or Reply instead, with the same safety checks as the
+    chat's own commands. Models without tool support, like phi3, work
+    from their inputs only.</li>
+<li><strong>Bounded, and visible.</strong> At most "max agents" run at once (2 locally,
+    10 for cloud models, both changeable in Settings), an agent asks for
+    at most "commands per agent" commands (8 by default) and stops after 5
+    failures in a row, and each has 5 minutes of model time (waiting for
+    you doesn't count). <strong>Stop</strong> cancels everything. An <strong>Agents</strong> label
+    after the context meter opens a window with each agent's task,
+    inputs, status and full transcript, live while it runs.</li>
+<li><strong>The answer comes back to the chat.</strong> It streams in like any reply,
+    under a "From 3 agents" block listing what each agent found, and says
+    plainly when a part is missing. Your task, the agents' short results
+    and the answer join the chat's history; the transcripts never do. An
+    agent that read nothing can't give an answer, since a small model
+    otherwise invents one.</li>
+<li>Typing <code>@</code> at the start of a message lists the commands (<code>@agent</code>,
+  <code>@web</code>, <code>@memory</code>, <code>@memory save</code>, <code>@compact</code>) with what each does.</li>
+<li>Switch an empty chat's model from the header; it locks once the chat
+  has its first message.</li>
+</ul>
+<h3 id="changed">Changed<a aria-label="Link to Changed" class="header-anchor" href="#changed">#</a></h3>
+<ul>
+<li>The context meter shows from the start of a chat, not only after the
+  first reply.</li>
+</ul>
+<h2 id="014---2026-09-26"><a href="https://github.com/Lusan-sapkota/Flint/compare/v0.1.3...v0.1.4">0.1.4</a> - 2026-09-26<a aria-label="Link to 0.1.4 - 2026-09-26" class="header-anchor" href="#014---2026-09-26">#</a></h2>
+<h3 id="added_1">Added<a aria-label="Link to Added" class="header-anchor" href="#added_1">#</a></h3>
+<ul>
+<li>The docs are published at
+  <a href="https://flint.lusansapkota.com.np">flint.lusansapkota.com.np</a>, from
+  the <code>docs/</code> folder, in Flint's own dark colors with a grouped page
+  menu: a home page with a quick start (Docker first), screenshots, the
+  changelog, and the reasoning behind the design (where the ideas come
+  from, what was deliberately not built).</li>
+<li>Set your own context window in Settings → Connection, one for local
+  models (for a GPU with room for more than the defaults) and one for
+  cloud models, with common sizes (32k = 32768, 1M = 1048576, ...) to
+  pick from. Cloud models get 32k by default instead of the 4k/8k meant
+  for small local ones, and no model is given more than it supports.</li>
+<li>Ollama cloud models (<code>:cloud</code>) are tagged "cloud" in the model picker,
+  Settings and the chat, with a line saying the chat is sent to
+  ollama.com. Not being signed in to Ollama now says to run
+  <code>ollama signin</code>.</li>
+<li>Change a chat's attached folder with the Change link on the folder
+  chip. The new folder replaces the old one as the chat's standing
+  context.</li>
+<li>A "Saved to memory" card where you saved a memory from a chat, which
+  expands to show what was saved and stays after a reload.</li>
+<li>Settings → Memories shows which chat each memory was saved from, with
+  a link back to it.</li>
+<li><strong>Reply instead</strong> on a waiting shell command: tell the model what to do
+  rather than just denying it. Your reply is an ordinary message, so
+  <code>@web</code> and <code>@memory</code> work in it.</li>
+<li>Log out from Settings too, at the bottom of its sidebar.</li>
+<li>Edit your name and email, and change your password, in Settings →
+  Account. A new email or password needs your current password, and a
+  password change logs out your other devices.</li>
+</ul>
+<h3 id="changed_1">Changed<a aria-label="Link to Changed" class="header-anchor" href="#changed_1">#</a></h3>
+<ul>
+<li><code>@web</code> results carry their publish dates, in the sources card and for
+  the model, when Brave has one for every result. The model then answers
+  "latest version" questions with its source's date instead of
+  presenting a month-old page as current (E21).</li>
+<li><code>@web</code> picks more relevant results: its re-ranking now sends
+  <code>nomic-embed-text</code> the search prefixes it was trained with (E20).</li>
+<li>Logging out asks "Are you sure you want to log out?" first.</li>
+<li>The <code>@web</code> sources card spans the chat's full width too, and no longer
+  jumps wider as it opens.</li>
+<li>Shell command cards span the chat's full width, so command output like
+  <code>df -h</code> shows every column instead of scrolling sideways.</li>
+<li>Deleting a chat asks Yes / No instead of making you type DELETE. Typing
+  DELETE stays for deleting a model, a memory or your account.</li>
+<li>In a chat without a folder, asking the model to run or check something
+  gets the command to run yourself and a note that attaching a folder
+  lets it run commands, instead of made-up output (E19).</li>
+</ul>
+<h3 id="fixed">Fixed<a aria-label="Link to Fixed" class="header-anchor" href="#fixed">#</a></h3>
+<ul>
+<li>A chat whose first reply failed no longer tries to generate a title
+  anyway, which cost a model call (quota, on a cloud model) and kept
+  the input blocked while it ran.</li>
+<li>The "waiting for the reply" dots no longer stay on forever after an
+  instant response, such as the <code>@compact</code> "Nothing to compact" notice or
+  an error Ollama returns right away.</li>
+<li>A cloud model's details in Settings → Models show its context length.</li>
+<li>qwen3.5 no longer fails with "System message must be at the beginning"
+  after <code>@memory</code>, a later <code>@web</code>, or once a long chat is summarized. Its
+  chat template allows one system message, first; Flint now resends
+  such messages as user messages for models that refuse them (E22).</li>
+<li><code>nomic-embed-text</code> unloads as soon as an <code>@web</code> search has re-ranked
+  its results, instead of staying in memory for Ollama's default 5
+  minutes beside the chat model.</li>
+<li>When Ollama isn't reachable, Flint says so plainly (where it looked
+  and what to do) instead of showing Go's raw connection error, and says
+  it once per page instead of in every section.</li>
+<li>A saved Brave Search key is no longer sent back to the browser. It was
+  in the Settings page and in <code>/api/me</code>, where the eye button or the page
+  source showed it in full. Settings now shows only its last four
+  characters, with Replace and Remove.</li>
+<li>After a reload, messages keep their <code>@web</code> / <code>@memory</code> tags as typed,
+  and recalled memories show as "Recalled memories for …" after the
+  message that asked, instead of the instruction text meant for the
+  model. Collapsible headers keep their arrow on the same line.</li>
+<li>A denied command card shows just "Denied", not the instructions Flint
+  writes for the model.</li>
+<li>Collapsible headers (sources, system messages) and link hovers no
+  longer flash Pico's default blue.</li>
+<li>The "Attached folder" card no longer jumps sideways while it opens and
+  closes.</li>
+</ul>
+<h2 id="013---2026-09-26"><a href="https://github.com/Lusan-sapkota/Flint/compare/v0.1.2...v0.1.3">0.1.3</a> - 2026-09-26<a aria-label="Link to 0.1.3 - 2026-09-26" class="header-anchor" href="#013---2026-09-26">#</a></h2>
+<h3 id="added_2">Added<a aria-label="Link to Added" class="header-anchor" href="#added_2">#</a></h3>
+<ul>
+<li>Delete your account from Settings. It asks for your password and, if
+  you've set security questions, their answers, then a typed <code>DELETE</code>
+  confirmation. Everything in the account is deleted for good, including
+  attachment files, and every session is signed out.</li>
+<li>Settings says when <code>nomic-embed-text</code> is missing and offers to pull it.
+  It's optional: <code>@web</code> works without it, using Brave's ranking, and it
+  only loads while a search runs. The Installed list marks it, and deleting
+  it says what changes.</li>
+<li>Load and unload models from Settings → Models. Loading one unloads
+  whatever else is running first.</li>
+<li>Settings → Connection lists your <code>@web</code> searches: the exact query sent
+  to Brave, when, which chat, and how many this month.</li>
+</ul>
+<h3 id="changed_2">Changed<a aria-label="Link to Changed" class="header-anchor" href="#changed_2">#</a></h3>
+<ul>
+<li>Settings is laid out like the chat page: sections in a sidebar
+  (Connection, Models, Memories, Account), one at a time, instead of one
+  long scrolling column. On phones they become tabs.</li>
+<li>Thinking, sources, system messages and model details open and close
+  with a short transition instead of snapping.</li>
+</ul>
+<h3 id="fixed_1">Fixed<a aria-label="Link to Fixed" class="header-anchor" href="#fixed_1">#</a></h3>
+<ul>
+<li>Display math no longer shows a small vertical scrollbar.</li>
+<li>A model's details button shows a readable summary (family, parameters,
+  quantization, context length, capabilities) instead of raw JSON or an
+  empty box.</li>
+</ul>
+<h2 id="012---2026-09-26"><a href="https://github.com/Lusan-sapkota/Flint/compare/v0.1.1...v0.1.2">0.1.2</a> - 2026-09-26<a aria-label="Link to 0.1.2 - 2026-09-26" class="header-anchor" href="#012---2026-09-26">#</a></h2>
+<h3 id="changed_3">Changed<a aria-label="Link to Changed" class="header-anchor" href="#changed_3">#</a></h3>
+<ul>
+<li>A denied command no longer makes the model claim it lacks permissions.
+  It now hears that you chose not to run that one command, and tries
+  another way or asks you instead of guessing the output (E18).</li>
+<li>The context meter shows how many older messages have been condensed
+  into a summary, for example "100 / 4.1k · 3 condensed".</li>
+<li>Hovering a chat in the sidebar shows its full title.</li>
+</ul>
+<h3 id="fixed_2">Fixed<a aria-label="Link to Fixed" class="header-anchor" href="#fixed_2">#</a></h3>
+<ul>
+<li>Clicking the chat you're already in no longer reloads the page.</li>
+</ul>
+<h2 id="011---2026-09-26"><a href="https://github.com/Lusan-sapkota/Flint/compare/v0.1.0...v0.1.1">0.1.1</a> - 2026-09-26<a aria-label="Link to 0.1.1 - 2026-09-26" class="header-anchor" href="#011---2026-09-26">#</a></h2>
+<h3 id="changed_4">Changed<a aria-label="Link to Changed" class="header-anchor" href="#changed_4">#</a></h3>
+<ul>
+<li>The tool-reasoning nudge is left off when your message says not to run
+  commands ("without running", "don't run", ...). On the benchmark's
+  restraint tasks this went from 0/9 to 7/9, with no loss in tool use (E17).</li>
+<li>During an <code>@web</code> reply, the search query and its sources are shown as
+  it happens, in a collapsible sources card.</li>
+<li>The Docker quick start prints Flint's address once it's running.</li>
+<li>The <code>latest</code> image tag only moves for normal releases, not pre-releases.</li>
+</ul>
+<h3 id="added_3">Added<a aria-label="Link to Added" class="header-anchor" href="#added_3">#</a></h3>
+<ul>
+<li>A contributing guide, the repository rules, and how to report a
+  vulnerability privately.</li>
+<li>How to update a Docker install to a new release.</li>
+</ul>
+<h2 id="010---2026-09-26"><a href="https://github.com/Lusan-sapkota/Flint/releases/tag/v0.1.0">0.1.0</a> - 2026-09-26<a aria-label="Link to 0.1.0 - 2026-09-26" class="header-anchor" href="#010---2026-09-26">#</a></h2>
+<p>First release.</p>
+<ul>
+<li>Chat with local Ollama models, with accounts, SQLite persistence,
+  markdown and offline math rendering, image attachments, a thinking
+  toggle for models that support it, and search across chats.</li>
+<li>Folder attachment, with a shell tool that only runs a command after you
+  approve it, a shield against catastrophic commands, and precondition
+  checks before a command is offered.</li>
+<li>Context management for small windows: an explicit token budget, layered
+  background summaries, and recovery when a prompt overflows.</li>
+<li><code>@web</code> search (Brave Search, your own key), <code>@memory</code> for facts that
+  carry across chats, and <code>@compact</code> to condense a chat on demand.</li>
+<li>A context meter, a scored benchmark with switchable scaffolding, and
+  project documentation.</li>
+<li>A Docker image for amd64 and arm64 on ghcr.io, run with Docker Compose
+  against the Ollama already on your machine.</li>
+</ul>
+        <nav class="page-nav" aria-label="Page navigation">
+
+            <a href="testing.html" class="page-nav-link prev">
+              <span class="page-nav-sub">← Previous</span>
+              <span class="page-nav-title">Testing</span>
+            </a>
+            
+</nav>
+      </article>
+
+      <footer class="docs-page-footer">
+        <div class="docs-footer-inner">
+          <p class="docs-footer-copy">Flint is licensed under <a href="https://github.com/Lusan-sapkota/Flint/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">AGPL-3.0</a>.</p>
+          <a href="#mainContent" class="back-to-top" aria-label="Back to top of page">
+            <span>Back to top</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </a>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script src="assets/js/docs.js"></script>
+</body>
+</html>

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Install and run · Flint</title>
+  <meta name="description" content="Docker, source, environment variables, health checks">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body>
+  <div class="docs-layout">
+    <!-- Mobile Header -->
+    <header class="mobile-header" aria-label="Mobile header">
+      <button class="mobile-menu-toggle" id="menuToggle" aria-label="Open navigation menu" aria-expanded="false">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <a href="index.html" class="mobile-brand">
+        <img src="images/logo.png" alt="Flint logo" width="28" height="28" class="mobile-logo">
+        <span class="mobile-brand-name">Flint</span>
+        <span class="version-badge">v0.2.0</span>
+      </a>
+      <a href="https://github.com/Lusan-sapkota/Flint" class="mobile-github" aria-label="GitHub repository" target="_blank" rel="noopener noreferrer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+        </svg>
+      </a>
+    </header>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="docs-sidebar" id="sidebar" aria-label="Documentation navigation">
+      <div class="sidebar-header">
+        <a href="index.html" class="sidebar-brand">
+          <img src="images/logo.png" alt="Flint logo" width="36" height="36" class="brand-logo">
+          <div class="brand-text">
+            <div class="brand-title-wrap">
+              <span class="brand-title">Flint</span>
+              <span class="version-badge">v0.2.0</span>
+            </div>
+            <span class="brand-tagline">Offline Ollama UI</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="sidebar-links">
+        <a href="https://github.com/Lusan-sapkota/Flint" class="sidebar-link-btn" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+          </svg>
+          <span>GitHub</span>
+          <span class="external-icon">↗</span>
+        </a>
+        <a href="https://github.com/Lusan-sapkota/Flint/releases" class="sidebar-link-btn" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Releases</span>
+          <span class="external-icon">↗</span>
+        </a>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="Documentation pages">
+        <div class="nav-group">
+  <div class="nav-group-title">Get started</div>
+  <ul class="nav-group-items">
+    <li><a href="index.html" class="nav-item">Overview</a></li>
+    <li><a href="deployment.html" class="nav-item active" aria-current="page">Install and run</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Using Flint</div>
+  <ul class="nav-group-items">
+    <li><a href="features.html" class="nav-item">Features</a></li>
+    <li><a href="security.html" class="nav-item">Security</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">How it works</div>
+  <ul class="nav-group-items">
+    <li><a href="architecture.html" class="nav-item">Architecture</a></li>
+    <li><a href="context-management.html" class="nav-item">Context management</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Evidence</div>
+  <ul class="nav-group-items">
+    <li><a href="experiments.html" class="nav-item">Experiments</a></li>
+    <li><a href="benchmark.html" class="nav-item">Benchmark</a></li>
+    <li><a href="testing.html" class="nav-item">Testing</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Project</div>
+  <ul class="nav-group-items">
+    <li><a href="changelog.html" class="nav-item">Changelog</a></li>
+    <li><a href="https://github.com/Lusan-sapkota/Flint/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" class="nav-item">Contributing <span class="external-icon" aria-hidden="true">↗</span></a></li>
+  </ul>
+</div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span class="sidebar-footer-text">Flint Documentation</span>
+        <span class="sidebar-footer-sub">Zero build step · 100% offline</span>
+      </div>
+    </aside>
+
+    <!-- Main Content Container -->
+    <main class="docs-main" id="mainContent">
+      <article class="docs-content">
+        <h1 id="install-and-run">Install and run</h1>
+<h2 id="docker">Docker<a aria-label="Link to Docker" class="header-anchor" href="#docker">#</a></h2>
+<p>Docker runs <strong>Flint only</strong>. Ollama stays the normal app on your machine,
+where it already has your GPU and your models, and the container talks
+to it. The image is published at <code>ghcr.io/lusan-sapkota/flint</code> (see
+<a href="#image-tags">Image tags</a>), and the compose files in
+the repository root are ready-to-use examples. Download one; there's no
+need to clone the repository.</p>
+<p><strong>Linux:</strong></p>
+<div class="highlight"><div class="code-block"><button aria-label="Copy code to clipboard" class="copy-code-btn" title="Copy code" type="button">Copy</button><pre><span></span><code>mkdir<span class="w"> </span>flint<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>flint<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>data
+curl<span class="w"> </span>-O<span class="w"> </span>https://raw.githubusercontent.com/Lusan-sapkota/Flint/main/docker-compose.yml
+docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+</code></pre></div></div>
+<p>The container uses host networking, so it reaches Ollama at
+<code>localhost:11434</code> exactly as a native Flint would, and Ollama never has to
+listen beyond localhost.</p>
+<p><strong>Mac and Windows (Docker Desktop):</strong></p>
+<div class="highlight"><div class="code-block"><button aria-label="Copy code to clipboard" class="copy-code-btn" title="Copy code" type="button">Copy</button><pre><span></span><code>mkdir<span class="w"> </span>flint<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>flint<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>data
+curl<span class="w"> </span>-O<span class="w"> </span>https://raw.githubusercontent.com/Lusan-sapkota/Flint/main/docker-compose.desktop.yml
+docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>docker-compose.desktop.yml<span class="w"> </span>up<span class="w"> </span>-d
+</code></pre></div></div>
+<p>Host networking doesn't work there the same way, because Docker runs in a
+small VM. This file uses ordinary port mapping, and reaches Ollama through
+<code>host.docker.internal</code>, which Docker Desktop forwards to your machine.
+This setup is untested so far, since it was built on Linux; if it doesn't
+reach Ollama, please open an issue.</p>
+<p>Then open <code>http://localhost:3141</code>. Notes:</p>
+<ul>
+<li><strong>Port:</strong> 3141 is deliberately uncommon, since 8080 is where most dev
+  servers go. Set <code>FLINT_PORT</code> to use another
+  (<code>FLINT_PORT=4000 docker compose up -d</code>). Either way it's published on
+  <code>127.0.0.1</code> only.</li>
+<li><strong>Data:</strong> everything Flint stores (chats, memories, summaries,
+  settings, attachments) lives in the <code>data/</code> folder next to the compose
+  file. It's a plain folder, not a Docker volume, so it survives
+  <code>docker compose down -v</code> and rebuilds, and you can back it up like any
+  other files. It's gone only when you delete the folder. Create it
+  yourself before the first start: if Docker creates it, it's owned by
+  root and the container can't write to it. The container runs as uid
+  1000, the usual first user on Linux. It's separate from
+  <code>backend/data/</code>, which a native <code>go run .</code> uses.</li>
+<li><strong>Folders:</strong> folder attach and the shell tool only see the container's
+  filesystem. To work on a project, bind-mount it (add a <code>volumes:</code> entry
+  such as <code>- /home/you/project:/home/flint/project</code>), or run Flint natively.</li>
+<li><strong>Shell:</strong> the image is Alpine (23.5 MB), not scratch, because the shell
+  tool needs <code>sh</code>. Commands only have the tools Alpine ships.</li>
+<li>
+<p><strong>Listening address:</strong> the image sets <code>HOST=0.0.0.0</code>, so a plain
+  <code>docker run -p</code> works. The Linux compose file narrows it back to
+  <code>127.0.0.1</code>, since host networking would otherwise expose it to the
+  network.</p>
+</li>
+<li>
+<p><strong>Updating:</strong> <code>docker compose pull &amp;&amp; docker compose up -d</code> fetches the
+  newest <code>latest</code>, and <code>./data</code> is kept. <code>latest</code> only moves for normal
+  releases, not pre-releases like <code>v0.3.0-beta</code>. To stay on one version,
+  change the tag in the compose file, for example
+  <code>ghcr.io/lusan-sapkota/flint:0.2</code> (patch releases of 0.2) or <code>:0.2.0</code>
+  (exactly that one). Nothing updates automatically.</p>
+</li>
+</ul>
+<h2 id="from-source">From source<a aria-label="Link to From source" class="header-anchor" href="#from-source">#</a></h2>
+<p>Requires Go (see <code>backend/go.mod</code>) and a running Ollama.</p>
+<div class="highlight"><div class="code-block"><button aria-label="Copy code to clipboard" class="copy-code-btn" title="Copy code" type="button">Copy</button><pre><span></span><code>ollama<span class="w"> </span>serve<span class="w">                 </span><span class="c1"># or the system service</span>
+<span class="nb">cd</span><span class="w"> </span>backend
+go<span class="w"> </span>run<span class="w"> </span>.<span class="w">                     </span><span class="c1"># must run from backend/: assets resolve via ../frontend</span>
+</code></pre></div></div>
+<p>Open <code>http://localhost:8080</code>, sign up, and pick a model.</p>
+<p>To build a static binary (no cgo, any OS):</p>
+<div class="highlight"><div class="code-block"><button aria-label="Copy code to clipboard" class="copy-code-btn" title="Copy code" type="button">Copy</button><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>backend<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nv">CGO_ENABLED</span><span class="o">=</span><span class="m">0</span><span class="w"> </span>go<span class="w"> </span>build<span class="w"> </span>-o<span class="w"> </span>flint<span class="w"> </span>.
+</code></pre></div></div>
+<h2 id="environment-variables">Environment variables<a aria-label="Link to Environment variables" class="header-anchor" href="#environment-variables">#</a></h2>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Default</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>HOST</code></td>
+<td><code>127.0.0.1</code></td>
+<td>address to listen on; localhost only by default, since commands run on this machine and signup is open</td>
+</tr>
+<tr>
+<td><code>PORT</code></td>
+<td><code>8080</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>DB_PATH</code></td>
+<td><code>data/chat.db</code></td>
+<td>SQLite file, relative to <code>backend/</code></td>
+</tr>
+<tr>
+<td><code>ATTACHMENTS_DIR</code></td>
+<td><code>data/attachments</code></td>
+<td>uploaded files</td>
+</tr>
+<tr>
+<td><code>OLLAMA_BASE_URL</code></td>
+<td><code>http://localhost:11434</code></td>
+<td>server default; each user can override it in Settings</td>
+</tr>
+<tr>
+<td><code>FLINT_ABLATE</code></td>
+<td>empty</td>
+<td>benchmark only: switches scaffolding off, see <a href="benchmark.html">benchmark.md</a>. Leave unset.</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="image-tags">Image tags<a aria-label="Link to Image tags" class="header-anchor" href="#image-tags">#</a></h2>
+<p>A new image is published for every release, for <code>linux/amd64</code> and
+<code>linux/arm64</code>:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Tag</th>
+<th>Follows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>latest</code></td>
+<td>the newest normal release (never a pre-release like <code>v0.3.0-beta</code>)</td>
+</tr>
+<tr>
+<td><code>0.2</code></td>
+<td>the newest <code>0.2.x</code> patch release</td>
+</tr>
+<tr>
+<td><code>0.2.0</code></td>
+<td>exactly that release</td>
+</tr>
+</tbody>
+</table></div>
+<p>The compose files use <code>latest</code>. To stay on one version, change the tag
+in the compose file. A published version always means the same code: a
+broken release is fixed by the next version, never by republishing one.
+How a release is made (for maintainers) is in
+<a href="https://github.com/Lusan-sapkota/Flint/blob/main/CONTRIBUTING.md#releasing-maintainers">CONTRIBUTING.md</a>.</p>
+<h2 id="health">Health<a aria-label="Link to Health" class="header-anchor" href="#health">#</a></h2>
+<p><code>GET /healthz</code> checks the database and Ollama's <code>/api/version</code>. It returns
+200 with <code>{"db":"ok","ollama":"ok"}</code>, or 503 naming what failed.</p>
+<h2 id="shutdown">Shutdown<a aria-label="Link to Shutdown" class="header-anchor" href="#shutdown">#</a></h2>
+<p>SIGINT and SIGTERM stop accepting requests and give in-flight ones up to
+10 seconds to finish. A background summarization cut short by shutdown is
+just redone later.</p>
+<h2 id="models">Models<a aria-label="Link to Models" class="header-anchor" href="#models">#</a></h2>
+<p>Anything Ollama serves works for chat. What Flint uses:</p>
+<ul>
+<li><strong>Tool calling</strong> (folder attach) needs a model with the <code>tools</code>
+  capability, such as qwen2.5-3b-instruct or qwen3.5-4b.</li>
+<li><strong>Images</strong> need <code>vision</code> (qwen3.5-4b).</li>
+<li><strong>Thinking</strong> needs <code>thinking</code> (qwen3.5-4b).</li>
+<li><strong><code>@web</code> re-ranking</strong> uses <code>nomic-embed-text</code>, and it's optional, not a
+  dependency. Without it <code>@web</code> still works, using Brave's own ranking.
+  With it, the model only loads for the moment a search runs: Flint asks
+  Ollama to unload it as soon as the results are ranked, not after
+  Ollama's default 5 minutes. Flint never pulls it on its
+  own: Settings → Connection offers a Pull button when a Brave key is set
+  and the model is missing, and the Installed list marks it.</li>
+</ul>
+<p>By default a plain chat runs with a 4096-token window, a folder chat with
+8192, and a chat with an Ollama cloud model with 32768. Each account can
+set its own window for local and for cloud models in Settings →
+Connection, and no model is given more than the <code>context_length</code> it
+reports; see <a href="context-management.html">context-management.md</a>.</p>
+        <nav class="page-nav" aria-label="Page navigation">
+
+            <a href="index.html" class="page-nav-link prev">
+              <span class="page-nav-sub">← Previous</span>
+              <span class="page-nav-title">Overview</span>
+            </a>
+            
+
+            <a href="features.html" class="page-nav-link next">
+              <span class="page-nav-sub">Next →</span>
+              <span class="page-nav-title">Features</span>
+            </a>
+            
+</nav>
+      </article>
+
+      <footer class="docs-page-footer">
+        <div class="docs-footer-inner">
+          <p class="docs-footer-copy">Flint is licensed under <a href="https://github.com/Lusan-sapkota/Flint/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">AGPL-3.0</a>.</p>
+          <a href="#mainContent" class="back-to-top" aria-label="Back to top of page">
+            <span>Back to top</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </a>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script src="assets/js/docs.js"></script>
+</body>
+</html>

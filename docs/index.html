@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flint — Offline Chat UI for Local Ollama Models</title>
+  <meta name="description" content="Offline chat UI for local Ollama models">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body>
+  <div class="docs-layout">
+    <!-- Mobile Header -->
+    <header class="mobile-header" aria-label="Mobile header">
+      <button class="mobile-menu-toggle" id="menuToggle" aria-label="Open navigation menu" aria-expanded="false">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <a href="index.html" class="mobile-brand">
+        <img src="images/logo.png" alt="Flint logo" width="28" height="28" class="mobile-logo">
+        <span class="mobile-brand-name">Flint</span>
+        <span class="version-badge">v0.2.0</span>
+      </a>
+      <a href="https://github.com/Lusan-sapkota/Flint" class="mobile-github" aria-label="GitHub repository" target="_blank" rel="noopener noreferrer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+        </svg>
+      </a>
+    </header>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="docs-sidebar" id="sidebar" aria-label="Documentation navigation">
+      <div class="sidebar-header">
+        <a href="index.html" class="sidebar-brand">
+          <img src="images/logo.png" alt="Flint logo" width="36" height="36" class="brand-logo">
+          <div class="brand-text">
+            <div class="brand-title-wrap">
+              <span class="brand-title">Flint</span>
+              <span class="version-badge">v0.2.0</span>
+            </div>
+            <span class="brand-tagline">Offline Ollama UI</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="sidebar-links">
+        <a href="https://github.com/Lusan-sapkota/Flint" class="sidebar-link-btn" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+          </svg>
+          <span>GitHub</span>
+          <span class="external-icon">↗</span>
+        </a>
+        <a href="https://github.com/Lusan-sapkota/Flint/releases" class="sidebar-link-btn" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Releases</span>
+          <span class="external-icon">↗</span>
+        </a>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="Documentation pages">
+        <div class="nav-group">
+  <div class="nav-group-title">Get started</div>
+  <ul class="nav-group-items">
+    <li><a href="index.html" class="nav-item active" aria-current="page">Overview</a></li>
+    <li><a href="deployment.html" class="nav-item">Install and run</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Using Flint</div>
+  <ul class="nav-group-items">
+    <li><a href="features.html" class="nav-item">Features</a></li>
+    <li><a href="security.html" class="nav-item">Security</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">How it works</div>
+  <ul class="nav-group-items">
+    <li><a href="architecture.html" class="nav-item">Architecture</a></li>
+    <li><a href="context-management.html" class="nav-item">Context management</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Evidence</div>
+  <ul class="nav-group-items">
+    <li><a href="experiments.html" class="nav-item">Experiments</a></li>
+    <li><a href="benchmark.html" class="nav-item">Benchmark</a></li>
+    <li><a href="testing.html" class="nav-item">Testing</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Project</div>
+  <ul class="nav-group-items">
+    <li><a href="changelog.html" class="nav-item">Changelog</a></li>
+    <li><a href="https://github.com/Lusan-sapkota/Flint/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" class="nav-item">Contributing <span class="external-icon" aria-hidden="true">↗</span></a></li>
+  </ul>
+</div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span class="sidebar-footer-text">Flint Documentation</span>
+        <span class="sidebar-footer-sub">Zero build step · 100% offline</span>
+      </div>
+    </aside>
+
+    <!-- Main Content Container -->
+    <main class="docs-main" id="mainContent">
+      <article class="docs-content">
+        <h1 id="flint-docs">Flint docs</h1>
+<p>Flint is a small, fully offline chat UI for local Ollama models: one Go
+binary, SQLite, and a light server-rendered UI, with nothing fetched from
+a CDN. The idea behind it is that a well-guided 3-4B model isn't an
+inferior model but an under-scaffolded one, so Flint's job is to be the
+best scaffolding around a small model without getting heavy itself:
+context that never overflows, shell commands that always wait for your
+approval, memory across chats, and web search only when you ask. Ollama
+cloud models work too, under the same rules, tagged as cloud, and each
+account can set its own context window for local and for cloud models.</p>
+<p><strong>New in 0.2.0:</strong> <code>@agent &lt;task&gt;</code> splits a question over your folder into
+subtasks, each run by its own agent with a clean context window, and
+writes one answer from their results. You approve the plan and every
+command an agent asks to run.
+(<a href="features.html#agents-agent">features</a>, <a href="changelog.html">changelog</a>)</p>
+<p><img alt="A shell command proposed by the model, waiting for Approve, Deny or Reply instead" src="images/hero-approval.png"/></p>
+<h2 id="quick-start">Quick start<a aria-label="Link to Quick start" class="header-anchor" href="#quick-start">#</a></h2>
+<p>You need <a href="https://ollama.com">Ollama</a> running with a model pulled, for
+example <code>ollama pull qwen2.5:3b</code>.</p>
+<p><strong>With Docker</strong> (recommended; no clone needed). On Linux:</p>
+<div class="highlight"><div class="code-block"><button aria-label="Copy code to clipboard" class="copy-code-btn" title="Copy code" type="button">Copy</button><pre><span></span><code>mkdir<span class="w"> </span>flint<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>flint<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>data
+curl<span class="w"> </span>-O<span class="w"> </span>https://raw.githubusercontent.com/Lusan-sapkota/Flint/main/docker-compose.yml
+docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+</code></pre></div></div>
+<p>Then open <code>http://localhost:3141</code>. On Mac and Windows, use
+<code>docker-compose.desktop.yml</code> instead, as shown in
+<a href="deployment.html">Install and run</a>.</p>
+<p><strong>Or from source</strong>, with Go installed:</p>
+<div class="highlight"><div class="code-block"><button aria-label="Copy code to clipboard" class="copy-code-btn" title="Copy code" type="button">Copy</button><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/Lusan-sapkota/Flint.git
+<span class="nb">cd</span><span class="w"> </span>Flint/backend
+go<span class="w"> </span>run<span class="w"> </span>.
+</code></pre></div></div>
+<p>Then open <code>http://localhost:8080</code> and sign up.</p>
+<h2 id="the-docs">The docs<a aria-label="Link to The docs" class="header-anchor" href="#the-docs">#</a></h2>
+<p><strong>Get started</strong></p>
+<ul>
+<li><a href="deployment.html">Install and run</a>: Docker and source, environment
+  variables, health checks, and which models need which capabilities.</li>
+</ul>
+<p><strong>Using Flint</strong></p>
+<ul>
+<li><a href="features.html">Features</a>: everything Flint does, from a user's point of
+  view.</li>
+<li><a href="security.html">Security</a>: accounts, rate limits, the shell-command
+  safety layers, and what leaves the machine.</li>
+</ul>
+<p><strong>How it works</strong></p>
+<ul>
+<li><a href="architecture.html">Architecture</a>: the pieces, repository layout, data
+  model, a chat turn, the streaming protocol, where the ideas come from
+  and what was deliberately not built.</li>
+<li><a href="context-management.html">Context management</a>: how a conversation is
+  fit into a small model's window.</li>
+</ul>
+<p><strong>Evidence</strong></p>
+<ul>
+<li><a href="experiments.html">Experiments</a>: the measurements behind each design
+  decision, including what failed and was rejected.</li>
+<li><a href="benchmark.html">Benchmark</a>: the scored benchmark, with and without
+  each piece of scaffolding.</li>
+<li><a href="testing.html">Testing</a>: unit tests, live checks against Ollama, the
+  long-chat run and the web re-ranking set. The scripts it uses are
+  <a href="tools/long_chat.py">tools/long_chat.py</a> and
+  <a href="tools/web_rerank.py">tools/web_rerank.py</a>.</li>
+</ul>
+<p><strong>Project</strong></p>
+<ul>
+<li><a href="changelog.html">Changelog</a>: what changed in each release.</li>
+<li><a href="https://github.com/Lusan-sapkota/Flint/blob/main/CONTRIBUTING.md">Contributing</a>
+  (on GitHub): for anyone working on the code. What fits, setup, what a
+  pull request needs, and, for maintainers, how a release is made.</li>
+</ul>
+<h2 id="screenshots">Screenshots<a aria-label="Link to Screenshots" class="header-anchor" href="#screenshots">#</a></h2>
+<p><img alt="An @agent plan: three subtasks with their files, one left to look through the folder itself, waiting for Run or Discard" src="images/agent-plan.png"/></p>
+<p><img alt="Agent 3 asks to run cat config.yaml in the main chat, with Approve, Deny and Reply instead; the label reads Agents 2/3, 1 waiting" src="images/agent-approval.png"/></p>
+<p><img alt="The combined answer in the chat, under a From 3 agents block listing what each agent found" src="images/agent-answer.png"/></p>
+<p><img alt="The agents window: each agent with its task and inputs, and Agent 3's transcript with the commands it ran and their output" src="images/agents-window.png"/></p>
+<p><img alt="An @web question answered from three ranked sources, listed above the answer" src="images/web-query.png"/></p>
+<p><img alt="@memory save marks where a memory was saved; @memory recalls it in the chat" src="images/memory.png"/></p>
+<h2 id="elsewhere">Elsewhere<a aria-label="Link to Elsewhere" class="header-anchor" href="#elsewhere">#</a></h2>
+<ul>
+<li><a href="https://github.com/Lusan-sapkota/Flint">Source code</a> and
+  <a href="https://github.com/Lusan-sapkota/Flint/releases">releases</a></li>
+<li><a href="https://github.com/Lusan-sapkota/Flint/issues">Report a bug</a>, or a
+  security problem privately through the repository's Security tab.</li>
+</ul>
+<p>Every change to Flint updates the pages it affects, in the same commit.</p>
+        <nav class="page-nav" aria-label="Page navigation">
+<div class="page-nav-placeholder"></div>
+
+            <a href="deployment.html" class="page-nav-link next">
+              <span class="page-nav-sub">Next →</span>
+              <span class="page-nav-title">Install and run</span>
+            </a>
+            
+</nav>
+      </article>
+
+      <footer class="docs-page-footer">
+        <div class="docs-footer-inner">
+          <p class="docs-footer-copy">Flint is licensed under <a href="https://github.com/Lusan-sapkota/Flint/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">AGPL-3.0</a>.</p>
+          <a href="#mainContent" class="back-to-top" aria-label="Back to top of page">
+            <span>Back to top</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </a>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script src="assets/js/docs.js"></script>
+</body>
+</html>

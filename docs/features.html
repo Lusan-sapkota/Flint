@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Features · Flint</title>
+  <meta name="description" content="Chats, tools, agents, memory, web search, and settings">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body>
+  <div class="docs-layout">
+    <!-- Mobile Header -->
+    <header class="mobile-header" aria-label="Mobile header">
+      <button class="mobile-menu-toggle" id="menuToggle" aria-label="Open navigation menu" aria-expanded="false">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <a href="index.html" class="mobile-brand">
+        <img src="images/logo.png" alt="Flint logo" width="28" height="28" class="mobile-logo">
+        <span class="mobile-brand-name">Flint</span>
+        <span class="version-badge">v0.2.0</span>
+      </a>
+      <a href="https://github.com/Lusan-sapkota/Flint" class="mobile-github" aria-label="GitHub repository" target="_blank" rel="noopener noreferrer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+        </svg>
+      </a>
+    </header>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="docs-sidebar" id="sidebar" aria-label="Documentation navigation">
+      <div class="sidebar-header">
+        <a href="index.html" class="sidebar-brand">
+          <img src="images/logo.png" alt="Flint logo" width="36" height="36" class="brand-logo">
+          <div class="brand-text">
+            <div class="brand-title-wrap">
+              <span class="brand-title">Flint</span>
+              <span class="version-badge">v0.2.0</span>
+            </div>
+            <span class="brand-tagline">Offline Ollama UI</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="sidebar-links">
+        <a href="https://github.com/Lusan-sapkota/Flint" class="sidebar-link-btn" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+          </svg>
+          <span>GitHub</span>
+          <span class="external-icon">↗</span>
+        </a>
+        <a href="https://github.com/Lusan-sapkota/Flint/releases" class="sidebar-link-btn" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Releases</span>
+          <span class="external-icon">↗</span>
+        </a>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="Documentation pages">
+        <div class="nav-group">
+  <div class="nav-group-title">Get started</div>
+  <ul class="nav-group-items">
+    <li><a href="index.html" class="nav-item">Overview</a></li>
+    <li><a href="deployment.html" class="nav-item">Install and run</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Using Flint</div>
+  <ul class="nav-group-items">
+    <li><a href="features.html" class="nav-item active" aria-current="page">Features</a></li>
+    <li><a href="security.html" class="nav-item">Security</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">How it works</div>
+  <ul class="nav-group-items">
+    <li><a href="architecture.html" class="nav-item">Architecture</a></li>
+    <li><a href="context-management.html" class="nav-item">Context management</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Evidence</div>
+  <ul class="nav-group-items">
+    <li><a href="experiments.html" class="nav-item">Experiments</a></li>
+    <li><a href="benchmark.html" class="nav-item">Benchmark</a></li>
+    <li><a href="testing.html" class="nav-item">Testing</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Project</div>
+  <ul class="nav-group-items">
+    <li><a href="changelog.html" class="nav-item">Changelog</a></li>
+    <li><a href="https://github.com/Lusan-sapkota/Flint/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" class="nav-item">Contributing <span class="external-icon" aria-hidden="true">↗</span></a></li>
+  </ul>
+</div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span class="sidebar-footer-text">Flint Documentation</span>
+        <span class="sidebar-footer-sub">Zero build step · 100% offline</span>
+      </div>
+    </aside>
+
+    <!-- Main Content Container -->
+    <main class="docs-main" id="mainContent">
+      <article class="docs-content">
+        <h1 id="features">Features</h1>
+<p>Everything Flint does, grouped by area.</p>
+<h2 id="accounts">Accounts<a aria-label="Link to Accounts" class="header-anchor" href="#accounts">#</a></h2>
+<ul>
+<li><strong>Open signup</strong>: full name, email, and a password of at least 8
+  characters. Sessions last 30 days.</li>
+<li><strong>Log in and log out.</strong> Logging out asks first, then ends the session
+  on the server. It's at the bottom of the sidebar in both the chat and
+  Settings.</li>
+<li><strong>Private per account.</strong> Each account sees only its own conversations,
+  attachments, commands and memories. Another account's items answer
+  "not found".</li>
+<li><strong>Password recovery without email.</strong> Set 2-5 security questions in
+  Settings. To recover, enter your email, answer the questions, and choose
+  a new password. Answers are compared case- and whitespace-insensitively.
+  A reset signs out every session of that account.</li>
+<li><strong>Edit your profile</strong> in Settings → Account: name and email. Changing
+  the email asks for your current password, since it's how you log in.</li>
+<li><strong>Change your password</strong> in Settings → Account, with your current
+  password. Your other devices are logged out; this one stays in. If you've
+  forgotten the current one, log out and use <strong>Forgot your password?</strong>
+  (needs security questions).</li>
+<li><strong>Delete your account</strong> in Settings. It asks for your password and, if
+  you've set security questions, their answers, then a typed <code>DELETE</code>
+  confirmation. Every chat, attachment, memory and setting is deleted for
+  good, and every session is signed out.</li>
+<li><strong>Rate limiting</strong> on login, signup, recovery and account deletion (see
+  <a href="security.html">security.md</a>).</li>
+</ul>
+<h2 id="chat">Chat<a aria-label="Link to Chat" class="header-anchor" href="#chat">#</a></h2>
+<ul>
+<li><strong>Commands as you type.</strong> Typing <code>@</code> at the start of a message lists
+  <code>@agent</code>, <code>@web</code>, <code>@memory</code>, <code>@memory save</code> and <code>@compact</code> with what
+  each does; arrow keys and Enter or Tab pick one, Escape hides the list.</li>
+<li>
+<p><strong>Cloud models.</strong> An Ollama cloud model (<code>ollama pull &lt;name&gt;:cloud</code>)
+  works like any other, under the same rules (every command waits for
+  approval and passes the shield and precondition checks), but runs on
+  ollama.com: the whole chat, attached
+  folder files and command output included, leaves your machine. It's
+  tagged "cloud" in the New chat picker, in Settings and next to the
+  model name, and a line at the top of the chat says where it goes. If
+  Ollama isn't signed in, the error says to run <code>ollama signin</code>. The
+  scaffolding (compaction, tool nudge, retry budget) is tuned for small
+  local models and isn't measured on cloud ones.</p>
+</li>
+<li>
+<p><strong>Streaming replies</strong>, rendered as Markdown (sanitized with DOMPurify):
+  headings, lists, tables, quotes, links, task lists and strikethrough.
+  Code blocks show their language and have their own Copy button, with no
+  syntax highlighting. Diagram code such as Mermaid shows as a code block
+  you can copy into any viewer.</p>
+</li>
+<li><strong>Math</strong> renders offline with Temml as native MathML: <code>\(…\)</code> or <code>$…$</code>
+  inline, <code>\[…\]</code> or <code>$$…$$</code> as a block. Dollar amounts like "$5 and $10"
+  stay plain text, <code>$</code> inside code is left alone, and broken LaTeX shows an
+  error instead of breaking the reply.</li>
+<li><strong>No remote content.</strong> Rendering a reply never fetches anything. A
+  remote image becomes a link you can open on purpose, and raw HTML from
+  the model can't load media, styles or SVG from the network.</li>
+<li><strong>Copy</strong> any message.</li>
+<li><strong>Thinking toggle</strong> (the light-bulb button). For models with the
+  thinking capability, such as qwen3.5-4b, it switches between reasoning
+  first and answering directly. The model's thinking is shown separately
+  from its answer. The toggle is disabled for models without thinking.</li>
+<li><strong>Stop generating.</strong> A stopped reply keeps what was already shown, so
+  the history matches the screen. A tool call cut off mid-stream is
+  dropped, so it can never be approved.</li>
+<li><strong>Edit the last message.</strong> This resends it and discards everything
+  after it, including a pending command. Its attachments carry over.</li>
+<li><strong>Generation speed</strong> (tokens per second) under each reply.</li>
+<li><strong>Context meter.</strong> Next to the folder chip, after a thin divider: a row of thin bars, grey
+  for the whole window and bright for how much of it the last request used, and
+  the token count ("192 / 4.1k") to its right. Hover it for details. It
+  turns the accent color above 80%. It updates after every response,
+  including tool steps, and shows from the start of a chat (at 0). Once older messages have been condensed into a
+  summary, it says how many ("192 / 4.1k · 12 condensed"), so a model
+  losing an early detail isn't a mystery.</li>
+<li><strong>Model loading notice.</strong> Shown while Ollama loads a model, instead of
+  bare dots.</li>
+<li><strong>Missing-model badge.</strong> If a chat's model has been removed from
+  Ollama, the header says so and points you to Settings or a new chat.</li>
+<li><strong>Last-activity time</strong> in the chat header.</li>
+<li><strong>Scrolling tips</strong> under the message box: a slow marquee through
+  <code>@web</code>, <code>@memory save</code>, <code>@memory &lt;words&gt;</code> and <code>@compact</code>. It pauses on hover and
+  shows one static tip if your system asks for reduced motion.</li>
+<li><strong>Enter</strong> sends, and <strong>Shift+Enter</strong> adds a new line.</li>
+</ul>
+<h2 id="conversations">Conversations<a aria-label="Link to Conversations" class="header-anchor" href="#conversations">#</a></h2>
+<ul>
+<li><strong>New chat</strong> with a model picker. It defaults to the model you used
+  most recently. Until the chat has its first message (or <code>@agent</code>
+  plan), the model name in the header is a dropdown to switch it;
+  attaching a folder doesn't count. After that the model is fixed, since
+  the history, summaries and token calibration all came from it.</li>
+<li><strong>Automatic titles.</strong> The first message sets a placeholder right away.
+  After the first reply (not after a failed one, which keeps the
+  placeholder), the model writes a 2-6 word title, unless you've
+  already renamed the chat.</li>
+<li><strong>Rename and delete.</strong> Deleting asks Yes / No first, and also removes
+  the chat's attachment files.</li>
+<li><strong>Search across chats</strong> from the sidebar. It matches titles and your
+  and the model's messages as you type, and shows a snippet of the match.</li>
+<li><strong>Sidebar.</strong> It collapses to a narrow rail and remembers that choice.
+  The rail has New chat and Search buttons; Search opens the sidebar with
+  the cursor in the search box. On phones the sidebar becomes a slide-over
+  menu. Hovering a chat shows its full title. Clicking the chat you're
+  already in does nothing, rather than reloading it.</li>
+</ul>
+<h2 id="attachments">Attachments<a aria-label="Link to Attachments" class="header-anchor" href="#attachments">#</a></h2>
+<ul>
+<li><strong>Files and images</strong> from the attach button or by pasting. Up to 4
+  files per message, 8 MB each. Every file is validated before any part
+  of the message is saved.</li>
+<li><strong>Images</strong> (PNG, JPEG, GIF, WebP, BMP) go to vision models. Only the
+  most recent message with images keeps sending them. Older ones become a
+  note telling the model to ask for a re-send, because one large image can
+  use half a small window.</li>
+<li><strong>Other files</strong> are stored for you to see and download. The model only
+  gets a note that a file was attached, and the UI warns that the model
+  can't see it.</li>
+</ul>
+<h2 id="folder-attach-and-the-shell-tool">Folder attach and the shell tool<a aria-label="Link to Folder attach and the shell tool" class="header-anchor" href="#folder-attach-and-the-shell-tool">#</a></h2>
+<ul>
+<li><strong>Attach a folder</strong>, typed or picked with the folder browser (it lists
+  subfolder names only, starting at the server user's home). Flint reads
+  the files directly inside it (not subfolders), skips binaries and files
+  over 64 KB, and includes up to 12 KB of text as the chat's standing context.
+  Files past that are listed as not included.</li>
+<li><strong>Change the folder</strong> with the Change link on the folder chip. The new
+  folder's contents replace the old ones in the same standing-context
+  slot, so the model sees only the new folder. It's disabled while a
+  command is waiting for approval, since that command was proposed for the
+  old folder.</li>
+<li><strong>Shell commands with approval.</strong> With a folder attached, the model can
+  propose shell commands through Ollama's native tool calling. <strong>Every
+  command waits for you to approve or deny it.</strong> Nothing runs
+  automatically. The command text is shown exactly as proposed, and it
+  runs with the folder as its working directory, which is a convenience,
+  not a sandbox.</li>
+<li><strong>Without a folder,</strong> the model can't run commands. Asked to run or
+  check something, it gives you the command to run yourself and says you
+  can attach a folder if you want it to run commands, instead of
+  inventing output.</li>
+<li><strong>Reply instead.</strong> Besides Approve and Deny, a waiting command has
+  <strong>Reply instead</strong>: it opens the message box so you can tell the model
+  what to do ("we're on Plasma 6, not 5", or "<code>@web</code> it first"). Sending
+  denies the command without letting the model carry on by itself, then
+  sends your message as a normal one, so <code>@web</code> and <code>@memory</code> work in it.
+  A denied card shows only "Denied".</li>
+<li><strong>Safety shield.</strong> Catastrophic patterns (<code>rm -rf /</code>, <code>sudo</code>, piping a
+  download into a shell, and so on) are blocked before you ever see them.</li>
+<li><strong>Precondition check.</strong> A command whose program or read target doesn't
+  exist goes back to the model without asking you.</li>
+<li><strong>Clear results.</strong> Every result states success or failure with the
+  exit code, and the output is shown in the chat.</li>
+<li><strong>Bounded retries.</strong> After 3 tool steps since your last message, the
+  model has to answer in text.</li>
+<li><strong>Live folder listing.</strong> Each turn, a fresh listing of the folder's top
+  level goes next to the model's reply point, so it knows what exists.</li>
+</ul>
+<h2 id="web-search-web">Web search (<code>@web</code>)<a aria-label="Link to Web search (@web)" class="header-anchor" href="#web-search-web">#</a></h2>
+<ul>
+<li>Start a message with <code>@web &lt;query&gt;</code> to search the web through the Brave
+  Search API, using your own key from Settings. Once saved, the key is
+  never shown again: Settings shows its last four characters and lets you
+  replace or remove it. Flint runs the search,
+  not the model, and it sends only the query text.</li>
+<li>The top 10 results are re-ranked by similarity to the query with
+  Ollama's <code>nomic-embed-text</code>, and the best 3 go into the chat. That model
+  is optional: without it <code>@web</code> uses Brave's own top 3. It only loads
+  while a search runs (Flint asks Ollama to unload it right after, not
+  after its default 5 minutes), and Settings offers a Pull button when
+  it's missing.</li>
+<li>Each result carries its publish date from Brave, when it has one. When
+  all the kept results have one, the model sees the dates with a note
+  that snippets can be out of date, to
+  trust the newest, and to answer "what's the latest version" questions
+  with the source's date ("v1.2, according to a page from 2026-08-28; a
+  newer one may exist") rather than as today's fact. With some or all
+  undated, it sees none: it invented a date for the gap, or trusted the
+  one dated result (E21), and the card then shows no dates either. Search
+  snippets are short, so a fresh page whose snippet doesn't state the
+  answer can't supply it.</li>
+<li>While it runs, the chat shows <em>Searching the web for "…"</em>. Afterwards a
+  collapsed one-line card above the answer (<em>Searched the web for "…" ·
+  3 sources</em>) opens to list the results it was based on, as links with
+  their site names and dates, so you can check the answer yourself. The
+  card is also there after a reload. A small model can confidently state
+  wrong facts from memory, and the sources show where the answer really
+  came from.</li>
+<li>With no key configured, the flag is stripped from the saved message and
+  you're shown a notice. The request still goes through.</li>
+<li><strong>Search history</strong> in Settings → Connection: every search still in your
+  chats, newest first, with the exact query sent, when, a link to its
+  chat, and how many this month (useful against your Brave quota). It's
+  read from the saved results, so deleting a chat removes its searches,
+  and a search that failed isn't listed.</li>
+</ul>
+<h2 id="memory-memory">Memory (<code>@memory</code>)<a aria-label="Link to Memory (@memory)" class="header-anchor" href="#memory-memory">#</a></h2>
+<p>Facts you choose to keep across chats. Like <code>@web</code>, memory is only used
+when you ask for it. The model never decides on its own to save or look
+things up.</p>
+<ul>
+<li><strong><code>@memory save &lt;text&gt;</code></strong> saves that text exactly as written (up to
+  4000 characters per memory).</li>
+<li><strong><code>@memory save</code></strong> on its own asks the model to draft the lasting facts
+  from this chat. The draft appears as a card you can edit, then <strong>Save
+  memory</strong> or <strong>Discard</strong>. Nothing is saved until you approve it, because
+  a small model's draft can be wrong, and a wrong memory would come back
+  in every later chat.</li>
+<li><strong><code>@memory &lt;words&gt;</code></strong> searches your memories (any word can match) and
+  adds the best matches to this chat, within an eighth of the model's
+  window. If nothing matches, you're told. After a reload the recall
+  shows as a collapsed "Recalled memories for …" card after the message
+  that asked, not as the instructions sent to the model.</li>
+<li><strong>Folder memories.</strong> A memory saved in a chat with a folder attached
+  belongs to that folder. It loads automatically in every chat that
+  attaches the same folder, newest first, within an eighth of the window.</li>
+<li><strong>Manage memories</strong> in Settings: read, edit or delete them. A memory
+  saved from a chat links back to it (<code>From: &lt;chat title&gt;</code>). Memories
+  saved in Settings, before this existed, or from a since-deleted chat
+  show no link.</li>
+<li><strong>A "Saved to memory" card</strong> marks where a memory was saved from a chat,
+  and expands to show what was saved. It's there live and after a reload
+  (placed by the time it was saved), shows the memory's current text if
+  you edit it in Settings, and goes away if you delete it. It's never
+  sent to the model.</li>
+<li>Memory commands aren't added to the chat history. An edit can't turn a
+  message into a memory command.</li>
+</ul>
+<h2 id="agents-agent">Agents (<code>@agent</code>)<a aria-label="Link to Agents (@agent)" class="header-anchor" href="#agents-agent">#</a></h2>
+<p><code>@agent &lt;task&gt;</code> splits a task into independent subtasks, each run by a
+separate agent with its own clean context window, then combines their
+results. It's for questions spanning several files, where one crowded
+chat history makes a small model lose track. Like <code>@web</code> and <code>@memory</code>,
+it only happens when you ask for it, and Flint's own code, not the model,
+decides what runs.</p>
+<p><img alt="An @agent plan: three subtasks with their files, one left to look through the folder itself" src="images/agent-plan.png"/></p>
+<ul>
+<li><strong>Planning.</strong> <code>@agent</code> works on the attached folder; without one, the
+  message is answered as a normal chat, with a note. One model call,
+  constrained to a JSON schema, lists the subtasks and the files each one
+  needs from the folder (its direct files, not subfolders). The planner
+  sees file names and sizes, not contents, and never proposes a web
+  search, even with a Brave key: offered one, a small model searched the
+  web for facts that were in the folder. A web search is only ever
+  something you add on the plan card.</li>
+<li><strong>Agents that look for themselves.</strong> With a model that supports tool
+  calls, an agent that was given no files (and no web search) proposes
+  shell commands (<code>ls</code>, <code>grep</code>, <code>cat</code>, ...) to look through the folder.
+  An agent given files works from those only: offered commands too,
+  qwen2.5-3b agents ran failing greps instead of reading the file in
+  front of them. Each command appears
+  in the main chat as "Agent 2 wants to run" with the literal command,
+  and runs only after you approve it, the same flow as the chat's own
+  commands, with the same safety shield and precondition checks. An agent
+  stops asking and answers with what it has when its window is nearly
+  full, after 5 failed or denied commands in a row (a command that works,
+  or a <strong>Reply instead</strong>, starts the count over), or after 8 commands
+  (Commands per agent in Settings). <strong>Reply instead</strong> on an agent's card
+  sends it what you type in place of running the command. So picking
+  files is optional: pick one and the agent reads it; leave a subtask
+  empty and its agent searches. A model without tool support (phi3, for
+  one) only gets what the plan gives it, so each of its subtasks needs a
+  file or a web search.</li>
+<li><strong>Checked in code, not trusted.</strong> A file that isn't directly in the
+  folder is dropped (so <code>../x</code>, <code>/etc/passwd</code> or a made-up name can't be
+  given), a file named in a subtask's text is added to its inputs, and a
+  web search you add is dropped without a Brave key or when the subtask
+  has files (a local fact can't be on the web, and searching for it would
+  only send it to Brave). A subtask left with no input is dropped unless
+  its agent can look through the folder itself. Fewer than two subtasks
+  means the task doesn't split, and it's answered as a normal chat, with
+  a line saying so.</li>
+<li><strong>The plan card.</strong> Each subtask shows its instruction, its files and
+  web search, and a note when a file is too big for an agent's window
+  and will be cut (start and end kept). Edit the instructions, add or
+  remove files, add or remove a web search, remove subtasks, then
+  <strong>Run</strong> or <strong>Discard</strong>. Nothing is searched unless it's on the card
+  when you press Run. The card shows how many model calls the run takes
+  (one per agent plus one to combine; a range when agents may look
+  through the folder), and what a subtask without files will do. An
+  edited plan is checked again the same way before it runs. The card
+  stays after a reload.</li>
+<li><strong>Running.</strong> After <strong>Run</strong> the card folds to one line, and an <strong>Agents</strong>
+  label appears after the context meter, past a thin divider like the
+  meter's own ("Agents 1/3 · 1 queued · 1 waiting" while it runs,
+  highlighted when an agent is waiting for your approval). The label,
+  or <strong>View agents</strong> on the card, opens a large window listing each
+  agent with its task, inputs and status; select one to see its result
+  and everything it did (its instructions, what it was given, the
+  commands it asked for and their output), refreshed while it works. At
+  most "max agents" run at once (Settings → Connection, 2 by default
+  locally): a plan can have more subtasks than that, and the rest are
+  shown as queued until a slot frees.
+  <strong>Stop</strong> ends every agent, and any command still waiting is cancelled,
+  never run.</li>
+<li><strong>Results.</strong> Each agent ends with a fixed JSON result: its answer (at
+  most 150 words) and whether what it read actually contained it. An
+  agent that breaks the format, runs out of its 5 minutes of model time
+  (time spent waiting for your approval doesn't count), or hits an error
+  is shown as failed with the reason, never silently dropped. An agent
+  that was given nothing and ran no command that worked has its answer
+  replaced with "nothing to answer from": whatever it wrote, it can't have
+  read it anywhere.</li>
+<li><strong>The answer, in the chat.</strong> When the agents are done, one more call to
+  the chat's model writes the answer from their results, and it streams
+  into the chat like any reply, after a collapsed "From 3 agents" block
+  listing what each agent found (with <strong>View agents</strong> to open them). The
+  model is told to say plainly when a part is missing or an agent failed.
+  Your task, the agents' short results and the answer become part of the
+  chat's history, so later messages can build on them; the agents'
+  transcripts never do. If no agent produced a result there's nothing to
+  combine, a line says so, and nothing is added to the history. Stop
+  during the answer keeps what was already shown, like any reply.</li>
+<li><code>@agent</code> isn't added to the chat history while it's only a plan, and an
+  edit can't turn a message into one.</li>
+</ul>
+<p><img alt="An agent asks to run a command in the main chat; the label reads Agents 2/3, 1 waiting" src="images/agent-approval.png"/></p>
+<p><img alt="The combined answer under a From 3 agents block" src="images/agent-answer.png"/></p>
+<p><img alt="The agents window, with Agent 3's commands and their output" src="images/agents-window.png"/></p>
+<h2 id="long-conversations">Long conversations<a aria-label="Link to Long conversations" class="header-anchor" href="#long-conversations">#</a></h2>
+<p>A chat never runs out of room, and you never have to compact it yourself,
+though you can:</p>
+<ul>
+<li>Older turns are summarized in the background once they add up to a
+  quarter of the window. Your own messages are kept word for word inside
+  the summaries.</li>
+<li>Until a summary is ready, the oldest messages are left out of that
+  request, and the model is told how many. Very large command output is
+  cut down so every request fits.
+See <a href="context-management.html">context-management.md</a>.</li>
+</ul>
+<h3 id="compacting-by-hand-compact">Compacting by hand (<code>@compact</code>)<a aria-label="Link to Compacting by hand (@compact)" class="header-anchor" href="#compacting-by-hand-compact">#</a></h3>
+<p>Send <code>@compact</code> as a message to condense the chat right away, instead of
+waiting for older messages to fill a quarter of the window.</p>
+<ul>
+<li><strong>What it does:</strong> summarizes everything eligible, oldest first, and
+  merges summaries up a level when one level gets too full, the same way
+  the automatic pass does.</li>
+<li><strong>What it shows:</strong> each step as it happens, such as "condensed 3
+  messages into a summary" or "merged 3 older summaries into one", and
+  then a closing line.</li>
+<li><strong>What always stays word for word:</strong> your first message, the folder
+  context, the latest tool call and its result, your latest message and
+  the last 6 messages. Your own words inside the condensed part are kept
+  word for word in the summary.</li>
+<li><strong>Nothing to do:</strong> if everything older is already summarized, it says
+  so and changes nothing.</li>
+<li><strong>Already running:</strong> if the automatic pass is working on the same chat,
+  it says so. Try again a moment later.</li>
+<li><strong>Limits:</strong> up to 12 steps per command. A very long chat that was never
+  compacted may need <code>@compact</code> twice.</li>
+<li><strong>Not part of the chat:</strong> the command and its report aren't saved to
+  the chat history, and an edit can't turn a message into <code>@compact</code>.</li>
+<li>Nothing is deleted. The original messages stay in the database; the
+  summary only replaces them in what the model is sent.</li>
+</ul>
+<h2 id="settings">Settings<a aria-label="Link to Settings" class="header-anchor" href="#settings">#</a></h2>
+<p>Laid out like the chat page: a sidebar of sections on the left and one
+section at a time on the right. On phones the sections become a row of
+tabs. The open section is in the URL (<code>/settings#models</code>), so a reload or
+a shared link opens the same one.</p>
+<ul>
+<li><strong>Connection:</strong> your own Ollama URL, falling back to the server default,
+  the context window for local and for cloud models, separately (Auto,
+  or a number of tokens: raise the local one if your GPU has room, the
+  cloud one if your ollama.com usage allows; common sizes such as 32k =
+  32768 are listed and offered in the box; never above what the model
+  supports), how many <code>@agent</code> agents run at once for local and for cloud
+  models (Auto is 2 and 10; any number from 1 to 64, for a bigger GPU or
+  a cloud plan that allows more; locally they only run together when
+  Ollama's <code>OLLAMA_NUM_PARALLEL</code> allows it, otherwise Ollama queues them),
+  how many commands one agent may ask you to approve (Auto is 8, one
+  number for both, since it guards your attention rather than the
+  model),
+  and the Brave Search API key for <code>@web</code>.</li>
+<li><strong>Models:</strong> which models the new-chat picker shows, which are loaded,
+  details for each (family, parameters, quantization, context length,
+  capabilities), pulling new ones with a progress bar, and deleting them
+  (type DELETE to confirm).
+  <strong>Load</strong> puts a model in memory ahead of time and unloads whatever else
+  is running first, so it gets the memory to itself; <strong>Unload</strong> frees a
+  running one.</li>
+<li><strong>Memories:</strong> every saved memory, with where it applies (its folder, or
+  "Any chat") and the chat it was saved from, as a link. Edit or delete
+  each one; deleting asks you to type DELETE.</li>
+<li><strong>Account:</strong> your name and email, a password change, security
+  questions for password recovery, and deleting the account. A new email
+  or password needs your current password.</li>
+</ul>
+<h2 id="running-it">Running it<a aria-label="Link to Running it" class="header-anchor" href="#running-it">#</a></h2>
+<ul>
+<li><strong>When Ollama isn't reachable,</strong> Flint says so plainly, once per page:
+  where it looked and how to start Ollama or change the address, not
+  Go's raw connection error.</li>
+<li>One static binary with SQLite, no build step, no CDN. The frontend
+  libraries ship with it.</li>
+<li>A published Docker image (<code>ghcr.io/lusan-sapkota/flint</code>) and a Compose
+  file that runs Flint in a container using the Ollama
+  already on your machine. See <a href="deployment.html">deployment.md</a>.</li>
+<li><code>/healthz</code> checks the database and Ollama.</li>
+</ul>
+        <nav class="page-nav" aria-label="Page navigation">
+
+            <a href="deployment.html" class="page-nav-link prev">
+              <span class="page-nav-sub">← Previous</span>
+              <span class="page-nav-title">Install and run</span>
+            </a>
+            
+
+            <a href="security.html" class="page-nav-link next">
+              <span class="page-nav-sub">Next →</span>
+              <span class="page-nav-title">Security</span>
+            </a>
+            
+</nav>
+      </article>
+
+      <footer class="docs-page-footer">
+        <div class="docs-footer-inner">
+          <p class="docs-footer-copy">Flint is licensed under <a href="https://github.com/Lusan-sapkota/Flint/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">AGPL-3.0</a>.</p>
+          <a href="#mainContent" class="back-to-top" aria-label="Back to top of page">
+            <span>Back to top</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </a>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script src="assets/js/docs.js"></script>
+</body>
+</html>

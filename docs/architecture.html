@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture · Flint</title>
+  <meta name="description" content="Architecture, data model, chat turns, stream protocol">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body>
+  <div class="docs-layout">
+    <!-- Mobile Header -->
+    <header class="mobile-header" aria-label="Mobile header">
+      <button class="mobile-menu-toggle" id="menuToggle" aria-label="Open navigation menu" aria-expanded="false">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <a href="index.html" class="mobile-brand">
+        <img src="images/logo.png" alt="Flint logo" width="28" height="28" class="mobile-logo">
+        <span class="mobile-brand-name">Flint</span>
+        <span class="version-badge">v0.2.0</span>
+      </a>
+      <a href="https://github.com/Lusan-sapkota/Flint" class="mobile-github" aria-label="GitHub repository" target="_blank" rel="noopener noreferrer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+        </svg>
+      </a>
+    </header>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="docs-sidebar" id="sidebar" aria-label="Documentation navigation">
+      <div class="sidebar-header">
+        <a href="index.html" class="sidebar-brand">
+          <img src="images/logo.png" alt="Flint logo" width="36" height="36" class="brand-logo">
+          <div class="brand-text">
+            <div class="brand-title-wrap">
+              <span class="brand-title">Flint</span>
+              <span class="version-badge">v0.2.0</span>
+            </div>
+            <span class="brand-tagline">Offline Ollama UI</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="sidebar-links">
+        <a href="https://github.com/Lusan-sapkota/Flint" class="sidebar-link-btn" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+          </svg>
+          <span>GitHub</span>
+          <span class="external-icon">↗</span>
+        </a>
+        <a href="https://github.com/Lusan-sapkota/Flint/releases" class="sidebar-link-btn" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Releases</span>
+          <span class="external-icon">↗</span>
+        </a>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="Documentation pages">
+        <div class="nav-group">
+  <div class="nav-group-title">Get started</div>
+  <ul class="nav-group-items">
+    <li><a href="index.html" class="nav-item">Overview</a></li>
+    <li><a href="deployment.html" class="nav-item">Install and run</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Using Flint</div>
+  <ul class="nav-group-items">
+    <li><a href="features.html" class="nav-item">Features</a></li>
+    <li><a href="security.html" class="nav-item">Security</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">How it works</div>
+  <ul class="nav-group-items">
+    <li><a href="architecture.html" class="nav-item active" aria-current="page">Architecture</a></li>
+    <li><a href="context-management.html" class="nav-item">Context management</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Evidence</div>
+  <ul class="nav-group-items">
+    <li><a href="experiments.html" class="nav-item">Experiments</a></li>
+    <li><a href="benchmark.html" class="nav-item">Benchmark</a></li>
+    <li><a href="testing.html" class="nav-item">Testing</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Project</div>
+  <ul class="nav-group-items">
+    <li><a href="changelog.html" class="nav-item">Changelog</a></li>
+    <li><a href="https://github.com/Lusan-sapkota/Flint/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" class="nav-item">Contributing <span class="external-icon" aria-hidden="true">↗</span></a></li>
+  </ul>
+</div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span class="sidebar-footer-text">Flint Documentation</span>
+        <span class="sidebar-footer-sub">Zero build step · 100% offline</span>
+      </div>
+    </aside>
+
+    <!-- Main Content Container -->
+    <main class="docs-main" id="mainContent">
+      <article class="docs-content">
+        <h1 id="architecture">Architecture</h1>
+<p>Flint is one Go binary that serves both the web UI and a JSON/streaming
+API, stores everything in SQLite, and talks to a local
+<a href="https://ollama.com">Ollama</a> for the models. There's no build step, no
+CDN and no other service to run.</p>
+<div class="highlight"><div class="code-block"><button aria-label="Copy code to clipboard" class="copy-code-btn" title="Copy code" type="button">Copy</button><pre><span></span><code>browser (htmx + Alpine.js + Pico.css, all vendored)
+   │  same-origin HTTP: server-rendered pages + /api/*
+   ▼
+flint (Go, net/http)
+   ├── SQLite (modernc.org/sqlite, pure Go, WAL, one connection)
+   ├── attachment files on disk
+   ├── Ollama HTTP API (chat, embeddings, model management;
+   │   a `:cloud` model is forwarded by Ollama to ollama.com)
+   └── Brave Search API, only on an explicit `@web` query
+</code></pre></div></div>
+<h2 id="the-bet">The bet<a aria-label="Link to The bet" class="header-anchor" href="#the-bet">#</a></h2>
+<p>A well-guided 3-4B local model isn't an inferior model, just an
+under-scaffolded one. Flint's work goes into the scaffolding around it:
+careful context management, a structured tool loop with human approval,
+and durable history. It avoids anything that only adds weight, which is
+why there's no bundled RAG or embedding stack.</p>
+<h2 id="repository-layout">Repository layout<a aria-label="Link to Repository layout" class="header-anchor" href="#repository-layout">#</a></h2>
+<div class="highlight"><div class="code-block"><button aria-label="Copy code to clipboard" class="copy-code-btn" title="Copy code" type="button">Copy</button><pre><span></span><code>backend/            Go module; run from here (asset paths are ../frontend/...)
+  main.go           config from env, routes, graceful shutdown, /healthz
+  auth.go           signup, login, logout, sessions, requireAuth
+  recovery.go       security-question password recovery
+  ratelimit.go      in-memory sliding-window limiter for auth endpoints
+  handlers.go       conversations, messages, streaming turns, tool approval
+  context.go        request budget and history fitting (see context-management.md)
+  summary.go        background layered summaries
+  memory.go         `@memory` save, draft, recall, folder memories, memory API
+  agent.go          `@agent` plan call and validation, limits, run and transcript API
+  agentrun.go       running agents: concurrency, inputs, commands, budgets, results
+  ablate.go         FLINT_ABLATE: switch scaffolding off for the benchmark
+  ollama.go         Ollama client: chat (streaming and not), models, embeddings
+  tools.go          the run_shell tool definition and reasoning nudge
+  shield.go         hard block list for catastrophic commands
+  preconditions.go  cheap checks before a command is offered for approval
+  folder.go         folder manifest and per-turn anchor header
+  images.go         attachment upload, storage and image token estimate
+  websearch.go      Brave Search, then re-ranking via Ollama embeddings
+  views.go          server-rendered pages
+  db.go             schema, migrations, all SQL, chat search
+frontend/
+  templates/        html/template pages (base, chat, settings, login, signup, recover)
+  static/js/        chat.js (streaming chat UI, markdown/math setup), settings.js, app.js,
+                    vendored htmx, Alpine.js, marked, DOMPurify, Temml
+  static/css/temml/ Temml's stylesheet and math font (local only)
+  static/css/       flint.css on top of Pico.css
+bench/              scored benchmark: run.py, tasks.py, fixture/
+docs/               this documentation
+Dockerfile, docker-compose.yml (Linux), docker-compose.desktop.yml (Mac/Windows)
+.github/workflows/  docker.yml: publishes the image on version tags
+</code></pre></div></div>
+<h2 id="data-model">Data model<a aria-label="Link to Data model" class="header-anchor" href="#data-model">#</a></h2>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>users</code></td>
+<td>account, bcrypt password hash, own Ollama URL, preferred models, Brave API key, context window overrides (<code>num_ctx</code> local, <code>cloud_num_ctx</code> cloud), how many <code>@agent</code> agents run at once (<code>max_agents</code>, <code>cloud_max_agents</code>; empty = 2 local, 10 cloud)</td>
+</tr>
+<tr>
+<td><code>sessions</code></td>
+<td>session id (the cookie value), user, expiry</td>
+</tr>
+<tr>
+<td><code>security_questions</code></td>
+<td>recovery questions, answers bcrypt-hashed</td>
+</tr>
+<tr>
+<td><code>conversations</code></td>
+<td>owner, title, model, attached folder, last context use, token ratio</td>
+</tr>
+<tr>
+<td><code>messages</code></td>
+<td>role (<code>user</code>/<code>assistant</code>/<code>system</code>/<code>tool</code>), content, thinking, tool calls</td>
+</tr>
+<tr>
+<td><code>attachments</code></td>
+<td>metadata; the file itself lives under <code>ATTACHMENTS_DIR</code></td>
+</tr>
+<tr>
+<td><code>commands</code></td>
+<td>every model-proposed shell command, its status, output and exit code; <code>agent_id</code> is set when an <code>@agent</code> agent proposed it</td>
+</tr>
+<tr>
+<td><code>summaries</code></td>
+<td>layered summaries covering message id ranges (see context-management.md)</td>
+</tr>
+<tr>
+<td><code>memories</code></td>
+<td>facts a user saved with <code>@memory</code>, optionally tied to a folder and to the chat it was saved from (<code>conversation_id</code>, cleared if that chat is deleted)</td>
+</tr>
+<tr>
+<td><code>memories_fts</code></td>
+<td>FTS5 index over memories, kept in sync by triggers</td>
+</tr>
+<tr>
+<td><code>messages_fts</code></td>
+<td>FTS5 index over message text, kept in sync by triggers</td>
+</tr>
+<tr>
+<td><code>agent_runs</code></td>
+<td>one <code>@agent</code> run in a chat: the task, its status (planned, running, done, failed, cancelled, discarded) and the combined answer</td>
+</tr>
+<tr>
+<td><code>agents</code></td>
+<td>one subtask of a run: its instruction, input files or web query, a note on inputs cut to fit, status, bounded result or error</td>
+</tr>
+<tr>
+<td><code>agent_messages</code></td>
+<td>each agent's full transcript, shown in the UI and never sent back to the model</td>
+</tr>
+</tbody>
+</table></div>
+<p>Deleting a conversation cascades to its messages, attachments, commands,
+summaries and agent runs (with their agents and transcripts); a memory saved from it stays and only loses its link.
+Deleting a user removes everything they own. Rows are never shared
+between users.</p>
+<p>Schema changes that <code>CREATE TABLE IF NOT EXISTS</code> can't make on an existing
+database (new columns, the FTS index) are applied in <code>migrate</code> at startup.
+Each step is idempotent.</p>
+<h2 id="a-chat-turn">A chat turn<a aria-label="Link to A chat turn" class="header-anchor" href="#a-chat-turn">#</a></h2>
+<ol>
+<li><code>POST /api/conversations/{id}/messages</code> takes the conversation's lock
+   (<code>lockConversation</code>), so overlapping requests to one conversation run
+   in arrival order.</li>
+<li>The message and any attachments are validated as a whole, then saved.
+   An <code>@web</code> query runs its search first. An <code>@memory</code> recall adds the
+   matching memories first, and <code>@memory save</code> is handled on its own with
+   no chat turn, and so is <code>@compact</code> (see features.md).</li>
+<li><code>streamAssistantTurn</code> builds the budget and the fitted history,
+   appends the tool nudge and folder anchor to the last message when a
+   folder is attached (the nudge is left off when the user's message says
+   not to run commands, see experiments.md E17), and streams the model's
+   reply. Without a folder no tool is offered; if the message asks to run
+   or check something, a note tells the model to give the command for the
+   user to run instead of inventing output (E19).</li>
+<li>A tool call is checked by the shield, then by the preconditions, then
+   saved as a pending command. The stream ends, and the user approves or
+   denies it with a separate request, which runs the command and continues
+   the same turn. <strong>Reply instead</strong> denies it without continuing
+   (<code>deny?reply=1</code>), and the user's reply is sent as an ordinary message.</li>
+<li>After a final text reply come the stats line, then title generation on
+   the first message (skipped if the reply failed), then a background
+   summarization pass.</li>
+</ol>
+<h2 id="an-agent-run">An <code>@agent</code> run<a aria-label="Link to An @agent run" class="header-anchor" href="#an-agent-run">#</a></h2>
+<ol>
+<li><strong>Plan.</strong> <code>@agent &lt;task&gt;</code> makes one call to the chat's model with a JSON
+   schema and the chat's own <code>num_ctx</code> (another size would reload the
+   model, E24). It needs an attached folder. Go validates the plan
+   (folder files only, no web queries from the model, inputs or
+   exploration) and saves it as a <code>planned</code> run; the stream ends with
+   <code>&lt;&lt;&lt;AGENT_PLAN&gt;&gt;&gt;</code>. Nothing enters the chat history. A web search is
+   only added by the user on the card, and checked again at Run.</li>
+<li><strong>Run.</strong> <code>POST /api/agent-runs/{id}/run</code> takes the conversation's lock,
+   re-checks the run is still planned, validates the edited plan again,
+   and streams <code>&lt;&lt;&lt;AGENTS&gt;&gt;&gt;</code> lines until every agent ends. At most "max
+   agents" run at once, in plan order; the rest wait.</li>
+<li><strong>One agent.</strong> Go reads its files (a big file keeps its start and end,
+   sized at 1.5 chars per token so the prompt really fits) or runs its
+   search, and builds a fresh history: instructions and the subtask with
+   its inputs. An agent given no files or search, on a tool-capable
+   model, may call the shell tool without a JSON format (a format
+   suppresses tool calls, E25), with the tool nudge on the last message;
+   one given inputs works from them only. Each call is checked by
+   the shield and preconditions and waits for the user in the main chat;
+   the decision arrives through
+   <code>POST /api/agent-runs/{id}/commands/{cmdId}/{approve|deny}</code>, which
+   doesn't take the conversation's lock. Then one call with the result
+   schema gives <code>{"answer","found"}</code>, which Go checks and bounds. The
+   whole transcript goes to <code>agent_messages</code>, never to the chat.</li>
+<li><strong>Combine.</strong> On the same stream: the task is saved as a user message
+   (linked from the run's <code>message_id</code>, so the chat shows it once), then
+   the agents' bounded results as a system message, then one call with
+   no tools and a clean window streams the answer, saved as the
+   assistant message, followed by the stats line, title generation and a
+   summary pass, as after any turn. With no result at all there's no
+   call and nothing is saved.</li>
+<li><strong>Stop.</strong> Closing the run's request (Stop, a closed tab) cancels every
+   agent, every waiting command and the answer; what was shown is kept.</li>
+</ol>
+<h2 id="streaming-protocol">Streaming protocol<a aria-label="Link to Streaming protocol" class="header-anchor" href="#streaming-protocol">#</a></h2>
+<p>Replies stream as <code>text/plain</code>: the model's tokens, plus marker lines the
+client consumes:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Marker</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;&lt;&lt;LOADING&gt;&gt;&gt;</code></td>
+<td>the model isn't loaded yet; a cold start can take a while</td>
+</tr>
+<tr>
+<td><code>&lt;&lt;&lt;THINK&gt;&gt;&gt;"..."</code></td>
+<td>one JSON-string chunk of thinking, shown apart from the answer</td>
+</tr>
+<tr>
+<td><code>&lt;&lt;&lt;CONTEXT&gt;&gt;&gt;{"used":N,"max":M,"condensed":C}</code></td>
+<td>context use for this response, sent after every model response; <code>condensed</code> is how many messages a summary replaced in the request</td>
+</tr>
+<tr>
+<td><code>&lt;&lt;&lt;TOOL_RESULT&gt;&gt;&gt;{"status":..,"output":..}</code></td>
+<td>what an approved or denied command produced, for display</td>
+</tr>
+<tr>
+<td><code>&lt;&lt;&lt;TOOL_CALL&gt;&gt;&gt;{"id":..,"command":..}</code></td>
+<td>a pending command awaiting approval; ends the stream</td>
+</tr>
+<tr>
+<td><code>&lt;&lt;&lt;STATS&gt;&gt;&gt;{"tokensPerSec":N}</code></td>
+<td>generation speed; ends a final text reply</td>
+</tr>
+<tr>
+<td><code>&lt;&lt;&lt;MEMORY_SAVED&gt;&gt;&gt;{"content":..}</code></td>
+<td><code>@memory save &lt;text&gt;</code> stored that text; shown as the "Saved to memory" card</td>
+</tr>
+<tr>
+<td><code>&lt;&lt;&lt;MEMORY_DRAFT&gt;&gt;&gt;{"text":..}</code></td>
+<td>a drafted memory for the user to review; ends the stream</td>
+</tr>
+<tr>
+<td><code>&lt;&lt;&lt;SEARCHING&gt;&gt;&gt;{"query":..}</code></td>
+<td>an <code>@web</code> search has started</td>
+</tr>
+<tr>
+<td><code>&lt;&lt;&lt;SOURCES&gt;&gt;&gt;{"query":..,"sources":[{"title","url","date"?}]}</code></td>
+<td>the results the answer will be based on; <code>date</code> only when every result has one</td>
+</tr>
+<tr>
+<td><code>&lt;&lt;&lt;AGENT_PLAN&gt;&gt;&gt;{run}</code></td>
+<td>an <code>@agent</code> plan awaiting Run or Discard; ends the stream</td>
+</tr>
+<tr>
+<td><code>&lt;&lt;&lt;AGENTS&gt;&gt;&gt;{"type":"state",..}</code></td>
+<td>on an <code>@agent</code> run's own stream (<code>POST /api/agent-runs/{id}/run</code>): the run's status and every agent's status, result and error, sent on each change</td>
+</tr>
+<tr>
+<td><code>&lt;&lt;&lt;AGENTS&gt;&gt;&gt;{"type":"command",..}</code></td>
+<td>an agent asked to run a command (<code>status</code> pending), or what it did once decided (with <code>output</code>)</td>
+</tr>
+<tr>
+<td><code>&lt;&lt;&lt;AGENTS&gt;&gt;&gt;{"type":"results",..}</code></td>
+<td>the agents are done and their results are saved; the combined answer streams next, as ordinary reply text</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="fixed-decisions">Fixed decisions<a aria-label="Link to Fixed decisions" class="header-anchor" href="#fixed-decisions">#</a></h2>
+<p>The reasons behind the settled choices (pure-Go SQLite, a single
+connection, cookie sessions instead of JWT, 404 instead of 403, no CORS,
+native tool calls, the nudge placement and so on) are described where
+they apply: <a href="security.html">security.md</a> for accounts, sessions and the
+shell tool, <a href="context-management.html">context-management.md</a> for prompts
+and the window, and <a href="experiments.html">experiments.md</a> for the measurements
+behind them.</p>
+<h2 id="where-the-ideas-come-from">Where the ideas come from<a aria-label="Link to Where the ideas come from" class="header-anchor" href="#where-the-ideas-come-from">#</a></h2>
+<p>Each borrows from research, scaled down to what a small local tool can
+honestly claim:</p>
+<ul>
+<li><strong>The retry budget</strong> is a bounded verifier loop, after Snell et al. on
+  test-time compute. A shell exit code is a free, high-precision
+  verifier, so every tool result states success or failure explicitly
+  (<code>[exit code: N]</code> or <code>[FAILED, exit code: N]</code>; a silent failure used to
+  look like success), and after 3 tool calls in a row the model has to
+  answer in text. A small retry budget beats one greedy attempt without
+  a bigger model, while each retry still costs you an approval.</li>
+<li><strong>The shield</strong> takes the idea of shielding (Alshiekh et al.): block
+  unsafe actions before they run. Unlike that work it's a pattern list,
+  not a proof. A shell is Turing-complete, so it's a floor under human
+  approval, not a guarantee.</li>
+<li><strong>Preconditions</strong> are the ToolGate / Hoare-triple idea at its smallest:
+  check that a command can work before asking you to approve it.</li>
+<li><strong>Decay by observed signals.</strong> How fast old tool output fades depends
+  on what can actually be seen (a failed result fades 3x slower, an
+  exploring command's output 2x faster), not on a belief filter whose
+  transition probabilities would have to be invented, with no data to
+  learn them from.</li>
+</ul>
+<h2 id="deliberately-not-built">Deliberately not built<a aria-label="Link to Deliberately not built" class="header-anchor" href="#deliberately-not-built">#</a></h2>
+<ul>
+<li><strong>A bundled RAG or embedding stack.</strong> It's the weight Flint exists to
+  avoid. <code>@web</code> re-ranking uses Ollama's own <code>/api/embed</code> instead.</li>
+<li><strong>Sampling several commands to detect confabulation</strong> (semantic
+  entropy, Farquhar et al.). It triples the model calls per tool
+  decision, and grouping shell commands by syntax gives false alarms,
+  because many different commands do the same thing (<code>find</code>, <code>ls -R</code>
+  and <code>git ls-files</code> all count the same files).</li>
+<li><strong>Conformal abstention by embedding distance</strong> to the folder
+  manifest. With no calibration set, any cutoff would be arbitrary
+  presented as a bound. The score doesn't track hallucination either: a
+  correct "this code doesn't have that" is far from the manifest, and a
+  wrong answer that name-drops real files is close to it.</li>
+</ul>
+<p>Neither should come back without solving the problem that stopped it.</p>
+        <nav class="page-nav" aria-label="Page navigation">
+
+            <a href="security.html" class="page-nav-link prev">
+              <span class="page-nav-sub">← Previous</span>
+              <span class="page-nav-title">Security</span>
+            </a>
+            
+
+            <a href="context-management.html" class="page-nav-link next">
+              <span class="page-nav-sub">Next →</span>
+              <span class="page-nav-title">Context management</span>
+            </a>
+            
+</nav>
+      </article>
+
+      <footer class="docs-page-footer">
+        <div class="docs-footer-inner">
+          <p class="docs-footer-copy">Flint is licensed under <a href="https://github.com/Lusan-sapkota/Flint/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">AGPL-3.0</a>.</p>
+          <a href="#mainContent" class="back-to-top" aria-label="Back to top of page">
+            <span>Back to top</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </a>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script src="assets/js/docs.js"></script>
+</body>
+</html>

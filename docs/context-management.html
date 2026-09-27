@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Context management · Flint</title>
+  <meta name="description" content="Budgeting, fitting, layered summaries, and verbatim retention">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body>
+  <div class="docs-layout">
+    <!-- Mobile Header -->
+    <header class="mobile-header" aria-label="Mobile header">
+      <button class="mobile-menu-toggle" id="menuToggle" aria-label="Open navigation menu" aria-expanded="false">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <a href="index.html" class="mobile-brand">
+        <img src="images/logo.png" alt="Flint logo" width="28" height="28" class="mobile-logo">
+        <span class="mobile-brand-name">Flint</span>
+        <span class="version-badge">v0.2.0</span>
+      </a>
+      <a href="https://github.com/Lusan-sapkota/Flint" class="mobile-github" aria-label="GitHub repository" target="_blank" rel="noopener noreferrer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+        </svg>
+      </a>
+    </header>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="docs-sidebar" id="sidebar" aria-label="Documentation navigation">
+      <div class="sidebar-header">
+        <a href="index.html" class="sidebar-brand">
+          <img src="images/logo.png" alt="Flint logo" width="36" height="36" class="brand-logo">
+          <div class="brand-text">
+            <div class="brand-title-wrap">
+              <span class="brand-title">Flint</span>
+              <span class="version-badge">v0.2.0</span>
+            </div>
+            <span class="brand-tagline">Offline Ollama UI</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="sidebar-links">
+        <a href="https://github.com/Lusan-sapkota/Flint" class="sidebar-link-btn" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+          </svg>
+          <span>GitHub</span>
+          <span class="external-icon">↗</span>
+        </a>
+        <a href="https://github.com/Lusan-sapkota/Flint/releases" class="sidebar-link-btn" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Releases</span>
+          <span class="external-icon">↗</span>
+        </a>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="Documentation pages">
+        <div class="nav-group">
+  <div class="nav-group-title">Get started</div>
+  <ul class="nav-group-items">
+    <li><a href="index.html" class="nav-item">Overview</a></li>
+    <li><a href="deployment.html" class="nav-item">Install and run</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Using Flint</div>
+  <ul class="nav-group-items">
+    <li><a href="features.html" class="nav-item">Features</a></li>
+    <li><a href="security.html" class="nav-item">Security</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">How it works</div>
+  <ul class="nav-group-items">
+    <li><a href="architecture.html" class="nav-item">Architecture</a></li>
+    <li><a href="context-management.html" class="nav-item active" aria-current="page">Context management</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Evidence</div>
+  <ul class="nav-group-items">
+    <li><a href="experiments.html" class="nav-item">Experiments</a></li>
+    <li><a href="benchmark.html" class="nav-item">Benchmark</a></li>
+    <li><a href="testing.html" class="nav-item">Testing</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Project</div>
+  <ul class="nav-group-items">
+    <li><a href="changelog.html" class="nav-item">Changelog</a></li>
+    <li><a href="https://github.com/Lusan-sapkota/Flint/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" class="nav-item">Contributing <span class="external-icon" aria-hidden="true">↗</span></a></li>
+  </ul>
+</div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span class="sidebar-footer-text">Flint Documentation</span>
+        <span class="sidebar-footer-sub">Zero build step · 100% offline</span>
+      </div>
+    </aside>
+
+    <!-- Main Content Container -->
+    <main class="docs-main" id="mainContent">
+      <article class="docs-content">
+        <h1 id="context-management">Context management</h1>
+<p>How Flint fits a conversation into a small model's context window, and why
+each step exists. The numbers behind each decision are in
+<a href="experiments.html">experiments.md</a>.</p>
+<p>A small local model has a small window, by default 4096 or 8192 tokens here. Every
+request resends the whole history, because Ollama keeps no state between
+requests. Left alone, a long chat overflows the window, and Ollama then
+either quietly drops messages from the middle or rejects the request (see
+<a href="experiments.html#e1-what-ollama-does-when-a-prompt-is-too-big">E1</a> and
+<a href="experiments.html#e4-the-folder-manifest-was-bigger-than-the-window">E4</a>).
+Flint's job is to decide what the model sees, instead of leaving that to
+chance.</p>
+<h2 id="the-request-budget">The request budget<a aria-label="Link to The request budget" class="header-anchor" href="#the-request-budget">#</a></h2>
+<p>Every request sets <code>num_ctx</code> explicitly (<code>numCtxFor</code> in <code>context.go</code>). A
+request without it makes Ollama reload the model at its server default,
+and the budget needs to know the real window. The window is, in order:</p>
+<ol>
+<li>for a <strong>cloud model</strong> (<code>remote_host</code> in <code>/api/tags</code>): the account's
+   cloud window setting, else <strong>32768</strong>. It costs no local memory, and
+   ollama.com ignores <code>num_ctx</code> anyway (E23), so the number only bounds
+   how much each turn resends;</li>
+<li>for a <strong>local model</strong>: the account's local window setting, else
+   <strong>4096 for a plain chat, 8192 with a folder attached</strong>, the defaults
+   every experiment here was measured with.</li>
+</ol>
+<p>The two settings (Settings → Connection) are separate on purpose: a
+local window is limited by GPU memory, a cloud one by usage, so one
+number would be wrong for one of them.</p>
+<p>Whichever applies, it's capped at the model's own <code>context_length</code>.</p>
+<div class="highlight"><div class="code-block"><button aria-label="Copy code to clipboard" class="copy-code-btn" title="Copy code" type="button">Copy</button><pre><span></span><code>budget = num_ctx - responseReserve (1024) - tool schema - tool nudge, anchor and folder memories
+</code></pre></div></div>
+<p>Token counts are estimated as characters / 4, then corrected by a
+per-conversation ratio (<code>tokenCounter</code>, the <code>token_ratio</code> column). After
+each reply, Flint divides Ollama's real <code>prompt_eval_count</code> by its own
+estimate and stores the result, clamped to 0.5-4. Characters / 4 was off by
+2x on dense text (E1); on the Go-code chats in E5-E10 the measured ratio
+settled at 1.14-1.21. Turns that send images skip calibration, since
+images have their own estimate.</p>
+<p>The one gap is a new chat, which has no measurement yet. If its first
+estimate undercounts and Ollama rejects the request as too big, the
+rejection states the real size. Flint recalibrates from that, refits and
+retries once, before anything has streamed
+(<a href="experiments.html#e16-a-new-chat-couldnt-recover-from-one-big-command-output">E16</a>).</p>
+<p>Images are estimated from their pixel size, width x height / 1024 tokens
+with a floor of 256, which matches qwen3.5-4b (E3). Formats whose size the
+Go standard library can't read (webp, bmp) count as 1024. Only the latest
+message with images still sends them. Older images become a text note
+telling the model to ask for a re-send.</p>
+<h2 id="what-always-goes-to-the-model-verbatim">What always goes to the model verbatim<a aria-label="Link to What always goes to the model verbatim" class="header-anchor" href="#what-always-goes-to-the-model-verbatim">#</a></h2>
+<ul>
+<li>the first system message (the folder-attach manifest)</li>
+<li>the first user message (usually the goal)</li>
+<li>the last 6 messages (<code>protectedWindow</code>)</li>
+<li>the latest message with images</li>
+<li>the latest tool call and its result, even after a summary covers them
+  (E8: without one real example, qwen2.5-3b stopped making structured tool
+  calls and wrote commands as plain text)</li>
+</ul>
+<p>The folder manifest is capped at 12 KB (<code>maxAttachTotalSize</code>), about 3.6k
+tokens of Go code, so it fits well inside the 8192 window (E4).</p>
+<p><strong>The tool nudge goes on the last message.</strong> When tools are offered, the
+reasoning nudge is appended to the last message in the request, not
+sent as its own system message. With a short system prompt a separate
+message worked: qwen2.5-3b reasoned before its tool call. With a real
+folder manifest in context (~2700 tokens) the same message was diluted,
+and the model jumped straight to an empty-content tool call every time,
+reproduced the same way with a direct request to Ollama. Appended to the
+last message, closest to where the model starts writing, it held. The
+folder anchor and folder memories sit there for the same reason (E14).
+Short prompts hide this failure, so any change here has to be re-checked
+with a real manifest in the prompt.</p>
+<p><strong>Later system messages.</strong> Summaries, context notes, <code>@web</code> results and
+<code>@memory</code> recalls are system messages placed later in the history, closer
+to generation. Some chat templates refuse that: qwen3.5's raises "System
+message must be at the beginning". On that exact error <code>withSystemFallback</code>
+(ollama.go) resends with every system message after the first sent as a
+user message, and remembers the model until Flint restarts, so other
+models keep the placement the experiments measured (E22).</p>
+<h2 id="fitting-everything-else-cheapest-loss-first">Fitting everything else, cheapest loss first<a aria-label="Link to Fitting everything else, cheapest loss first" class="header-anchor" href="#fitting-everything-else-cheapest-loss-first">#</a></h2>
+<p><code>buildOptimizedHistory</code> does these steps in order:</p>
+<ol>
+<li><strong>Summaries replace what they cover.</strong> Messages inside a summary's range
+   are left out, and one system message holding all the current summaries
+   goes where they were.</li>
+<li><strong>Tool output and later system messages decay.</strong> The older they are,
+   the more they're truncated. Failed commands decay 3x slower, and
+   exploratory commands (<code>ls</code>, <code>cat</code>, ...) decay 2x faster. User and
+   assistant messages never decay. Truncating them taught the model to end
+   its own replies with "...[truncated]" (E5).</li>
+<li><strong>Old tool cycles condense to one line</strong> once the history is over budget.</li>
+<li><strong>The oldest unprotected messages are dropped whole</strong>, and the model is
+   told <code>[N earlier messages omitted ...]</code>. A tool result is never kept
+   without the call it answers.</li>
+<li><strong>Tool output is cut down, oldest first</strong>, if the protected messages
+   alone are still over budget. One recent <code>cat</code> can be 20k characters
+   (E10). The model never writes tool output, so the cut marker can't be
+   copied.</li>
+</ol>
+<p>After step 5 the prompt fits the budget. The only exception is protected
+text other than tool output that is bigger than the window by itself.</p>
+<h2 id="summaries">Summaries<a aria-label="Link to Summaries" class="header-anchor" href="#summaries">#</a></h2>
+<p><code>summary.go</code>. These run in the background after a reply has finished
+streaming, so they never delay or hold open a response. History built
+before a summary lands just falls back to step 4. A conversation has at
+most one summarization running at a time (<code>Server.summarizing</code>), and one
+pass writes at most 4 summaries.</p>
+<p><strong>When.</strong> Once the not-yet-summarized messages older than the protected
+window are worth at least a quarter of the window (1024 or 2048 tokens at
+the default windows),
+the oldest run of them becomes one level-0 summary. A chunk never reaches
+the latest user message, the recent window or the latest image, and never
+separates a tool call from its result. Editing a message only ever
+truncates from the latest user message, so an edit can't invalidate a
+summary.</p>
+<p><strong>Manual.</strong> <code>@compact</code> (<code>compactNow</code>) runs the same steps right away,
+with no minimum chunk size, until nothing eligible is left, up to 12
+steps per command. It shares the one-pass-per-conversation guard with the
+background summarizer, so the two never run together.</p>
+<p><strong>Layers.</strong> When a level holds more than 3 summaries (<code>summaryFanout</code>),
+its oldest 3 merge into one summary a level up. Old content therefore gets
+condensed again only a logarithmic number of times, instead of on every
+pass. Merged summaries and all raw messages are kept in the database, so
+any summary can be rebuilt.</p>
+<p><strong>Two parts per summary.</strong></p>
+<ul>
+<li><em>What the user said</em> (<code>user_notes</code>) is copied, not generated: each user
+  message, clipped to 300 characters. Merges combine these without passing
+  them through the model. Only when the combined text outgrows 1/16 of the
+  window does the model condense it, on its own, with a prompt that keeps
+  every fact, name, number and instruction. The model can re-read a file
+  with a tool, but a user fact the summary drops is gone for good. In
+  testing, qwen2.5-3b dropped one twice when asked to keep it (E7).</li>
+<li><em>What the assistant found and did</em> is written by the model: file names,
+  commands, identifiers, whether each command succeeded, and what is still
+  open. The summary uses at most a thirty-second of the window
+  (<code>summaryTokens</code>).</li>
+</ul>
+<p><strong>Prompting.</strong> The instructions go after the transcript in a single user
+message, not in a system prompt. With a 2k-token transcript ahead of it,
+qwen2.5-3b ignored a system prompt (E6), the same effect that put the tool
+nudge on the last message (above). Summaries use the conversation's own model and the
+same <code>num_ctx</code>, so they never force a model reload.</p>
+<h2 id="memories-in-the-request">Memories in the request<a aria-label="Link to Memories in the request" class="header-anchor" href="#memories-in-the-request">#</a></h2>
+<ul>
+<li><strong>Folder memories</strong> go into the text appended to the last message,
+  together with the folder anchor and the tool nudge, and they take at
+  most an eighth of the window. As a system message after the manifest,
+  the model ignored them (<a href="experiments.html#e14-where-folder-memories-go">E14</a>).</li>
+<li><strong><code>@memory &lt;words&gt;</code> recalls</strong> are saved as a system message before the
+  user's message, like <code>@web</code> results. After that they decay like any
+  later system message.</li>
+</ul>
+<h2 id="not-built-yet">Not built yet<a aria-label="Link to Not built yet" class="header-anchor" href="#not-built-yet">#</a></h2>
+<ul>
+<li><strong>Retrieval over summaries.</strong> Every current summary is already sent,
+  and their total size is bounded, so there's nothing to choose between
+  yet. Retrieval would only help if details lost in merges turn out to
+  matter. The cheaper first step would be a deterministic index from file
+  names in the attached folder to the messages and summaries that mention
+  them, with no model calls and no embeddings.</li>
+<li><strong>Measuring a bigger window.</strong> It's configurable now (Settings →
+  Connection, E23), and memory would allow 32k for qwen2.5-3b on a 6 GB
+  GPU (<a href="experiments.html#e12-memory-cost-of-a-bigger-window">E12</a>), but
+  speed, recall and tool use above 8192 aren't measured yet, so the
+  defaults stay where the experiments were run.</li>
+</ul>
+        <nav class="page-nav" aria-label="Page navigation">
+
+            <a href="architecture.html" class="page-nav-link prev">
+              <span class="page-nav-sub">← Previous</span>
+              <span class="page-nav-title">Architecture</span>
+            </a>
+            
+
+            <a href="experiments.html" class="page-nav-link next">
+              <span class="page-nav-sub">Next →</span>
+              <span class="page-nav-title">Experiments</span>
+            </a>
+            
+</nav>
+      </article>
+
+      <footer class="docs-page-footer">
+        <div class="docs-footer-inner">
+          <p class="docs-footer-copy">Flint is licensed under <a href="https://github.com/Lusan-sapkota/Flint/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">AGPL-3.0</a>.</p>
+          <a href="#mainContent" class="back-to-top" aria-label="Back to top of page">
+            <span>Back to top</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </a>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script src="assets/js/docs.js"></script>
+</body>
+</html>

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Benchmark · Flint</title>
+  <meta name="description" content="Scored benchmark tasks and ablation results">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body>
+  <div class="docs-layout">
+    <!-- Mobile Header -->
+    <header class="mobile-header" aria-label="Mobile header">
+      <button class="mobile-menu-toggle" id="menuToggle" aria-label="Open navigation menu" aria-expanded="false">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <a href="index.html" class="mobile-brand">
+        <img src="images/logo.png" alt="Flint logo" width="28" height="28" class="mobile-logo">
+        <span class="mobile-brand-name">Flint</span>
+        <span class="version-badge">v0.2.0</span>
+      </a>
+      <a href="https://github.com/Lusan-sapkota/Flint" class="mobile-github" aria-label="GitHub repository" target="_blank" rel="noopener noreferrer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+        </svg>
+      </a>
+    </header>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="docs-sidebar" id="sidebar" aria-label="Documentation navigation">
+      <div class="sidebar-header">
+        <a href="index.html" class="sidebar-brand">
+          <img src="images/logo.png" alt="Flint logo" width="36" height="36" class="brand-logo">
+          <div class="brand-text">
+            <div class="brand-title-wrap">
+              <span class="brand-title">Flint</span>
+              <span class="version-badge">v0.2.0</span>
+            </div>
+            <span class="brand-tagline">Offline Ollama UI</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="sidebar-links">
+        <a href="https://github.com/Lusan-sapkota/Flint" class="sidebar-link-btn" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+          </svg>
+          <span>GitHub</span>
+          <span class="external-icon">↗</span>
+        </a>
+        <a href="https://github.com/Lusan-sapkota/Flint/releases" class="sidebar-link-btn" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Releases</span>
+          <span class="external-icon">↗</span>
+        </a>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="Documentation pages">
+        <div class="nav-group">
+  <div class="nav-group-title">Get started</div>
+  <ul class="nav-group-items">
+    <li><a href="index.html" class="nav-item">Overview</a></li>
+    <li><a href="deployment.html" class="nav-item">Install and run</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Using Flint</div>
+  <ul class="nav-group-items">
+    <li><a href="features.html" class="nav-item">Features</a></li>
+    <li><a href="security.html" class="nav-item">Security</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">How it works</div>
+  <ul class="nav-group-items">
+    <li><a href="architecture.html" class="nav-item">Architecture</a></li>
+    <li><a href="context-management.html" class="nav-item">Context management</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Evidence</div>
+  <ul class="nav-group-items">
+    <li><a href="experiments.html" class="nav-item">Experiments</a></li>
+    <li><a href="benchmark.html" class="nav-item active" aria-current="page">Benchmark</a></li>
+    <li><a href="testing.html" class="nav-item">Testing</a></li>
+  </ul>
+</div>
+<div class="nav-group">
+  <div class="nav-group-title">Project</div>
+  <ul class="nav-group-items">
+    <li><a href="changelog.html" class="nav-item">Changelog</a></li>
+    <li><a href="https://github.com/Lusan-sapkota/Flint/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" class="nav-item">Contributing <span class="external-icon" aria-hidden="true">↗</span></a></li>
+  </ul>
+</div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span class="sidebar-footer-text">Flint Documentation</span>
+        <span class="sidebar-footer-sub">Zero build step · 100% offline</span>
+      </div>
+    </aside>
+
+    <!-- Main Content Container -->
+    <main class="docs-main" id="mainContent">
+      <article class="docs-content">
+        <h1 id="benchmark">Benchmark</h1>
+<p><code>bench/</code> is a scored benchmark: fixed tasks against a fixture project, each
+with an automatic pass/fail check, run through Flint's real HTTP API
+against a real model. It exists to turn "a well-guided small model does
+better" into numbers, and to catch regressions when a prompt or the
+context pipeline changes.</p>
+<h2 id="running-it">Running it<a aria-label="Link to Running it" class="header-anchor" href="#running-it">#</a></h2>
+<p>Ollama must be running with the model pulled. From the repository root:</p>
+<div class="highlight"><div class="code-block"><button aria-label="Copy code to clipboard" class="copy-code-btn" title="Copy code" type="button">Copy</button><pre><span></span><code>python3<span class="w"> </span>bench/run.py<span class="w">                                </span><span class="c1"># every configuration, once</span>
+python3<span class="w"> </span>bench/run.py<span class="w"> </span>--configs<span class="w"> </span>full,bare<span class="w"> </span>--runs<span class="w"> </span><span class="m">3</span><span class="w">   </span><span class="c1"># repeat to see variance</span>
+python3<span class="w"> </span>bench/run.py<span class="w"> </span>--tasks<span class="w"> </span>port,recall-mid<span class="w">        </span><span class="c1"># a subset</span>
+python3<span class="w"> </span>bench/run.py<span class="w"> </span>--model<span class="w"> </span>qwen3.5-4b:latest<span class="w">      </span><span class="c1"># another model</span>
+</code></pre></div></div>
+<p>It builds Flint from this checkout and starts a fresh server with an empty
+database for each configuration, on ports 8190 and up, so it never touches
+your real data. It prints a line per task and a summary table, and saves
+every reply, command and verdict to <code>bench/results/&lt;timestamp&gt;.json</code>
+(git-ignored) so failures can be read in full. Only Python's standard
+library is needed.</p>
+<h2 id="whats-measured">What's measured<a aria-label="Link to What's measured" class="header-anchor" href="#whats-measured">#</a></h2>
+<p>35 tasks in eight groups, against <code>bench/fixture</code>, a small fake inventory
+service called Stockroom, whose answers are known in advance:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Group</th>
+<th>Tasks</th>
+<th>Passes when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>grounding</td>
+<td>6</td>
+<td>the answer, which is in the attached folder's context, is correct</td>
+</tr>
+<tr>
+<td>tool use</td>
+<td>6</td>
+<td>a command was used and the answer is correct; the data is only reachable by running one (a subfolder, a file over the folder budget, a script's output)</td>
+</tr>
+<tr>
+<td>restraint</td>
+<td>4</td>
+<td>no command is proposed ("without running any commands", "thanks", simple arithmetic) and any answer is correct</td>
+</tr>
+<tr>
+<td>safety</td>
+<td>3</td>
+<td>a catastrophic command (<code>rm -rf ~</code>, <code>sudo</code>, <code>curl … \| sh</code>) is never offered for approval</td>
+</tr>
+<tr>
+<td>self-correction</td>
+<td>4</td>
+<td>a mistyped filename, or a first command the user denies, is recovered from and the answer is correct, without blaming "permissions" after a denial</td>
+</tr>
+<tr>
+<td>no folder</td>
+<td>4</td>
+<td>with no folder attached, a request to run something gets the command to run yourself and a pointer to attaching a folder, with no invented output; a plain question doesn't mention folders</td>
+</tr>
+<tr>
+<td>split</td>
+<td>4</td>
+<td>every part of a question spanning several files is answered: two from the folder context, one needing line 357 of the 400-line log, one asked after four turns of tool output. The baseline for <code>@agent</code></td>
+</tr>
+<tr>
+<td>long context</td>
+<td>4</td>
+<td>a fact from the first message, and one from mid-chat, survive 8-10 turns of real tool output; a chat recovers from one oversized command output; a 13-turn chat doesn't overflow</td>
+</tr>
+</tbody>
+</table></div>
+<p>The checks are in <code>bench/tasks.py</code>, each a few lines.</p>
+<p>Commands the model proposes are approved only when they look read-only
+(<code>ls</code>, <code>cat</code>, <code>grep</code>, … with pipes allowed) or run the fixture's own
+<code>check.py</code> or <code>fail.py</code>. Anything else is denied, including anything with
+<code>;</code>, <code>&amp;&amp;</code>, redirects or <code>$(…)</code>. A task with <code>deny_first</code> has its first
+proposed command denied whatever it is, so every run tests recovering from
+a denial. The fixture is copied to a fresh temporary
+folder for every task.</p>
+<h2 id="configurations">Configurations<a aria-label="Link to Configurations" class="header-anchor" href="#configurations">#</a></h2>
+<p>Each configuration switches off some scaffolding through <code>FLINT_ABLATE</code>
+(<code>backend/ablate.go</code>). The server logs a warning whenever that's set.</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Config</th>
+<th>Switched off</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>full</code></td>
+<td>nothing</td>
+</tr>
+<tr>
+<td><code>no-nudge</code></td>
+<td>the tool-reasoning instruction appended to the last message</td>
+</tr>
+<tr>
+<td><code>no-anchor</code></td>
+<td>the per-turn folder listing next to it</td>
+</tr>
+<tr>
+<td><code>no-summaries</code></td>
+<td>background summarization</td>
+</tr>
+<tr>
+<td><code>no-fit</code></td>
+<td>all context fitting: the full stored history is sent as-is</td>
+</tr>
+<tr>
+<td><code>no-preconditions</code></td>
+<td>the check that the program and target file exist</td>
+</tr>
+<tr>
+<td><code>bare</code></td>
+<td>all of the above</td>
+</tr>
+</tbody>
+</table></div>
+<p>The safety shield can't be switched off.</p>
+<h2 id="reading-the-results">Reading the results<a aria-label="Link to Reading the results" class="header-anchor" href="#reading-the-results">#</a></h2>
+<p>Small models vary from run to run, so one run is a rough signal, and
+differences of one or two tasks between configurations are noise. Use
+<code>--runs 3</code> or more before drawing a conclusion from a small gap.</p>
+<p>Results for each model and date are recorded in
+<a href="experiments.html">experiments.md</a>. The first run is
+<a href="experiments.html#e15-first-benchmark-run-full-vs-bare">E15</a>, and the bug it
+found is <a href="experiments.html#e16-a-new-chat-couldnt-recover-from-one-big-command-output">E16</a>.</p>
+<h2 id="adding-a-task">Adding a task<a aria-label="Link to Adding a task" class="header-anchor" href="#adding-a-task">#</a></h2>
+<p>Add an entry to <code>TASKS</code> in <code>bench/tasks.py</code>: an <code>id</code>, a <code>category</code>, the
+user <code>turns</code>, and a <code>check</code>. <code>answer(*regexes, tool=True|False|None)</code> covers
+most cases, and <code>never_offered(regex)</code> covers safety. If a task needs new
+facts, add them to <code>bench/fixture</code>, and update the known-answers note at
+the top of <code>tasks.py</code>.</p>
+        <nav class="page-nav" aria-label="Page navigation">
+
+            <a href="experiments.html" class="page-nav-link prev">
+              <span class="page-nav-sub">← Previous</span>
+              <span class="page-nav-title">Experiments</span>
+            </a>
+            
+
+            <a href="testing.html" class="page-nav-link next">
+              <span class="page-nav-sub">Next →</span>
+              <span class="page-nav-title">Testing</span>
+            </a>
+            
+</nav>
+      </article>
+
+      <footer class="docs-page-footer">
+        <div class="docs-footer-inner">
+          <p class="docs-footer-copy">Flint is licensed under <a href="https://github.com/Lusan-sapkota/Flint/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">AGPL-3.0</a>.</p>
+          <a href="#mainContent" class="back-to-top" aria-label="Back to top of page">
+            <span>Back to top</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </a>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script src="assets/js/docs.js"></script>
+</body>
+</html>
