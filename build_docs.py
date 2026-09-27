@@ -221,6 +221,15 @@ def build_page_template(page_item, content_html):
   <meta name="description" content="{description}">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="stylesheet" href="assets/css/docs.css">
+  <script>
+    (function() {{
+      try {{
+        if (localStorage.getItem('flint_docs_sidebar_collapsed') === 'true') {{
+          document.documentElement.classList.add('sidebar-collapsed-pre');
+        }}
+      }} catch (e) {{}}
+    }})();
+  </script>
 </head>
 <body>
   <div class="docs-layout">
@@ -260,6 +269,21 @@ def build_page_template(page_item, content_html):
             <span class="brand-tagline">Offline Ollama UI</span>
           </div>
         </a>
+        <div class="sidebar-header-actions">
+          <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" aria-label="Collapse sidebar (Ctrl+B)" title="Collapse sidebar (Ctrl+B)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="9" y1="3" x2="9" y2="21"></line>
+              <path d="M15 10l-3 2 3 2"></path>
+            </svg>
+          </button>
+          <button class="mobile-close-btn" id="sidebarCloseBtn" aria-label="Close sidebar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div class="sidebar-links">
@@ -293,6 +317,18 @@ def build_page_template(page_item, content_html):
 
     <!-- Main Content Container -->
     <main class="docs-main" id="mainContent">
+      <!-- Desktop Top Action Bar -->
+      <div class="main-top-bar">
+        <button class="sidebar-expand-btn" id="sidebarExpandBtn" aria-label="Expand sidebar (Ctrl+B)" title="Expand sidebar (Ctrl+B)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="9" y1="3" x2="9" y2="21"></line>
+            <path d="M13 10l3 2-3 2"></path>
+          </svg>
+          <span>Show menu</span>
+        </button>
+      </div>
+
       <article class="docs-content">
         {content_html}
         {chr(10).join(prev_next_html)}
@@ -319,7 +355,7 @@ def build_page_template(page_item, content_html):
 
 def main():
     src_dir = "docs_backup"
-    out_dir = "docs_html"
+    out_dir = "docs"
     
     if not os.path.exists(src_dir):
         print(f"Error: {src_dir} not found")
