@@ -15,7 +15,7 @@ weight doesn't fit, even if other chat UIs have it. That's why there's no
 bundled RAG or embedding stack.
 
 Some decisions are settled, each with its reasoning in
-[docs/](docs/README.md): the pure-Go SQLite driver, cookie sessions rather
+[docs/](docs/index.html): the pure-Go SQLite driver, cookie sessions rather
 than JWT, human approval for every shell command, the vendored frontend
 with no build step, and working fully offline except for an explicit
 `@web`. Please open an issue to discuss before working against one of
@@ -63,11 +63,14 @@ the published image, since otherwise the local copy keeps shadowing it.
   ```
 
 - **Update the docs in the same pull request.** Every change updates the
-  pages in `docs/` it affects.
+  pages it affects. Documentation is native static HTML in `docs/` with
+  Markdown sources in `docs_backup/`. Edit the source files in `docs_backup/`
+  and run `python3 build_docs.py` to regenerate the HTML pages and the
+  offline search index (`docs/assets/js/search-index.js`).
 - **Measure changes to prompts or the context pipeline.** Run the
-  benchmark ([docs/benchmark.md](docs/benchmark.md)) before and after,
+  benchmark ([docs/benchmark.html](docs/benchmark.html)) before and after,
   on a small task list with `--runs 3`, and add the numbers to
-  [docs/experiments.md](docs/experiments.md) as a new E-numbered entry.
+  [docs/experiments.html](docs/experiments.html) as a new E-numbered entry.
   If you're fixing something the benchmark found, measure the baseline
   first so the fix itself is measured. Test with a real folder attached,
   not a short synthetic prompt: short prompts hide failures that only show
@@ -121,8 +124,9 @@ in the tagged commit. After the very first publish, the package's
 visibility had to be set to **Public** (profile → Packages → flint →
 Package settings), or nobody else could pull it.
 
-The docs site (flint.lusansapkota.com.np) is served by GitHub Pages from
-`main` /docs, so it updates when `main` does.
+The docs site (flint.lusansapkota.com.np) is served directly by GitHub Pages
+as static HTML from `main` /docs (with `.nojekyll`, no build step or Ruby/Jekyll
+dependencies needed), so it updates immediately when `main` does.
 
 The repository has two rulesets, which apply to the owner too:
 
@@ -136,7 +140,7 @@ The repository has two rulesets, which apply to the owner too:
 
 Don't open a public issue. Report them privately through **Security →
 Report a vulnerability** on GitHub. See
-[docs/security.md](docs/security.md#reporting-a-vulnerability).
+[docs/security.html](docs/security.html#reporting-a-vulnerability).
 
 ## License
 
