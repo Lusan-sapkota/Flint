@@ -852,6 +852,34 @@ tasks) were valid JSON matching the schema, phi3 included.
   to +1.3 GB (llama) for four slots. Four slots already spill phi3 on
   6 GB, so going above 2 is for bigger GPUs, set per account.
 
+## E25: `@agent` against a normal chat
+
+### Baseline, before any agent code
+
+Four `split` tasks added to the benchmark (independent questions about
+different files; see [benchmark.md](benchmark.md)), run as a normal chat,
+`full` configuration, 3 runs each:
+
+| task | qwen2.5-3b-instruct | llama3.2:3b | qwen2.5:1.5b |
+|---|---|---|---|
+| split-config (3 facts, all in the folder context) | 3/3 | 0/3 | 3/3 |
+| split-code (3 facts from 3 code files) | 3/3 | 0/3 | 2/3 |
+| split-log (log line 357 of 400, plus README) | 2/3 | 0/3 | 0/3 |
+| split-crowded (3 facts after 4 turns of tool output) | 3/3 | 0/3 | 2/3 |
+| **total** | **11/12** | **0/12** | **7/12** |
+
+- qwen2.5-3b's one miss: its grep for the ERROR line was cut short by a
+  pipe, and it reported no error code.
+- llama3.2:3b fails every run the same two ways: it writes tool calls as
+  JSON text in its reply (`{"type":"function","function":{"name":
+  "run_shell",...}}`) instead of a structured call, so nothing runs, or
+  it announces commands for facts already in the folder context and
+  stops there. It never proposed a usable command.
+- qwen2.5:1.5b never ran a command for the log and made up its error
+  code ("2", or fail.py's message); once it left two of three answers
+  blank; once, after the filler turns, it answered an earlier turn
+  instead of the question.
+
 ## Open questions
 
 - **qwen3.5 thinking with no answer.** Once in E22 it streamed a long

@@ -145,6 +145,13 @@ TASKS = [
     {"id": "no-folder-followup", "category": "no folder", "folder": False, "turns": ["Is Ollama 0.34.2 the latest release?", "Can you run the command to check which version I have?"], "check": advises(r"ollama (--version|-v)", r"attach|folder", forbid=(r"(ollama version|version is|you have|you're running|you are running|output)[^.\n]{0,20}\b0\.\d+\.\d+",))},
     {"id": "no-folder-plain", "category": "no folder", "folder": False, "turns": ["What is the capital of France?"], "check": advises(r"Paris", forbid=(r"attach|folder",))},
 
+    # Split: independent questions about different files, the shape `@agent`
+    # is for. The log question needs line 357 of 400, past any head cut.
+    {"id": "split-config", "category": "split", "turns": ["Three questions: what port does Stockroom listen on, what is max_connections in config.yaml, and who is on call this week?"], "check": answer(r"\b7070\b", r"\b25\b", r"Omar")},
+    {"id": "split-code", "category": "split", "turns": ["What is MAX_RETRIES in main.py, what is TAX_RATE in utils.py, and which exit code does fail.py use when the token is missing?"], "check": answer(r"\b4\b", r"0?\.13\b|13\s?%", r"\b2\b")},
+    {"id": "split-log", "category": "split", "turns": ["Two questions: what is the error code on the one ERROR line in large_log.txt, and what is the owner's email address in README.md?"], "check": answer(r"\b4471\b", r"dana@stockroom\.test")},
+    {"id": "split-crowded", "category": "split", "turns": FILLER[:4] + ["What is TAX_RATE in utils.py, what port is in README.md, and what does check.py print?"], "check": answer(r"0?\.13\b|13\s?%", r"\b7070\b", r"\b42\b")},
+
     # Long context: facts must survive many turns of real tool output.
     {"id": "recall-first", "category": "long context",
      "turns": ["Before we start: my name is Priya and the release codename is BLUEJAY."] + FILLER[:6]
