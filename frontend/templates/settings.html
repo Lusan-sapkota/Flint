@@ -6,6 +6,7 @@
     cloudNumCtx: {{.CloudNumCtx}},
     maxAgents: {{.MaxAgents}},
     cloudMaxAgents: {{.CloudMaxAgents}},
+    agentCommands: {{.AgentCommands}},
     braveKeyHint: '{{.BraveKeyHint | jsStr}}',
     preferredModels: {{.PreferredModelsJSON}},
     questions: {{.QuestionsJSON}},
@@ -74,10 +75,15 @@
             <input type="number" id="cloud_max_agents" x-model="cloudMaxAgents" min="1" max="64" step="1" placeholder="Auto: 10">
           </label>
         </div>
+        <label for="agent_commands">Commands per agent
+          <input type="number" id="agent_commands" x-model="agentCommands" min="1" max="64" step="1" placeholder="Auto: 8">
+        </label>
         <p class="flint-field-hint">How many <code>@agent</code> subtasks run at the same time; the rest wait their turn.
           Each agent is one more request to the model at once. Locally they only truly run together if Ollama allows it
           (<code>OLLAMA_NUM_PARALLEL</code> at least this high); otherwise Ollama runs them one after another, and each
-          parallel request needs its own context-window memory on the GPU.</p>
+          parallel request needs its own context-window memory on the GPU. Commands per agent caps how many shell
+          commands one agent may ask you to approve while it looks through the folder; it also stops sooner when its
+          window is full or after 3 failed or denied commands in a row.</p>
         <template x-if="braveKeyHint && !replacingBraveKey">
           <div class="flint-saved-key">
             <span>Brave Search API key</span>

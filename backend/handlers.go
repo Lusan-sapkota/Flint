@@ -126,14 +126,14 @@ func (s *Server) handleUpdateSettings(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	for _, column := range []string{"max_agents", "cloud_max_agents"} {
+	for column, label := range map[string]string{"max_agents": "max agents", "cloud_max_agents": "max agents", "agent_commands": "commands per agent"} {
 		v, ok := raw[column]
 		if !ok {
 			continue
 		}
 		var n *int
 		if err := json.Unmarshal(v, &n); err != nil || (n != nil && (*n < 1 || *n > maxMaxAgents)) {
-			writeError(w, http.StatusBadRequest, fmt.Sprintf("max agents must be 1 to %d, or empty for Auto", maxMaxAgents))
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("%s must be 1 to %d, or empty for Auto", label, maxMaxAgents))
 			return
 		}
 		if err := updateUserIntSetting(s.db, user.ID, column, n); err != nil {

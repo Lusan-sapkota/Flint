@@ -68,6 +68,15 @@ func TestMaxAgentsSettingValidation(t *testing.T) {
 	if code, u := patch(`{"max_agents": null}`); code != 200 || u.MaxAgents != nil || *u.CloudMaxAgents != 64 {
 		t.Errorf("null should go back to Auto for that one only, got %d %+v", code, u)
 	}
+	if code, u := patch(`{"agent_commands": 20}`); code != 200 || agentCommandsFor(u) != 20 {
+		t.Errorf("commands per agent should save, got %d %+v", code, u)
+	}
+	if code, u := patch(`{"agent_commands": 0}`); code != 400 || agentCommandsFor(u) != 20 {
+		t.Errorf("0 commands per agent: want 400, got %d %+v", code, u)
+	}
+	if agentCommandsFor(&User{}) != defaultAgentCommands {
+		t.Error("empty means the default of 8")
+	}
 }
 
 func TestAgentRunsAreScopedToTheirOwner(t *testing.T) {

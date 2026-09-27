@@ -42,6 +42,7 @@ document.addEventListener('alpine:init', () => {
     cloudNumCtx: config.cloudNumCtx || '',
     maxAgents: config.maxAgents || '',
     cloudMaxAgents: config.cloudMaxAgents || '',
+    agentCommands: config.agentCommands || '',
     braveKeyHint: config.braveKeyHint,
     braveApiKey: '',
     replacingBraveKey: false,
@@ -366,6 +367,7 @@ document.addEventListener('alpine:init', () => {
         cloud_num_ctx: this.cloudNumCtx === '' || this.cloudNumCtx === null ? null : Number(this.cloudNumCtx),
         max_agents: this.maxAgents === '' || this.maxAgents === null ? null : Number(this.maxAgents),
         cloud_max_agents: this.cloudMaxAgents === '' || this.cloudMaxAgents === null ? null : Number(this.cloudMaxAgents),
+        agent_commands: this.agentCommands === '' || this.agentCommands === null ? null : Number(this.agentCommands),
         preferred_models: this.preferredModels,
       };
       if (newKey) body.brave_api_key = newKey;

@@ -245,7 +245,9 @@ decides what runs.
   in the main chat as "Agent 2 wants to run" with the literal command,
   and runs only after you approve it, the same flow as the chat's own
   commands, with the same safety shield and precondition checks. An agent
-  proposes at most 3 commands, like one chat turn. Files named in the
+  stops asking and answers with what it has when its window is nearly
+  full, after 3 failed or denied commands in a row, or after 8 commands
+  (Commands per agent in Settings). Files named in the
   plan are then a head start, and a subtask with none is fine. A model
   without tool support (phi3, for one) only gets what the plan gives it,
   so each of its subtasks needs a file or a web search.
@@ -327,6 +329,9 @@ a shared link opens the same one.
   models (Auto is 2 and 10; any number from 1 to 64, for a bigger GPU or
   a cloud plan that allows more; locally they only run together when
   Ollama's `OLLAMA_NUM_PARALLEL` allows it, otherwise Ollama queues them),
+  how many commands one agent may ask you to approve (Auto is 8, one
+  number for both, since it guards your attention rather than the
+  model),
   and the Brave Search API key for `@web`.
 - **Models:** which models the new-chat picker shows, which are loaded,
   details for each (family, parameters, quantization, context length,

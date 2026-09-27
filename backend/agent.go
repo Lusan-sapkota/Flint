@@ -24,6 +24,10 @@ const (
 	defaultMaxAgents = 2
 	cloudMaxAgents   = 10
 	maxMaxAgents     = 64
+	// Commands one agent may propose, each approved by the user. The limit
+	// guards the user's attention, not the model, so it isn't split by
+	// local and cloud; a local agent's window fills well before 8 anyway.
+	defaultAgentCommands = 8
 
 	// The prompt asks for 2 to 4 (E24); a model that lists more is cut here.
 	maxPlanSubtasks  = 8
@@ -319,7 +323,7 @@ func (s *Server) planAgentRun(ctx context.Context, user *User, convo *Conversati
 	planNotes(agents, files, agentInputChars(numCtx))
 
 	now := time.Now().UnixMilli()
-	run := AgentRun{ID: uuid.NewString(), ConversationID: convo.ID, Task: task, Status: "planned", CreatedAt: now, UpdatedAt: now, FolderFiles: names, WebAvailable: webOK, CanExplore: explore}
+	run := AgentRun{ID: uuid.NewString(), ConversationID: convo.ID, Task: task, Status: "planned", CreatedAt: now, UpdatedAt: now, FolderFiles: names, WebAvailable: webOK, CanExplore: explore, MaxCommands: agentCommandsFor(user)}
 	for i := range agents {
 		agents[i].ID = uuid.NewString()
 		agents[i].Position = i
@@ -343,6 +347,13 @@ func (s *Server) maxAgentsFor(user *User, c Conversation) int {
 		return *user.MaxAgents
 	}
 	return defaultMaxAgents
+}
+
+func agentCommandsFor(user *User) int {
+	if user.AgentCommands != nil {
+		return *user.AgentCommands
+	}
+	return defaultAgentCommands
 }
 
 func (s *Server) handleGetAgentRun(w http.ResponseWriter, r *http.Request) {

@@ -302,6 +302,7 @@ func (s *Server) handleChatPage(w http.ResponseWriter, r *http.Request, user *Us
 			}
 			runs[i].WebAvailable = user.BraveAPIKey != nil && *user.BraveAPIKey != ""
 			runs[i].CanExplore = s.canExplore(r.Context(), user, full.Conversation)
+			runs[i].MaxCommands = agentCommandsFor(user)
 		}
 		timeline = buildTimeline(full.Messages, pending, saved, runs)
 
@@ -360,6 +361,7 @@ type settingsViewData struct {
 	CloudNumCtx         int
 	MaxAgents           int
 	CloudMaxAgents      int
+	AgentCommands       int
 	BraveKeyHint        string
 	PreferredModelsJSON string
 	QuestionsJSON       string
@@ -419,6 +421,9 @@ func (s *Server) handleSettingsPage(w http.ResponseWriter, r *http.Request, user
 	}
 	if user.CloudMaxAgents != nil {
 		data.CloudMaxAgents = *user.CloudMaxAgents
+	}
+	if user.AgentCommands != nil {
+		data.AgentCommands = *user.AgentCommands
 	}
 	// Only the last four characters ever reach the page: enough to tell keys
 	// apart, not enough to use one.
