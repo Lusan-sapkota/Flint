@@ -395,6 +395,8 @@ decides what runs.</p>
 <li><strong>Agents that look for themselves.</strong> With a model that supports tool
   calls, an agent that was given no files (and no web search) proposes
   shell commands (<code>ls</code>, <code>grep</code>, <code>cat</code>, ...) to look through the folder.
+  It is told to search file contents (<code>grep -rni</code>, one short word) rather
+  than guess file names, and a grep that matches nothing says so.
   An agent given files works from those only: offered commands too,
   qwen2.5-3b agents ran failing greps instead of reading the file in
   front of them. Each command appears

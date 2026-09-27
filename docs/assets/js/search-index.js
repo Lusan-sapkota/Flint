@@ -540,6 +540,13 @@ window.FLINT_SEARCH_INDEX = [
   },
   {
     "page": "Experiments",
+    "url": "experiments.html#e26-an-agent-with-no-files-searched-for-a-file-name",
+    "title": "E26: An agent with no files searched for a file name",
+    "group": "Evidence",
+    "snippet": "An agent given no files guessed file names instead of searching their contents; a grep with no match now says so."
+  },
+  {
+    "page": "Experiments",
     "url": "experiments.html#baseline-before-any-agent-code",
     "title": "Baseline, before any agent code",
     "group": "Evidence",

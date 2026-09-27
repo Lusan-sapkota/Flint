@@ -3,6 +3,16 @@
 Notable changes in each release. The measurements behind a change are in
 [experiments](experiments.md).
 
+## [Unreleased]
+
+### Changed
+
+- An agent that looks through the folder is told to search file contents
+  with `grep -rni` and one short word instead of guessing file names. A
+  command with no output says `(no output)`, and a grep that matched
+  nothing says so and suggests a shorter word (E26).
+- The edit button is hidden on `@agent` messages, which can't be edited.
+
 ## [0.2.0] - 2026-09-27
 
 ### Added

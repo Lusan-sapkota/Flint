@@ -932,6 +932,12 @@ func (s *Server) executeCommand(ctx context.Context, cmd *Command) (resultText, 
 		log.Printf("warning: failed to resolve command: %v", err)
 	}
 
+	if strings.TrimSpace(output) == "" {
+		output = "(no output)"
+		if exitCode == 1 && strings.Contains(cmd.Command, "grep") {
+			output = "(no output: grep matched nothing. Search again with one shorter word, since the text may be spelled differently.)"
+		}
+	}
 	if exitCode == 0 {
 		return fmt.Sprintf("[exit code: 0]\n%s", output), "success"
 	}

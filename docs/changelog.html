@@ -146,6 +146,15 @@
             <h1 id="overview">Changelog</h1>
 <p>Notable changes in each release. The measurements behind a change are in
 <a href="experiments.html">experiments</a>.</p>
+<h2 id="unreleased">Unreleased<a aria-label="Link to Unreleased" class="header-anchor" href="#unreleased">#</a></h2>
+<h3 id="unreleased-changed">Changed<a aria-label="Link to Changed" class="header-anchor" href="#unreleased-changed">#</a></h3>
+<ul>
+<li>An agent that looks through the folder is told to search file contents
+  with <code>grep -rni</code> and one short word instead of guessing file names. A
+  command with no output says <code>(no output)</code>, and a grep that matched
+  nothing says so and suggests a shorter word (<a href="experiments.html#e26-an-agent-with-no-files-searched-for-a-file-name">E26</a>).</li>
+<li>The edit button is hidden on <code>@agent</code> messages, which can't be edited.</li>
+</ul>
 <h2 id="020---2026-09-27"><a href="https://github.com/Lusan-sapkota/Flint/compare/v0.1.4...v0.2.0">0.2.0</a> - 2026-09-27<a aria-label="Link to 0.2.0 - 2026-09-27" class="header-anchor" href="#020---2026-09-27">#</a></h2>
 <h3 id="added">Added<a aria-label="Link to Added" class="header-anchor" href="#added">#</a></h3>
 <ul>
@@ -395,6 +404,7 @@
   <nav class="toc-nav">
     <ul class="toc-list">
       <li class="toc-item toc-level-2"><a href="#overview" class="toc-link" data-target="overview">Overview</a></li>
+      <li class="toc-item toc-level-2"><a href="#unreleased" class="toc-link" data-target="unreleased">Unreleased</a></li>
       <li class="toc-item toc-level-2"><a href="#020---2026-09-27" class="toc-link" data-target="020---2026-09-27">0.2.0 - 2026-09-27</a></li>
       <li class="toc-item toc-level-3"><a href="#added" class="toc-link" data-target="added">Added</a></li>
       <li class="toc-item toc-level-3"><a href="#changed" class="toc-link" data-target="changed">Changed</a></li>

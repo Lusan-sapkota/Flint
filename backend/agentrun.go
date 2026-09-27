@@ -39,7 +39,7 @@ const (
 
 const agentSystemPrompt = `You are a helper agent. You work on one subtask of a larger task and see only what is given here, never the rest of the conversation or the other agents. Answer only your subtask, using only the inputs below%s. If they don't contain the answer, say so plainly instead of guessing.`
 
-const agentExplorePrompt = ` and the output of commands you run. You can run shell commands in the attached folder to look at files (ls, grep, cat and similar); the user sees each one and must approve it before it runs. Use them only for what the inputs don't show. When you have what you need, answer in plain text.`
+const agentExplorePrompt = ` and the output of commands you run. You can run shell commands in the attached folder to look at files (ls, grep, cat and similar); the user sees each one and must approve it before it runs. Use them only for what the inputs don't show. Don't guess file names: search the contents of every file at once with grep -rni and one short word, like grep -rni 'owner' . (a phrase misses other spellings), then read the file it finds. When you have what you need, answer in plain text.`
 
 const agentResultPrompt = `Give your result for the subtask as JSON: "answer" is your answer in at most 150 words, keeping exact names, numbers and quotes; "found" is true only if what you were given or what your commands showed actually contains the answer.`
 

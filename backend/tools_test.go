@@ -1,6 +1,12 @@
 package main
 
-import "testing"
+import (
+	"context"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
 
 func TestForbidsCommands(t *testing.T) {
 	cases := map[string]bool{
@@ -30,6 +36,26 @@ func TestAsksToRun(t *testing.T) {
 	} {
 		if got := asksToRun([]Message{{Role: "user", Content: text}}); got != want {
 			t.Errorf("%q: got %v, want %v", text, got, want)
+		}
+	}
+}
+
+func TestExecuteCommandSaysWhenNothingMatched(t *testing.T) {
+	db, err := openDB(filepath.Join(t.TempDir(), "t.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := &Server{db: db}
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "notes.txt"), []byte("On-call this week: Omar.\n"), 0o644)
+	for cmd, want := range map[string]string{
+		"grep -ri 'on call' .": "[FAILED, exit code: 1]\n(no output: grep matched nothing.",
+		"true":                 "[exit code: 0]\n(no output)",
+		"grep -ri call .":      "[exit code: 0]\n./notes.txt:On-call",
+	} {
+		got, _ := s.executeCommand(context.Background(), &Command{ID: "x", Command: cmd, Cwd: dir})
+		if !strings.HasPrefix(got, want) {
+			t.Errorf("%s: got %q, want prefix %q", cmd, got, want)
 		}
 	}
 }

@@ -417,7 +417,8 @@ honestly claim:</p>
   test-time compute. A shell exit code is a free, high-precision
   verifier, so every tool result states success or failure explicitly
   (<code>[exit code: N]</code> or <code>[FAILED, exit code: N]</code>; a silent failure used to
-  look like success), and after 3 tool calls in a row the model has to
+  look like success; empty output says <code>(no output)</code>, and a grep
+  with no match suggests a shorter word), and after 3 tool calls in a row the model has to
   answer in text. A small retry budget beats one greedy attempt without
   a bigger model, while each retry still costs you an approval.</li>
 <li><strong>The shield</strong> takes the idea of shielding (Alshiekh et al.): block

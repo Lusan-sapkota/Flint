@@ -1535,6 +1535,39 @@ different files; see <a href="benchmark.html">benchmark.md</a>), run as a normal
   state 'On-call schedule not available.'") it gave up after one failed
   command, and the evidence check reported that honestly.</li>
 </ul>
+<h2 id="e26-an-agent-with-no-files-searched-for-a-file-name">E26: An agent with no files searched for a file name<a aria-label="Link to E26: An agent with no files searched for a file name" class="header-anchor" href="#e26-an-agent-with-no-files-searched-for-a-file-name">#</a></h2>
+<p>Seen live: an <code>@agent</code> subtask "who is on call this week" got no
+  files, and its agent ran <code>ls data | grep on_call_schedule.txt</code>, then
+  <code>... | grep schedule.txt</code>. Both came back as a bare
+  <code>[FAILED, exit code: 1]</code>. The answer was in <code>notes.txt</code>
+  ("On-call this week: Omar."), which it never searched.</p>
+<p>Test: the fixture, the three-part task planned, then run with a single
+  subtask "Who is on call this week?" and no files. Read-only commands
+  approved as in the benchmark, pass if the agent's result names Omar.</p>
+<table>
+<thead><tr><th>version</th><th>qwen2.5-3b-instruct</th><th>qwen2.5:1.5b</th></tr></thead>
+<tbody>
+<tr><td>before</td><td>0/5</td><td>0/5</td></tr>
+<tr><td>explore prompt says "grep -rni one short word", <code>(no output)</code></td><td>0/5</td><td>0/5</td></tr>
+<tr><td>+ grep no-match result says to retry with one shorter word</td><td>5/10</td><td>0/5</td></tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Before</strong>, qwen2.5-3b guessed names (<code>ls *schedule*.txt</code>,
+  <code>*calendar*</code>, <code>*on_call*</code>) or grepped for "on call", which
+  can't match "On-call". A grep with no match looked the same as a
+  broken command.</li>
+<li><strong>The prompt alone</strong> fixed the shape: it now searched the whole
+  tree with <code>grep -rni ... .</code>. It still used the phrase "on call"
+  and then other guesses ("rotation", "roster"), ignoring "one short
+  word" in the system prompt.</li>
+<li><strong>A hint in the result</strong>, next to where it generates, worked: after
+  a no-match it retried with "call" or "week" and found notes.txt. The
+  failures ran out of commands still trying phrases. Wins took 1-6
+  commands, each one an approval.</li>
+<li>qwen2.5:1.5b called no tool in any run, with or without the change;
+  its result stays the "nothing to answer from" fallback from E25.</li>
+</ul>
 <h2 id="open-questions">Open questions<a aria-label="Link to Open questions" class="header-anchor" href="#open-questions">#</a></h2>
 <ul>
 <li><strong>qwen3.5 thinking with no answer.</strong> Once in E22 it streamed a long
@@ -1619,6 +1652,7 @@ different files; see <a href="benchmark.html">benchmark.md</a>), run as a normal
       <li class="toc-item toc-level-2"><a href="#e25-agent-against-a-normal-chat" class="toc-link" data-target="e25-agent-against-a-normal-chat">E25: @agent against a normal chat</a></li>
       <li class="toc-item toc-level-3"><a href="#baseline-before-any-agent-code" class="toc-link" data-target="baseline-before-any-agent-code">Baseline, before any agent code</a></li>
       <li class="toc-item toc-level-3"><a href="#while-building-the-agents" class="toc-link" data-target="while-building-the-agents">While building the agents</a></li>
+      <li class="toc-item toc-level-2"><a href="#e26-an-agent-with-no-files-searched-for-a-file-name" class="toc-link" data-target="e26-an-agent-with-no-files-searched-for-a-file-name">E26: An agent with no files searched for a file name</a></li>
       <li class="toc-item toc-level-2"><a href="#open-questions" class="toc-link" data-target="open-questions">Open questions</a></li>
     </ul>
   </nav>
