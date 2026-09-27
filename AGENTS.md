@@ -32,7 +32,7 @@ Flint uses **native, zero-dependency static HTML documentation** hosted directly
   - **Offline Client Search (<kbd>Ctrl</kbd>+<kbd>K</kbd> / `/`)**: Instant fuzzy search across all pages and sections powered by `docs/assets/js/search-index.js`.
   - **Responsiveness**: All 3 columns fit side-by-side on desktop viewports (down to 961px); smoothly switches to an off-canvas drawer on mobile/tablet (≤ 960px).
 - **Updating Docs**:
-  - **Source files**: Maintain and edit raw Markdown files in `docs_backup/`.
+  - **Source files**: Maintain and edit raw Markdown files directly in `docs/` (e.g. `docs/features.md`).
   - **Generator script**: Run `python3 build_docs.py` to regenerate all HTML pages in `docs/` and `docs/assets/js/search-index.js`.
   - **Changelog preservation**: `docs/changelog.md` is preserved in `docs/` so the maintainer release script (`awk '/^## \[0.2.0\]/{f=1;next} /^## \[/{f=0} f' docs/changelog.md > /tmp/notes.md`) continues to work.
   - Every feature or architectural change must update the affected documentation in the same commit.

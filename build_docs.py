@@ -390,7 +390,7 @@ def build_page_template(page_item, content_html, toc_items, group_title):
 '''
 
 def main():
-    src_dir = "docs_backup"
+    src_dir = "docs"
     out_dir = "docs"
     
     if not os.path.exists(src_dir):
@@ -452,10 +452,6 @@ def main():
     with open(search_js_path, "w", encoding="utf-8") as f:
         f.write("window.FLINT_SEARCH_INDEX = " + json.dumps(search_records, indent=2) + ";\n")
     print(f"Generated search index with {len(search_records)} entries")
-
-    # Copy changelog.md to docs/changelog.md for maintainer awk release script
-    shutil.copy2(os.path.join(src_dir, "changelog.md"), os.path.join(out_dir, "changelog.md"))
-    print("Preserved docs/changelog.md for maintainer release workflow")
 
 if __name__ == "__main__":
     main()
