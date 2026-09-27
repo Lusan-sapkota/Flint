@@ -190,9 +190,17 @@ document.addEventListener('alpine:init', () => {
   const SEARCHING_MARKER = '<<<SEARCHING>>>';
   const SOURCES_MARKER = '<<<SOURCES>>>';
   const MEMORY_SAVED_MARKER = '<<<MEMORY_SAVED>>>';
-  const MARKERS = [TOOL_CALL_MARKER, STATS_MARKER, THINK_MARKER, LOADING_MARKER, CONTEXT_MARKER, MEMORY_DRAFT_MARKER, SEARCHING_MARKER, SOURCES_MARKER, MEMORY_SAVED_MARKER];
+  const AGENT_PLAN_MARKER = '<<<AGENT_PLAN>>>';
+  const MARKERS = [TOOL_CALL_MARKER, STATS_MARKER, THINK_MARKER, LOADING_MARKER, CONTEXT_MARKER, MEMORY_DRAFT_MARKER, SEARCHING_MARKER, SOURCES_MARKER, MEMORY_SAVED_MARKER, AGENT_PLAN_MARKER];
   // One JSON value per line, consumed in place while the stream continues.
   const LINE_MARKERS = [CONTEXT_MARKER, THINK_MARKER, SEARCHING_MARKER, SOURCES_MARKER, MEMORY_SAVED_MARKER];
+  const COMMANDS = [
+    { cmd: '@agent ', hint: "split a task over the folder's files into separate agents" },
+    { cmd: '@web ', hint: 'search the web first (needs a Brave key in Settings)' },
+    { cmd: '@memory ', hint: 'recall saved memories' },
+    { cmd: '@memory save', hint: 'keep what matters from this chat for later ones' },
+    { cmd: '@compact', hint: 'condense older messages now' },
+  ];
   const LONGEST_MARKER = Math.max(...MARKERS.map((m) => m.length));
   // Mirrors imageMimeExtensions in images.go.
   const SUPPORTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/bmp'];
@@ -239,6 +247,8 @@ document.addEventListener('alpine:init', () => {
     streamingBubble: null,
     modelLoading: false,
     searchingQuery: '',
+    commandIndex: 0,
+    suggestDismissed: false,
 
     init() {
       this.scrollToBottom();
@@ -631,6 +641,57 @@ document.addEventListener('alpine:init', () => {
       }
     },
 
+    agentRunLabel(status) {
+      return { planned: 'Review before running', running: 'Running…', done: 'Done', failed: 'Failed', cancelled: 'Stopped', discarded: 'Discarded' }[status] || status;
+    },
+
+    addableFiles(run, agent) {
+      return (run.folder_files || []).filter((f) => !agent.files.includes(f));
+    },
+
+    agentEstimate(run) {
+      const n = run.agents.length;
+      const web = run.agents.filter((a) => a.web_query).length;
+      let text = `${n} agent${n === 1 ? '' : 's'}, then 1 call to combine their results: ${n + 1} model calls`;
+      if (web) text += `, ${web} web search${web === 1 ? '' : 'es'}`;
+      return text + '.';
+    },
+
+    // The server validates the edited plan again against the folder, so
+    // whatever is typed here can only narrow what the agents may read.
+    async runPlan(item) {
+      item.planError = '';
+      const agents = item.run.agents.map((a) => ({ task: a.task, files: a.files, web_query: a.web_query }));
+      try {
+        const res = await fetch(`/api/agent-runs/${item.run.id}/run`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ agents }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          item.planError = data.error || res.statusText;
+        }
+      } catch (e) {
+        item.planError = 'Could not reach the server.';
+      }
+    },
+
+    async discardPlan(item) {
+      item.planError = '';
+      try {
+        const res = await fetch(`/api/agent-runs/${item.run.id}/discard`, { method: 'POST' });
+        if (res.ok || res.status === 409) {
+          item.run.status = 'discarded';
+        } else {
+          const data = await res.json().catch(() => ({}));
+          item.planError = data.error || res.statusText;
+        }
+      } catch (e) {
+        item.planError = 'Could not reach the server.';
+      }
+    },
+
     async deny(cmd) {
       await this.decide(cmd, 'deny');
     },
@@ -798,7 +859,17 @@ document.addEventListener('alpine:init', () => {
 
       this.streamingBubble = null;
 
-      if (markerFound && pending.startsWith(MEMORY_DRAFT_MARKER)) {
+      if (markerFound && pending.startsWith(AGENT_PLAN_MARKER)) {
+        try {
+          const run = JSON.parse(pending.slice(AGENT_PLAN_MARKER.length).trim());
+          if (bubble && bubble.content.trim() === '' && !bubble.thinking) {
+            this.timeline.splice(this.timeline.indexOf(bubble), 1);
+          }
+          this.timeline.push({ kind: 'agentPlan', run, planError: '' });
+        } catch (e) {
+          appendVisible('\n[Could not read the agent plan.]');
+        }
+      } else if (markerFound && pending.startsWith(MEMORY_DRAFT_MARKER)) {
         try {
           const obj = JSON.parse(pending.slice(MEMORY_DRAFT_MARKER.length).trim());
           if (bubble && bubble.content.trim() === '' && !bubble.thinking) {
@@ -847,8 +918,42 @@ document.addEventListener('alpine:init', () => {
       }
     },
 
+    // Shown while only the command word is typed, so the commands can be
+    // found without reading the tips.
+    get commandSuggestions() {
+      const typed = this.input.toLowerCase();
+      if (this.suggestDismissed || !/^@\w*$/.test(typed)) return [];
+      return COMMANDS.filter((c) => c.cmd.startsWith(typed) && c.cmd !== typed);
+    },
+
+    pickCommand(c) {
+      this.input = c.cmd;
+      this.commandIndex = 0;
+      this.$nextTick(() => this.$refs.input.focus());
+    },
+
+    commandKeydown(e) {
+      const list = this.commandSuggestions;
+      if (!list.length) return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        this.commandIndex = (this.commandIndex + (e.key === 'ArrowDown' ? 1 : list.length - 1)) % list.length;
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        this.pickCommand(list[this.commandIndex]);
+      } else if (e.key === 'Escape') {
+        this.suggestDismissed = true;
+      }
+    },
+
     submitOnEnter(e) {
       if (e.shiftKey) return;
+      const list = this.commandSuggestions;
+      if (list.length) {
+        e.preventDefault();
+        this.pickCommand(list[this.commandIndex]);
+        return;
+      }
       e.preventDefault();
       this.send();
     },

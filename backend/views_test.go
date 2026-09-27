@@ -46,7 +46,7 @@ func TestTimelineShowsTagsAndRecallAsTyped(t *testing.T) {
 		{Role: "assistant", Content: "noted"},
 		{Role: "user", Content: "plain question"},
 	}
-	got := buildTimeline(messages, nil, nil)
+	got := buildTimeline(messages, nil, nil, nil)
 	want := []struct{ kind, content string }{
 		{"user", "@web latest ollama"},
 		{"sources", ""},
@@ -74,7 +74,7 @@ func TestSavedMemoriesArePlacedWhereTheyWereSaved(t *testing.T) {
 	}
 	saved := []Memory{{Content: "mid", CreatedAt: 300}, {Content: "end", CreatedAt: 500}}
 	var got []string
-	for _, it := range buildTimeline(messages, nil, saved) {
+	for _, it := range buildTimeline(messages, nil, saved, nil) {
 		got = append(got, it.Kind+":"+it.Content)
 	}
 	want := "user:first,assistant:reply,memorySaved:mid,user:second,memorySaved:end"

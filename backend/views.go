@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"maps"
 	"math"
 	"net/http"
 	"net/url"
@@ -80,6 +81,7 @@ type timelineItem struct {
 	Thinking      string           `json:"thinking,omitempty"`
 	Query         string           `json:"query,omitempty"`
 	Sources       []sourceLink     `json:"sources,omitempty"`
+	Run           *AgentRun        `json:"run,omitempty"`
 	recall        bool
 }
 
@@ -107,9 +109,10 @@ func classifyCommandResult(result string) string {
 	}
 }
 
-// buildTimeline also places memories saved from this chat at the point they
-// were saved, by time: they're not messages, so the model never sees them.
-func buildTimeline(messages []Message, pending *Command, saved []Memory) []timelineItem {
+// buildTimeline also places memories saved from this chat, and `@agent`
+// runs with the task that started them, at the point they happened, by
+// time: they're not messages, so the model never sees them.
+func buildTimeline(messages []Message, pending *Command, saved []Memory, runs []AgentRun) []timelineItem {
 	toolResults := map[string]string{}
 	for _, m := range messages {
 		if m.Role == "tool" && m.ToolCallID != nil {
@@ -122,6 +125,10 @@ func buildTimeline(messages []Message, pending *Command, saved []Memory) []timel
 		for len(saved) > 0 && saved[0].CreatedAt < before {
 			out = append(out, timelineItem{Kind: "memorySaved", Content: saved[0].Content})
 			saved = saved[1:]
+		}
+		for len(runs) > 0 && runs[0].CreatedAt < before {
+			out = append(out, timelineItem{Kind: "user", Content: "@agent " + runs[0].Task}, timelineItem{Kind: "agentPlan", Run: &runs[0]})
+			runs = runs[1:]
 		}
 	}
 	for _, m := range messages {
@@ -281,7 +288,17 @@ func (s *Server) handleChatPage(w http.ResponseWriter, r *http.Request, user *Us
 		if err != nil {
 			log.Printf("warning: loading this chat's memories: %v", err)
 		}
-		timeline = buildTimeline(full.Messages, pending, saved)
+		runs, err := listAgentRuns(s.db, full.ID, user.ID)
+		if err != nil {
+			log.Printf("warning: loading this chat's agent runs: %v", err)
+		}
+		for i := range runs {
+			if runs[i].Status == "planned" && full.AttachedFolder != nil {
+				files, _ := agentFiles(*full.AttachedFolder)
+				runs[i].FolderFiles = slices.Sorted(maps.Keys(files))
+			}
+		}
+		timeline = buildTimeline(full.Messages, pending, saved, runs)
 
 		data.Title = full.Title
 	} else {

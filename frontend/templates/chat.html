@@ -4,7 +4,7 @@
 <script src="/static/js/purify.min.js" defer></script>
 <script src="/static/js/chat.js" defer></script>{{end}}
 {{/* Shown twice in a row so the marquee loops without a jump. */}}
-{{define "input-tips"}}<span>Tip: start with <code>@web</code> to search the web (needs a Brave key in Settings)</span><span>Tip: <code>@memory save</code> keeps what matters from this chat for later ones</span><span>Tip: <code>@memory &lt;words&gt;</code> recalls a saved memory in any chat</span><span>Tip: <code>@compact</code> condenses older messages now instead of waiting</span>{{end}}
+{{define "input-tips"}}<span>Tip: start with <code>@web</code> to search the web (needs a Brave key in Settings)</span><span>Tip: <code>@memory save</code> keeps what matters from this chat for later ones</span><span>Tip: <code>@memory &lt;words&gt;</code> recalls a saved memory in any chat</span><span>Tip: <code>@compact</code> condenses older messages now instead of waiting</span><span>Tip: <code>@agent &lt;task&gt;</code> splits a task over the folder's files into separate agents</span>{{end}}
 {{define "content"}}
 {{/* Runs before first paint, while Alpine (deferred) hasn't applied any
      x-show yet: marks the saved sidebar state on <html> so CSS can render
@@ -289,6 +289,51 @@
             </div>
           </template>
 
+          <template x-if="item.kind === 'agentPlan'">
+            <div class="flint-command-card flint-agent-plan">
+              <header>
+                <span>Agent plan</span>
+                <span class="flint-command-status" x-text="agentRunLabel(item.run.status)"></span>
+              </header>
+              <p class="flint-agent-estimate" x-text="agentEstimate(item.run)"></p>
+              <ol class="flint-agent-list">
+                <template x-for="(agent, i) in item.run.agents" :key="agent.id">
+                  <li>
+                    <textarea x-model="agent.task" rows="2" :readonly="item.run.status !== 'planned'" aria-label="Subtask"></textarea>
+                    <div class="flint-agent-inputs">
+                      <template x-for="(file, j) in agent.files" :key="file">
+                        <span class="flint-agent-chip">
+                          <span x-text="file"></span>
+                          <button type="button" x-show="item.run.status === 'planned'" @click="agent.files.splice(j, 1)" :aria-label="'Remove ' + file">×</button>
+                        </span>
+                      </template>
+                      <select x-show="item.run.status === 'planned' && addableFiles(item.run, agent).length" @change="agent.files.push($event.target.value); $event.target.value = ''" aria-label="Add a file to this subtask" class="flint-agent-add">
+                        <option value="">Add file…</option>
+                        <template x-for="f in addableFiles(item.run, agent)" :key="f">
+                          <option :value="f" x-text="f"></option>
+                        </template>
+                      </select>
+                      <template x-if="agent.web_query">
+                        <label class="flint-agent-web">Web search
+                          <input type="text" x-model="agent.web_query" :readonly="item.run.status !== 'planned'">
+                        </label>
+                      </template>
+                    </div>
+                    <p class="flint-field-hint" x-show="agent.note" x-text="agent.note"></p>
+                    <button type="button" class="secondary flint-agent-remove" x-show="item.run.status === 'planned' && item.run.agents.length > 1" @click="item.run.agents.splice(i, 1)">Remove subtask</button>
+                  </li>
+                </template>
+              </ol>
+              <p class="flint-error" x-show="item.planError" x-text="item.planError"></p>
+              <template x-if="item.run.status === 'planned'">
+                <div class="flint-command-actions">
+                  <button type="button" @click="runPlan(item)" :disabled="streaming">Run</button>
+                  <button type="button" class="secondary" @click="discardPlan(item)">Discard</button>
+                </div>
+              </template>
+            </div>
+          </template>
+
           <template x-if="item.kind === 'command'">
             <div class="flint-command-card">
               <header>
@@ -393,7 +438,14 @@
                 :aria-pressed="canThink && thinkOn"
                 :title="!canThink ? 'This model does not support thinking' : (thinkOn ? 'Thinking on - click to answer directly' : 'Thinking off - click to let the model reason first')">{{template "icon-bulb"}}</button>
         <input type="file" x-ref="fileInput" multiple hidden @change="onFileChange">
-        <textarea rows="1" x-ref="input" :placeholder="pendingCommand && replyingTo ? 'Tell the model what to do instead…' : 'Message Flint…'" x-model="input" @keydown.enter="submitOnEnter($event)" @paste="handlePaste($event)" :disabled="!conversationId || streaming || (pendingCommand && !replyingTo)"></textarea>
+        <ul class="flint-command-suggest" role="listbox" x-show="commandSuggestions.length" x-cloak aria-label="Commands">
+          <template x-for="(c, i) in commandSuggestions" :key="c.cmd">
+            <li role="option" :aria-selected="i === commandIndex" :class="{ active: i === commandIndex }" @mousedown.prevent="pickCommand(c)">
+              <code x-text="c.cmd"></code><span x-text="c.hint"></span>
+            </li>
+          </template>
+        </ul>
+        <textarea rows="1" x-ref="input" :placeholder="pendingCommand && replyingTo ? 'Tell the model what to do instead…' : 'Message Flint…'" x-model="input" @input="commandIndex = 0; suggestDismissed = false" @keydown="commandKeydown($event)" @keydown.enter="submitOnEnter($event)" @paste="handlePaste($event)" :disabled="!conversationId || streaming || (pendingCommand && !replyingTo)"></textarea>
         <button type="button" class="flint-send-btn" x-show="!streaming" @click="send" :disabled="!conversationId || (pendingCommand && !replyingTo) || !input.trim()">Send</button>
         <button type="button" class="flint-send-btn flint-stop-btn secondary" x-show="streaming" @click="stop()" title="Stop generating" aria-label="Stop generating">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>

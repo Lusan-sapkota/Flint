@@ -1166,6 +1166,8 @@ type AgentRun struct {
 	CreatedAt      int64   `json:"created_at"`
 	UpdatedAt      int64   `json:"updated_at"`
 	Agents         []Agent `json:"agents"`
+	// What the plan card may add to a subtask; filled for planned runs only.
+	FolderFiles []string `json:"folder_files,omitempty"`
 }
 
 type Agent struct {
@@ -1277,4 +1279,59 @@ func getAgentMessages(db *sql.DB, runID, agentID, userID string) ([]AgentMessage
 		out = append(out, m)
 	}
 	return out, true, rows.Err()
+}
+
+func setAgentRunStatus(db *sql.DB, runID, status string) error {
+	_, err := db.Exec(`UPDATE agent_runs SET status = ?, updated_at = ? WHERE id = ?`, status, time.Now().UnixMilli(), runID)
+	return err
+}
+
+// replaceAgents swaps a planned run's agents for the edited ones.
+func replaceAgents(db *sql.DB, runID string, agents []Agent) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err := tx.Exec(`DELETE FROM agents WHERE run_id = ?`, runID); err != nil {
+		return err
+	}
+	for _, a := range agents {
+		files, err := json.Marshal(a.Files)
+		if err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`INSERT INTO agents (id, run_id, position, task, files, web_query, note, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+			a.ID, runID, a.Position, a.Task, string(files), a.WebQuery, a.Note, a.Status); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+func listAgentRuns(db *sql.DB, conversationID, userID string) ([]AgentRun, error) {
+	rows, err := db.Query(`SELECT r.id FROM agent_runs r JOIN conversations c ON c.id = r.conversation_id
+		WHERE r.conversation_id = ? AND c.user_id = ? ORDER BY r.created_at`, conversationID, userID)
+	if err != nil {
+		return nil, err
+	}
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	rows.Close()
+	var out []AgentRun
+	for _, id := range ids {
+		run, err := getAgentRun(db, id, userID)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *run)
+	}
+	return out, nil
 }

@@ -53,6 +53,7 @@ type ollamaChatRequest struct {
 	Tools    []OllamaTool    `json:"tools,omitempty"`
 	Options  map[string]any  `json:"options,omitempty"`
 	Think    *bool           `json:"think,omitempty"`
+	Format   json.RawMessage `json:"format,omitempty"`
 }
 
 type ollamaChatChunk struct {
@@ -373,14 +374,20 @@ func (c *OllamaClient) doRaw(ctx context.Context, method, url string, body *byte
 // otherwise spends a small num_predict budget entirely on reasoning and
 // returns empty content. Non-thinking models accept think:false fine.
 func (c *OllamaClient) Chat(ctx context.Context, baseURL, model string, messages []OllamaMessage, options map[string]any) (string, error) {
+	return c.ChatJSON(ctx, baseURL, model, messages, options, nil)
+}
+
+// ChatJSON is Chat constrained to a JSON schema through Ollama's format
+// field; nil format means free text.
+func (c *OllamaClient) ChatJSON(ctx context.Context, baseURL, model string, messages []OllamaMessage, options map[string]any, format json.RawMessage) (string, error) {
 	return withSystemFallback(c, model, messages, func(messages []OllamaMessage) (string, error) {
-		return c.chat(ctx, baseURL, model, messages, options)
+		return c.chat(ctx, baseURL, model, messages, options, format)
 	})
 }
 
-func (c *OllamaClient) chat(ctx context.Context, baseURL, model string, messages []OllamaMessage, options map[string]any) (string, error) {
+func (c *OllamaClient) chat(ctx context.Context, baseURL, model string, messages []OllamaMessage, options map[string]any, format json.RawMessage) (string, error) {
 	think := false
-	body, err := json.Marshal(ollamaChatRequest{Model: model, Messages: messages, Options: options, Think: &think})
+	body, err := json.Marshal(ollamaChatRequest{Model: model, Messages: messages, Options: options, Think: &think, Format: format})
 	if err != nil {
 		return "", err
 	}

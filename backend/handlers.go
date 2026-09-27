@@ -594,8 +594,9 @@ func (s *Server) handleEditLastMessage(w http.ResponseWriter, r *http.Request) {
 	}
 	// An edit replaces the last message, but a memory or compact command
 	// never becomes one, so editing into it would just delete the original.
-	if _, _, ok := parseMemoryCommand(body.Content); ok || isCompactCommand(body.Content) {
-		writeError(w, http.StatusBadRequest, "send @memory or @compact as a new message instead of an edit")
+	_, isAgent := parseAgentCommand(body.Content)
+	if _, _, ok := parseMemoryCommand(body.Content); ok || isCompactCommand(body.Content) || isAgent {
+		writeError(w, http.StatusBadRequest, "send @memory, @compact or @agent as a new message instead of an edit")
 		return
 	}
 
@@ -668,7 +669,44 @@ func (s *Server) runUserTurn(w http.ResponseWriter, r *http.Request, user *User,
 		s.compactNow(w, r, user, id)
 		return
 	}
-	if save, rest, ok := parseMemoryCommand(content); ok {
+	isAgent := false
+	if task, ok := parseAgentCommand(content); ok {
+		isAgent = true
+		if task == "" {
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			w.Write([]byte("[Use @agent <task> to split a task into subtasks that run as separate agents.]"))
+			return
+		}
+		convo, err := getConversation(s.db, id, user.ID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		content = task
+		if folderOf(convo.Conversation) == nil && (user.BraveAPIKey == nil || *user.BraveAPIKey == "") {
+			notice = "[@agent needs an attached folder or a Brave Search key to give its agents inputs, so this is answered as a normal chat.]\n\n"
+		} else {
+			start()
+			if !s.ollama.IsLoaded(r.Context(), s.ollamaURLFor(user), convo.Model) {
+				fmt.Fprint(w, "<<<LOADING>>>\n")
+				if f, ok := w.(http.Flusher); ok {
+					f.Flush()
+				}
+			}
+			run, err := s.planAgentRun(r.Context(), user, convo, task)
+			switch {
+			case err != nil:
+				fmt.Fprintf(w, "[Couldn't plan the agents: %s]", describeOllamaError(err, s.ollamaURLFor(user)))
+				return
+			case run != nil:
+				line, _ := json.Marshal(run)
+				fmt.Fprintf(w, "<<<AGENT_PLAN>>>%s\n", line)
+				return
+			}
+			notice = "[This doesn't split into independent parts, so it's answered as a normal chat.]\n\n"
+		}
+	}
+	if save, rest, ok := parseMemoryCommand(content); ok && !isAgent {
 		if save {
 			s.saveMemoryFromChat(w, r, user, id, rest)
 			return
@@ -685,7 +723,7 @@ func (s *Server) runUserTurn(w http.ResponseWriter, r *http.Request, user *User,
 		}
 		notice = s.recallMemories(user, convo.Conversation, rest)
 		content = rest
-	} else if isWeb, query := stripWebFlag(content); isWeb {
+	} else if isWeb, query := stripWebFlag(content); isWeb && !isAgent {
 		content = query
 		switch {
 		case user.BraveAPIKey == nil || *user.BraveAPIKey == "":

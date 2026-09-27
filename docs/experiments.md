@@ -852,6 +852,25 @@ tasks) were valid JSON matching the schema, phi3 included.
   to +1.3 GB (llama) for four slots. Four slots already spill phi3 on
   6 GB, so going above 2 is for bigger GPUs, set per account.
 
+**In the app (phase 3).** The same rules run in Go, on the fixture
+through the real plan call. Two changes came from it:
+
+- qwen2.5:1.5b split three-part questions correctly but left `files`
+  empty and named the file in the task instead ("Find the value of
+  TAX_RATE in utils.py"), so validation dropped every subtask. A folder
+  file named as a whole word in the task is now added to its inputs:
+  with that, 1.5b plans the code-files, log and summary questions right.
+- A new chat has no token calibration, so at ratio 1 the 24.7 KB log
+  (~11k real tokens) counted as fitting an 8192 window. Agent inputs are
+  files, not the chat's own text, so they are sized as dense text, 2
+  chars per token: the log is planned as cut to 13 KB, start and end.
+
+Still wrong on every model: "who is on call this week" never went to
+notes.txt (sent to README.md, or dropped), since the planner sees file
+names, not contents. The card lets the user add the right file.
+qwen2.5:1.5b also split a single-file question into two near-duplicate
+subtasks; llama3.2 and phi3 correctly didn't split it.
+
 ## E25: `@agent` against a normal chat
 
 ### Baseline, before any agent code

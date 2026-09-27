@@ -1140,6 +1140,122 @@ details.flint-thinking > summary:focus {
   font-size: 0.9rem;
 }
 
+.flint-command-suggest {
+  position: absolute;
+  bottom: calc(100% + 0.35rem);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0.3rem;
+  list-style: none;
+  background: var(--flint-surface);
+  border: 1px solid var(--flint-border);
+  border-radius: 0.5rem;
+  z-index: 10;
+}
+
+.flint-command-suggest li {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+  margin: 0;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.35rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--flint-text-dim);
+}
+
+.flint-command-suggest li.active,
+.flint-command-suggest li:hover {
+  background: #141416;
+  color: var(--flint-text);
+}
+
+.flint-command-suggest code {
+  color: var(--flint-accent);
+  background: none;
+  padding: 0;
+  white-space: pre;
+}
+
+.flint-agent-estimate {
+  font-size: 0.85rem;
+  color: var(--flint-text-dim);
+  margin: 0 0 0.5rem;
+}
+
+.flint-agent-list {
+  padding-left: 1.25rem;
+  margin: 0 0 0.75rem;
+}
+
+.flint-agent-list li {
+  margin-bottom: 0.75rem;
+}
+
+.flint-agent-list textarea {
+  margin: 0 0 0.35rem;
+  font-size: 0.9rem;
+}
+
+.flint-agent-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.flint-agent-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-family: var(--pico-font-family-monospace);
+  font-size: 0.8rem;
+  background: #141416;
+  border: 1px solid var(--flint-border);
+  border-radius: 0.4rem;
+  padding: 0.1rem 0.45rem;
+}
+
+.flint-agent-chip button {
+  margin: 0;
+  padding: 0 0.2rem;
+  width: auto;
+  background: none;
+  border: none;
+  color: var(--flint-text-dim);
+  line-height: 1;
+}
+
+.flint-agent-add {
+  width: auto;
+  margin: 0;
+  padding: 0.1rem 1.8rem 0.1rem 0.5rem;
+  font-size: 0.8rem;
+  height: auto;
+}
+
+.flint-agent-web {
+  flex: 1 1 100%;
+  font-size: 0.8rem;
+  color: var(--flint-text-dim);
+}
+
+.flint-agent-web input {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  padding: 0.3rem 0.5rem;
+  height: auto;
+}
+
+.flint-agent-remove {
+  margin: 0.35rem 0 0;
+  width: auto;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.8rem;
+}
+
 .flint-command-actions {
   display: flex;
   gap: 0.5rem;
@@ -1292,6 +1408,7 @@ details.flint-thinking > summary:focus {
 }
 
 .flint-input-row {
+  position: relative;
   display: flex;
   align-items: flex-end;
   gap: 0.5rem;

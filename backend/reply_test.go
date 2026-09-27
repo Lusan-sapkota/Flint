@@ -42,7 +42,7 @@ func TestReplyInsteadDeniesWithoutAModelTurn(t *testing.T) {
 	if pending, _ := getPendingCommand(db, "c1"); pending != nil {
 		t.Error("the command should no longer be pending")
 	}
-	timeline := buildTimeline(c.Messages, nil, nil)
+	timeline := buildTimeline(c.Messages, nil, nil, nil)
 	if card := timeline[len(timeline)-1]; card.CommandStatus != "denied" || card.CommandResult != "" {
 		t.Errorf("a denied card should show only its status, got %q / %q", card.CommandStatus, card.CommandResult)
 	}

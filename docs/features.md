@@ -31,6 +31,9 @@ Everything Flint does, grouped by area.
 
 ## Chat
 
+- **Commands as you type.** Typing `@` at the start of a message lists
+  `@agent`, `@web`, `@memory`, `@memory save` and `@compact` with what
+  each does; arrow keys and Enter or Tab pick one, Escape hides the list.
 - **Cloud models.** An Ollama cloud model (`ollama pull <name>:cloud`)
   works like any other, under the same rules (every command waits for
   approval and passes the shield and precondition checks), but runs on
@@ -222,6 +225,37 @@ things up.
   sent to the model.
 - Memory commands aren't added to the chat history. An edit can't turn a
   message into a memory command.
+
+## Agents (`@agent`)
+
+`@agent <task>` splits a task into independent subtasks, each run by a
+separate agent with its own clean context window, then combines their
+results. It's for questions spanning several files, where one crowded
+chat history makes a small model lose track. Like `@web` and `@memory`,
+it only happens when you ask for it, and Flint's own code, not the model,
+decides what runs.
+
+- **Planning.** One model call, constrained to a JSON schema, lists the
+  subtasks and the inputs each one needs: files from the attached folder
+  (its direct files, not subfolders), or one web search if you have a
+  Brave key. The planner sees file names and sizes, not contents.
+- **Checked in code, not trusted.** A file that isn't directly in the
+  folder is dropped (so `../x`, `/etc/passwd` or a made-up name can't be
+  read), a file named in a subtask's text is added to its inputs, a web
+  query is dropped without a Brave key, and a subtask left with no input
+  is dropped. Fewer than two subtasks left means the task doesn't split,
+  and it's answered as a normal chat, with a line saying so. With no
+  folder and no Brave key there's nothing to give agents, so it's a
+  normal chat straight away.
+- **The plan card.** Each subtask shows its instruction, its files and
+  web search, and a note when a file is too big for an agent's window
+  and will be cut (start and end kept). Edit the instructions, add or
+  remove files, remove subtasks, then **Run** or **Discard**. It shows
+  how many model calls the run will make (one per agent plus one to
+  combine). An edited plan is checked again the same way before it runs.
+  The card stays after a reload.
+- `@agent` isn't added to the chat history while it's only a plan, and an
+  edit can't turn a message into one.
 
 ## Long conversations
 
