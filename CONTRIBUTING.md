@@ -97,13 +97,13 @@ the published image, since otherwise the local copy keeps shadowing it.
 ## Releasing (maintainers)
 
 A release is a version tag on `main` plus a GitHub release whose notes
-are that version's section of [docs/changelog.md](docs/changelog.md):
+are that version's section of [CHANGELOG.md](CHANGELOG.md):
 
 ```bash
 git switch main && git pull --ff-only
 git tag -a v0.2.0 -m "v0.2.0"
 git push origin v0.2.0
-awk '/^## \[0.2.0\]/{f=1;next} /^## \[/{f=0} f' docs/changelog.md > /tmp/notes.md
+awk '/^## \[0.2.0\]/{f=1;next} /^## \[/{f=0} f' CHANGELOG.md > /tmp/notes.md
 gh release create v0.2.0 --title "v0.2.0" --notes-file /tmp/notes.md --verify-tag
 ```
 
