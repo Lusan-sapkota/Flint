@@ -63,8 +63,7 @@ the published image, since otherwise the local copy keeps shadowing it.
   ```
 
 - **Update the docs in the same pull request.** Every change updates the
-  pages it affects. Documentation is native static HTML in `docs/` alongside
-  its Markdown sources. Update the affected pages directly in `docs/`.
+  pages in `docs/` it affects.
 - **Measure changes to prompts or the context pipeline.** Run the
   benchmark ([docs/benchmark.html](docs/benchmark.html)) before and after,
   on a small task list with `--runs 3`, and add the numbers to
