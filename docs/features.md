@@ -242,7 +242,9 @@ decides what runs.
 - **Checked in code, not trusted.** A file that isn't directly in the
   folder is dropped (so `../x`, `/etc/passwd` or a made-up name can't be
   read), a file named in a subtask's text is added to its inputs, a web
-  query is dropped without a Brave key, and a subtask left with no input
+  query is dropped without a Brave key or when the subtask has files (a
+  local fact can't be on the web, and searching for it would only send
+  it to Brave), and a subtask left with no input
   is dropped. Fewer than two subtasks left means the task doesn't split,
   and it's answered as a normal chat, with a line saying so. With no
   folder and no Brave key there's nothing to give agents, so it's a

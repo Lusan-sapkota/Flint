@@ -313,7 +313,7 @@
                           <option :value="f" x-text="f"></option>
                         </template>
                       </select>
-                      <template x-if="agent.web_query">
+                      <template x-if="agent.web_query && !agent.files.length">
                         <label class="flint-agent-web">Web search
                           <input type="text" x-model="agent.web_query" :readonly="item.run.status !== 'planned'">
                         </label>

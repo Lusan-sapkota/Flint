@@ -116,8 +116,9 @@ func agentFiles(folder string) (map[string]int64, error) {
 }
 
 // validatePlan applies E24's rules: files must be in the folder's list,
-// a web query needs a Brave key, and a subtask left with no input at all is
-// dropped, since an agent only reasons about what it's given.
+// a web query needs a Brave key and a subtask without files, and a subtask
+// left with no input at all is dropped, since an agent only reasons about
+// what it's given.
 func validatePlan(subtasks []planSubtask, files map[string]int64, webOK bool) []Agent {
 	var out []Agent
 	for _, st := range subtasks {
@@ -138,8 +139,11 @@ func validatePlan(subtasks []planSubtask, files map[string]int64, webOK bool) []
 			}
 		}
 		sort.Strings(kept[planned:])
+		// Files or one web query, never both: qwen2.5:1.5b added searches
+		// like "Stockroom server port" next to the file that answers it,
+		// which only sends a private detail to Brave for nothing.
 		query := ""
-		if webOK {
+		if webOK && len(kept) == 0 {
 			query = truncateRunes(strings.TrimSpace(st.WebQuery), maxAgentWebQuery)
 		}
 		if task == "" || (len(kept) == 0 && query == "") {
