@@ -1363,7 +1363,10 @@ details.flint-thinking > summary:focus {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(220px, 320px) 1fr;
+  /* minmax(0, 1fr), not 1fr: a plain 1fr column grows to its widest
+     unbroken line first, which showed a horizontal scrollbar for a moment
+     whenever a transcript section was opened. */
+  grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
   gap: 1rem;
 }
 
@@ -1400,6 +1403,7 @@ details.flint-thinking > summary:focus {
 
 .flint-agents-transcript {
   overflow-y: auto;
+  overflow-x: hidden;
   min-width: 0;
 }
 
@@ -1421,7 +1425,8 @@ details.flint-thinking > summary:focus {
 
 .flint-transcript-msg pre {
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: anywhere;
+  overflow-x: hidden;
   margin: 0.25rem 0 0;
   padding: 0.5rem 0.6rem;
   font-size: 0.8rem;
