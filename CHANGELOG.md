@@ -3,7 +3,7 @@
 Notable changes in each release. The measurements behind a change are in
 [experiments](experiments.md).
 
-## [Unreleased]
+## [0.2.1] - 2026-09-27
 
 ### Changed
 
@@ -236,6 +236,7 @@ First release.
 - A Docker image for amd64 and arm64 on ghcr.io, run with Docker Compose
   against the Ollama already on your machine.
 
+[0.2.1]: https://github.com/Lusan-sapkota/Flint/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Lusan-sapkota/Flint/compare/v0.1.4...v0.2.0
 [0.1.4]: https://github.com/Lusan-sapkota/Flint/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/Lusan-sapkota/Flint/compare/v0.1.2...v0.1.3
