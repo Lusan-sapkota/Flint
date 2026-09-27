@@ -194,7 +194,7 @@ document.addEventListener('alpine:init', () => {
   const MARKERS = [TOOL_CALL_MARKER, STATS_MARKER, THINK_MARKER, LOADING_MARKER, CONTEXT_MARKER, MEMORY_DRAFT_MARKER, SEARCHING_MARKER, SOURCES_MARKER, MEMORY_SAVED_MARKER, AGENT_PLAN_MARKER];
   // One JSON value per line, consumed in place while the stream continues.
   const LINE_MARKERS = [CONTEXT_MARKER, THINK_MARKER, SEARCHING_MARKER, SOURCES_MARKER, MEMORY_SAVED_MARKER];
-  const AGENT_TOOL_ROUNDS = 6;
+  const AGENT_TOOL_ROUNDS = 3; // maxToolAttemptsPerTurn
   const COMMANDS = [
     { cmd: '@agent ', hint: "split a task over the folder's files into separate agents" },
     { cmd: '@web ', hint: 'search the web first (needs a Brave key in Settings)' },
@@ -651,7 +651,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     // An agent without files or a web search explores the folder itself,
-    // taking up to AGENT_TOOL_ROUNDS extra calls (maxAgentToolRounds).
+    // taking up to AGENT_TOOL_ROUNDS extra calls, one per approved command.
     agentEstimate(run) {
       const n = run.agents.length;
       const web = run.agents.filter((a) => a.webOn && a.web_query.trim() && !a.files.length).length;

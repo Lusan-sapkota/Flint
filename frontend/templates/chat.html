@@ -325,7 +325,7 @@
                     </div>
                     <p class="flint-field-hint" x-show="agent.note" x-text="agent.note"></p>
                     <p class="flint-field-hint" x-show="item.run.status === 'planned' && !agent.files.length && !(agent.webOn && agent.web_query.trim())"
-                       x-text="item.run.can_explore ? 'No files: this agent looks through the folder itself (read-only: list, read, search).' : 'Add a file or a web search: this model can\'t look through the folder itself, so a subtask with neither is dropped.'"></p>
+                       x-text="item.run.can_explore ? 'No files: this agent looks through the folder itself, with commands you approve in the chat.' : 'Add a file or a web search: this model can\'t look through the folder itself, so a subtask with neither is dropped.'"></p>
                     <button type="button" class="secondary flint-agent-remove" x-show="item.run.status === 'planned' && item.run.agents.length > 1" @click="item.run.agents.splice(i, 1)">Remove subtask</button>
                   </li>
                 </template>

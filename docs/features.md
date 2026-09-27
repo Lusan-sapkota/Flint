@@ -240,14 +240,15 @@ decides what runs.
   (its direct files, not subfolders), or one web search if you have a
   Brave key. The planner sees file names and sizes, not contents.
 - **Agents that look for themselves.** With a model that supports tool
-  calls and a folder attached, an agent can also look through the
-  folder: list it, read a file or part of one, and search text. These
-  are read-only tools built into Flint, not shell commands, locked to
-  the attached folder and limited to 6 rounds per agent, so they run
-  without asking. Files named in the plan are then a head start, and a
-  subtask with none is fine. A model without tool support (phi3, for
-  one) only gets what the plan gives it, so each of its subtasks needs a
-  file or a web search. No agent ever gets the shell tool.
+  calls and a folder attached, an agent can also propose shell commands
+  (`ls`, `grep`, `cat`, ...) to look through the folder. Each one appears
+  in the main chat as "Agent 2 wants to run" with the literal command,
+  and runs only after you approve it, the same flow as the chat's own
+  commands, with the same safety shield and precondition checks. An agent
+  proposes at most 3 commands, like one chat turn. Files named in the
+  plan are then a head start, and a subtask with none is fine. A model
+  without tool support (phi3, for one) only gets what the plan gives it,
+  so each of its subtasks needs a file or a web search.
 - **Checked in code, not trusted.** A file that isn't directly in the
   folder is dropped (so `../x`, `/etc/passwd` or a made-up name can't be
   given), a file named in a subtask's text is added to its inputs, and a

@@ -33,10 +33,7 @@ const (
 	// inputs and the reply.
 	agentPromptTokens = 512
 	// Three ranked results with title, URL and snippet (formatSearchResults).
-	webReserveChars = 3000
-	// Tool rounds an exploring agent gets before it must answer with what
-	// it has read (maxToolAttemptsPerTurn's bounded-retry idea again).
-	maxAgentToolRounds = 6
+	webReserveChars    = 3000
 	agentCharsPerToken = 2
 )
 
@@ -194,8 +191,9 @@ func truncateRunes(s string, n int) string {
 }
 
 // canExplore reports whether this chat's agents may look through the
-// attached folder themselves with the read-only tools: that needs a folder
-// and a model that supports tool calls. Others get their inputs only.
+// attached folder themselves by proposing shell commands, each approved in
+// the main chat like any other: that needs a folder and a model that
+// supports tool calls. Others get their inputs only.
 func (s *Server) canExplore(ctx context.Context, user *User, c Conversation) bool {
 	if folderOf(c) == nil {
 		return false
