@@ -120,7 +120,23 @@ func (s *Server) handleUpdateSettings(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusBadRequest, fmt.Sprintf("a context window must be %d to %d tokens, or empty for Auto", minNumCtx, maxNumCtx))
 			return
 		}
-		if err := updateUserNumCtx(s.db, user.ID, column, n); err != nil {
+		if err := updateUserIntSetting(s.db, user.ID, column, n); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	for _, column := range []string{"max_agents", "cloud_max_agents"} {
+		v, ok := raw[column]
+		if !ok {
+			continue
+		}
+		var n *int
+		if err := json.Unmarshal(v, &n); err != nil || (n != nil && (*n < 1 || *n > maxMaxAgents)) {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("max agents must be 1 to %d, or empty for Auto", maxMaxAgents))
+			return
+		}
+		if err := updateUserIntSetting(s.db, user.ID, column, n); err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}

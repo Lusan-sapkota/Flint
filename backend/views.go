@@ -336,6 +336,8 @@ type settingsViewData struct {
 	OllamaBaseURL       string
 	NumCtx              int
 	CloudNumCtx         int
+	MaxAgents           int
+	CloudMaxAgents      int
 	BraveKeyHint        string
 	PreferredModelsJSON string
 	QuestionsJSON       string
@@ -389,6 +391,12 @@ func (s *Server) handleSettingsPage(w http.ResponseWriter, r *http.Request, user
 	}
 	if user.CloudNumCtx != nil {
 		data.CloudNumCtx = *user.CloudNumCtx
+	}
+	if user.MaxAgents != nil {
+		data.MaxAgents = *user.MaxAgents
+	}
+	if user.CloudMaxAgents != nil {
+		data.CloudMaxAgents = *user.CloudMaxAgents
 	}
 	// Only the last four characters ever reach the page: enough to tell keys
 	// apart, not enough to use one.

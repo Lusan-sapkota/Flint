@@ -40,6 +40,8 @@ document.addEventListener('alpine:init', () => {
     ollamaBaseURL: config.ollamaBaseURL || '',
     numCtx: config.numCtx || '',
     cloudNumCtx: config.cloudNumCtx || '',
+    maxAgents: config.maxAgents || '',
+    cloudMaxAgents: config.cloudMaxAgents || '',
     braveKeyHint: config.braveKeyHint,
     braveApiKey: '',
     replacingBraveKey: false,
@@ -362,6 +364,8 @@ document.addEventListener('alpine:init', () => {
         ollama_base_url: this.ollamaBaseURL.trim() || null,
         num_ctx: this.numCtx === '' || this.numCtx === null ? null : Number(this.numCtx),
         cloud_num_ctx: this.cloudNumCtx === '' || this.cloudNumCtx === null ? null : Number(this.cloudNumCtx),
+        max_agents: this.maxAgents === '' || this.maxAgents === null ? null : Number(this.maxAgents),
+        cloud_max_agents: this.cloudMaxAgents === '' || this.cloudMaxAgents === null ? null : Number(this.cloudMaxAgents),
         preferred_models: this.preferredModels,
       };
       if (newKey) body.brave_api_key = newKey;

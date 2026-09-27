@@ -274,7 +274,11 @@ a shared link opens the same one.
   or a number of tokens: raise the local one if your GPU has room, the
   cloud one if your ollama.com usage allows; common sizes such as 32k =
   32768 are listed and offered in the box; never above what the model
-  supports), and the Brave Search API key for `@web`.
+  supports), how many `@agent` agents run at once for local and for cloud
+  models (Auto is 2 and 10; any number from 1 to 64, for a bigger GPU or
+  a cloud plan that allows more; locally they only run together when
+  Ollama's `OLLAMA_NUM_PARALLEL` allows it, otherwise Ollama queues them),
+  and the Brave Search API key for `@web`.
 - **Models:** which models the new-chat picker shows, which are loaded,
   details for each (family, parameters, quantization, context length,
   capabilities), pulling new ones with a progress bar, and deleting them

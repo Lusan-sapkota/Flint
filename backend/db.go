@@ -20,6 +20,8 @@ type User struct {
 	BraveAPIKey     *string  `json:"-"`
 	NumCtx          *int     `json:"num_ctx,omitempty"`
 	CloudNumCtx     *int     `json:"cloud_num_ctx,omitempty"`
+	MaxAgents       *int     `json:"max_agents,omitempty"`
+	CloudMaxAgents  *int     `json:"cloud_max_agents,omitempty"`
 	CreatedAt       int64    `json:"created_at"`
 	UpdatedAt       int64    `json:"updated_at"`
 }
@@ -229,6 +231,43 @@ CREATE TRIGGER IF NOT EXISTS memories_fts_update AFTER UPDATE OF content ON memo
 	INSERT INTO memories_fts(memories_fts, rowid, content) VALUES ('delete', old.id, old.content);
 	INSERT INTO memories_fts(rowid, content) VALUES (new.id, new.content);
 END;
+CREATE TABLE IF NOT EXISTS agent_runs (
+	id              TEXT PRIMARY KEY,
+	conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+	task            TEXT NOT NULL,
+	status          TEXT NOT NULL,
+	answer          TEXT NOT NULL DEFAULT '',
+	created_at      INTEGER NOT NULL,
+	updated_at      INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS agents (
+	id          TEXT PRIMARY KEY,
+	run_id      TEXT NOT NULL REFERENCES agent_runs(id) ON DELETE CASCADE,
+	position    INTEGER NOT NULL,
+	task        TEXT NOT NULL,
+	files       TEXT NOT NULL DEFAULT '[]',
+	web_query   TEXT NOT NULL DEFAULT '',
+	note        TEXT NOT NULL DEFAULT '',
+	status      TEXT NOT NULL,
+	result      TEXT NOT NULL DEFAULT '',
+	error       TEXT NOT NULL DEFAULT '',
+	started_at  INTEGER,
+	finished_at INTEGER
+);
+
+-- Full agent transcripts: shown in the UI, never sent to the model.
+CREATE TABLE IF NOT EXISTS agent_messages (
+	id         INTEGER PRIMARY KEY AUTOINCREMENT,
+	agent_id   TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+	role       TEXT NOT NULL,
+	content    TEXT NOT NULL,
+	created_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_runs_conversation_id ON agent_runs(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_agents_run_id ON agents(run_id);
+CREATE INDEX IF NOT EXISTS idx_agent_messages_agent_id ON agent_messages(agent_id);
 CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
 CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id);
@@ -272,6 +311,8 @@ func migrate(db *sql.DB) error {
 		`ALTER TABLE memories ADD COLUMN conversation_id TEXT REFERENCES conversations(id) ON DELETE SET NULL`,
 		`ALTER TABLE users ADD COLUMN num_ctx INTEGER`,
 		`ALTER TABLE users ADD COLUMN cloud_num_ctx INTEGER`,
+		`ALTER TABLE users ADD COLUMN max_agents INTEGER`,
+		`ALTER TABLE users ADD COLUMN cloud_max_agents INTEGER`,
 	} {
 		if _, err := db.Exec(stmt); err != nil && !strings.Contains(err.Error(), "duplicate column") {
 			return err
@@ -381,8 +422,8 @@ func getUserByEmail(db *sql.DB, email string) (*User, error) {
 	var u User
 	var preferredModelsRaw *string
 	err := db.QueryRow(
-		`SELECT id, full_name, email, password_hash, ollama_base_url, preferred_models, brave_api_key, num_ctx, cloud_num_ctx, created_at, updated_at FROM users WHERE email = ?`, email,
-	).Scan(&u.ID, &u.FullName, &u.Email, &u.PasswordHash, &u.OllamaBaseURL, &preferredModelsRaw, &u.BraveAPIKey, &u.NumCtx, &u.CloudNumCtx, &u.CreatedAt, &u.UpdatedAt)
+		`SELECT id, full_name, email, password_hash, ollama_base_url, preferred_models, brave_api_key, num_ctx, cloud_num_ctx, max_agents, cloud_max_agents, created_at, updated_at FROM users WHERE email = ?`, email,
+	).Scan(&u.ID, &u.FullName, &u.Email, &u.PasswordHash, &u.OllamaBaseURL, &preferredModelsRaw, &u.BraveAPIKey, &u.NumCtx, &u.CloudNumCtx, &u.MaxAgents, &u.CloudMaxAgents, &u.CreatedAt, &u.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -397,8 +438,8 @@ func getUserByID(db *sql.DB, id string) (*User, error) {
 	var u User
 	var preferredModelsRaw *string
 	err := db.QueryRow(
-		`SELECT id, full_name, email, password_hash, ollama_base_url, preferred_models, brave_api_key, num_ctx, cloud_num_ctx, created_at, updated_at FROM users WHERE id = ?`, id,
-	).Scan(&u.ID, &u.FullName, &u.Email, &u.PasswordHash, &u.OllamaBaseURL, &preferredModelsRaw, &u.BraveAPIKey, &u.NumCtx, &u.CloudNumCtx, &u.CreatedAt, &u.UpdatedAt)
+		`SELECT id, full_name, email, password_hash, ollama_base_url, preferred_models, brave_api_key, num_ctx, cloud_num_ctx, max_agents, cloud_max_agents, created_at, updated_at FROM users WHERE id = ?`, id,
+	).Scan(&u.ID, &u.FullName, &u.Email, &u.PasswordHash, &u.OllamaBaseURL, &preferredModelsRaw, &u.BraveAPIKey, &u.NumCtx, &u.CloudNumCtx, &u.MaxAgents, &u.CloudMaxAgents, &u.CreatedAt, &u.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -417,9 +458,10 @@ func updateUserOllamaURL(db *sql.DB, userID string, baseURL *string) error {
 	return err
 }
 
-// updateUserNumCtx sets the local (column num_ctx) or cloud
-// (cloud_num_ctx) window; column is never user input.
-func updateUserNumCtx(db *sql.DB, userID, column string, numCtx *int) error {
+// updateUserIntSetting sets one of the nullable per-account numbers
+// (num_ctx, cloud_num_ctx, max_agents, cloud_max_agents); column is never
+// user input.
+func updateUserIntSetting(db *sql.DB, userID, column string, numCtx *int) error {
 	_, err := db.Exec(`UPDATE users SET `+column+` = ?, updated_at = ? WHERE id = ?`, numCtx, time.Now().UnixMilli(), userID)
 	return err
 }
@@ -475,10 +517,10 @@ func getSessionUser(db *sql.DB, sessionID string) (*User, error) {
 	var preferredModelsRaw *string
 	var expiresAt int64
 	err := db.QueryRow(
-		`SELECT u.id, u.full_name, u.email, u.password_hash, u.ollama_base_url, u.preferred_models, u.brave_api_key, u.num_ctx, u.cloud_num_ctx, u.created_at, u.updated_at, s.expires_at
+		`SELECT u.id, u.full_name, u.email, u.password_hash, u.ollama_base_url, u.preferred_models, u.brave_api_key, u.num_ctx, u.cloud_num_ctx, u.max_agents, u.cloud_max_agents, u.created_at, u.updated_at, s.expires_at
 		 FROM sessions s JOIN users u ON u.id = s.user_id
 		 WHERE s.id = ?`, sessionID,
-	).Scan(&u.ID, &u.FullName, &u.Email, &u.PasswordHash, &u.OllamaBaseURL, &preferredModelsRaw, &u.BraveAPIKey, &u.NumCtx, &u.CloudNumCtx, &u.CreatedAt, &u.UpdatedAt, &expiresAt)
+	).Scan(&u.ID, &u.FullName, &u.Email, &u.PasswordHash, &u.OllamaBaseURL, &preferredModelsRaw, &u.BraveAPIKey, &u.NumCtx, &u.CloudNumCtx, &u.MaxAgents, &u.CloudMaxAgents, &u.CreatedAt, &u.UpdatedAt, &expiresAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -1113,4 +1155,126 @@ func countWebSearchesSince(db *sql.DB, userID string, since int64) (int, error) 
 		userID, webResultsPrefix+"%", since,
 	).Scan(&n)
 	return n, err
+}
+
+type AgentRun struct {
+	ID             string  `json:"id"`
+	ConversationID string  `json:"conversation_id"`
+	Task           string  `json:"task"`
+	Status         string  `json:"status"`
+	Answer         string  `json:"answer"`
+	CreatedAt      int64   `json:"created_at"`
+	UpdatedAt      int64   `json:"updated_at"`
+	Agents         []Agent `json:"agents"`
+}
+
+type Agent struct {
+	ID         string   `json:"id"`
+	Position   int      `json:"position"`
+	Task       string   `json:"task"`
+	Files      []string `json:"files"`
+	WebQuery   string   `json:"web_query"`
+	Note       string   `json:"note"`
+	Status     string   `json:"status"`
+	Result     string   `json:"result"`
+	Error      string   `json:"error"`
+	StartedAt  *int64   `json:"started_at,omitempty"`
+	FinishedAt *int64   `json:"finished_at,omitempty"`
+}
+
+type AgentMessage struct {
+	ID        int64  `json:"id"`
+	Role      string `json:"role"`
+	Content   string `json:"content"`
+	CreatedAt int64  `json:"created_at"`
+}
+
+func createAgentRun(db *sql.DB, run AgentRun) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err := tx.Exec(`INSERT INTO agent_runs (id, conversation_id, task, status, answer, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		run.ID, run.ConversationID, run.Task, run.Status, run.Answer, run.CreatedAt, run.UpdatedAt); err != nil {
+		return err
+	}
+	for _, a := range run.Agents {
+		files, err := json.Marshal(a.Files)
+		if err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`INSERT INTO agents (id, run_id, position, task, files, web_query, note, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+			a.ID, run.ID, a.Position, a.Task, string(files), a.WebQuery, a.Note, a.Status); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+// getAgentRun returns nil when the run doesn't exist or belongs to another
+// account, so callers answer 404 either way.
+func getAgentRun(db *sql.DB, runID, userID string) (*AgentRun, error) {
+	var run AgentRun
+	err := db.QueryRow(`SELECT r.id, r.conversation_id, r.task, r.status, r.answer, r.created_at, r.updated_at
+		FROM agent_runs r JOIN conversations c ON c.id = r.conversation_id
+		WHERE r.id = ? AND c.user_id = ?`, runID, userID,
+	).Scan(&run.ID, &run.ConversationID, &run.Task, &run.Status, &run.Answer, &run.CreatedAt, &run.UpdatedAt)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := db.Query(`SELECT id, position, task, files, web_query, note, status, result, error, started_at, finished_at
+		FROM agents WHERE run_id = ? ORDER BY position`, runID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	run.Agents = []Agent{}
+	for rows.Next() {
+		var a Agent
+		var files string
+		if err := rows.Scan(&a.ID, &a.Position, &a.Task, &files, &a.WebQuery, &a.Note, &a.Status, &a.Result, &a.Error, &a.StartedAt, &a.FinishedAt); err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal([]byte(files), &a.Files); err != nil {
+			return nil, err
+		}
+		run.Agents = append(run.Agents, a)
+	}
+	return &run, rows.Err()
+}
+
+func insertAgentMessage(db *sql.DB, agentID, role, content string) error {
+	_, err := db.Exec(`INSERT INTO agent_messages (agent_id, role, content, created_at) VALUES (?, ?, ?, ?)`,
+		agentID, role, content, time.Now().UnixMilli())
+	return err
+}
+
+// getAgentMessages returns found=false when the agent isn't in that run or
+// the run belongs to another account.
+func getAgentMessages(db *sql.DB, runID, agentID, userID string) ([]AgentMessage, bool, error) {
+	var n int
+	if err := db.QueryRow(`SELECT count(*) FROM agents a
+		JOIN agent_runs r ON r.id = a.run_id JOIN conversations c ON c.id = r.conversation_id
+		WHERE a.id = ? AND r.id = ? AND c.user_id = ?`, agentID, runID, userID).Scan(&n); err != nil || n == 0 {
+		return nil, false, err
+	}
+	rows, err := db.Query(`SELECT id, role, content, created_at FROM agent_messages WHERE agent_id = ? ORDER BY id`, agentID)
+	if err != nil {
+		return nil, false, err
+	}
+	defer rows.Close()
+	out := []AgentMessage{}
+	for rows.Next() {
+		var m AgentMessage
+		if err := rows.Scan(&m.ID, &m.Role, &m.Content, &m.CreatedAt); err != nil {
+			return nil, false, err
+		}
+		out = append(out, m)
+	}
+	return out, true, rows.Err()
 }

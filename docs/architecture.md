@@ -37,6 +37,7 @@ backend/            Go module; run from here (asset paths are ../frontend/...)
   context.go        request budget and history fitting (see context-management.md)
   summary.go        background layered summaries
   memory.go         `@memory` save, draft, recall, folder memories, memory API
+  agent.go          `@agent` limits and the agent run and transcript API
   ablate.go         FLINT_ABLATE: switch scaffolding off for the benchmark
   ollama.go         Ollama client: chat (streaming and not), models, embeddings
   tools.go          the run_shell tool definition and reasoning nudge
@@ -63,7 +64,7 @@ Dockerfile, docker-compose.yml (Linux), docker-compose.desktop.yml (Mac/Windows)
 
 | Table | Holds |
 |---|---|
-| `users` | account, bcrypt password hash, own Ollama URL, preferred models, Brave API key, context window overrides (`num_ctx` local, `cloud_num_ctx` cloud) |
+| `users` | account, bcrypt password hash, own Ollama URL, preferred models, Brave API key, context window overrides (`num_ctx` local, `cloud_num_ctx` cloud), how many `@agent` agents run at once (`max_agents`, `cloud_max_agents`; empty = 2 local, 10 cloud) |
 | `sessions` | session id (the cookie value), user, expiry |
 | `security_questions` | recovery questions, answers bcrypt-hashed |
 | `conversations` | owner, title, model, attached folder, last context use, token ratio |
@@ -74,9 +75,12 @@ Dockerfile, docker-compose.yml (Linux), docker-compose.desktop.yml (Mac/Windows)
 | `memories` | facts a user saved with `@memory`, optionally tied to a folder and to the chat it was saved from (`conversation_id`, cleared if that chat is deleted) |
 | `memories_fts` | FTS5 index over memories, kept in sync by triggers |
 | `messages_fts` | FTS5 index over message text, kept in sync by triggers |
+| `agent_runs` | one `@agent` run in a chat: the task, its status (planned, running, done, failed, cancelled, discarded) and the combined answer |
+| `agents` | one subtask of a run: its instruction, input files or web query, a note on inputs cut to fit, status, bounded result or error |
+| `agent_messages` | each agent's full transcript, shown in the UI and never sent back to the model |
 
-Deleting a conversation cascades to its messages, attachments, commands
-and summaries; a memory saved from it stays and only loses its link.
+Deleting a conversation cascades to its messages, attachments, commands,
+summaries and agent runs (with their agents and transcripts); a memory saved from it stays and only loses its link.
 Deleting a user removes everything they own. Rows are never shared
 between users.
 

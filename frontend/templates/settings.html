@@ -4,6 +4,8 @@
     ollamaBaseURL: '{{.OllamaBaseURL | jsStr}}',
     numCtx: {{.NumCtx}},
     cloudNumCtx: {{.CloudNumCtx}},
+    maxAgents: {{.MaxAgents}},
+    cloudMaxAgents: {{.CloudMaxAgents}},
     braveKeyHint: '{{.BraveKeyHint | jsStr}}',
     preferredModels: {{.PreferredModelsJSON}},
     questions: {{.QuestionsJSON}},
@@ -64,6 +66,18 @@
         <p class="flint-field-hint">In tokens. Raise the local one if your GPU has the memory; a bigger window keeps more
           of a long chat but uses more memory and is slower. A cloud model costs no local memory, but each turn resends
           up to its window, which counts against your ollama.com usage. No model is given more than it supports.</p>
+        <div class="flint-field-row">
+          <label for="max_agents">Max agents at once, local models
+            <input type="number" id="max_agents" x-model="maxAgents" min="1" max="64" step="1" placeholder="Auto: 2">
+          </label>
+          <label for="cloud_max_agents">Max agents at once, cloud models
+            <input type="number" id="cloud_max_agents" x-model="cloudMaxAgents" min="1" max="64" step="1" placeholder="Auto: 10">
+          </label>
+        </div>
+        <p class="flint-field-hint">How many <code>@agent</code> subtasks run at the same time; the rest wait their turn.
+          Each agent is one more request to the model at once. Locally they only truly run together if Ollama allows it
+          (<code>OLLAMA_NUM_PARALLEL</code> at least this high); otherwise Ollama runs them one after another, and each
+          parallel request needs its own context-window memory on the GPU.</p>
         <template x-if="braveKeyHint && !replacingBraveKey">
           <div class="flint-saved-key">
             <span>Brave Search API key</span>
