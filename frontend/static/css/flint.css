@@ -1242,6 +1242,28 @@ details.flint-thinking > summary:focus {
   color: var(--flint-text-dim);
 }
 
+.flint-agent-web-row {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.flint-agent-web-row button {
+  margin: 0;
+  width: auto;
+  padding: 0 0.3rem;
+  background: none;
+  border: none;
+  color: var(--flint-text-dim);
+}
+
+.flint-agent-addweb {
+  margin: 0;
+  width: auto;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.8rem;
+}
+
 .flint-agent-web input {
   margin: 0.2rem 0 0;
   font-size: 0.85rem;

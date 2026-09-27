@@ -194,6 +194,7 @@ document.addEventListener('alpine:init', () => {
   const MARKERS = [TOOL_CALL_MARKER, STATS_MARKER, THINK_MARKER, LOADING_MARKER, CONTEXT_MARKER, MEMORY_DRAFT_MARKER, SEARCHING_MARKER, SOURCES_MARKER, MEMORY_SAVED_MARKER, AGENT_PLAN_MARKER];
   // One JSON value per line, consumed in place while the stream continues.
   const LINE_MARKERS = [CONTEXT_MARKER, THINK_MARKER, SEARCHING_MARKER, SOURCES_MARKER, MEMORY_SAVED_MARKER];
+  const AGENT_TOOL_ROUNDS = 6;
   const COMMANDS = [
     { cmd: '@agent ', hint: "split a task over the folder's files into separate agents" },
     { cmd: '@web ', hint: 'search the web first (needs a Brave key in Settings)' },
@@ -649,10 +650,15 @@ document.addEventListener('alpine:init', () => {
       return (run.folder_files || []).filter((f) => !agent.files.includes(f));
     },
 
+    // An agent without files or a web search explores the folder itself,
+    // taking up to AGENT_TOOL_ROUNDS extra calls (maxAgentToolRounds).
     agentEstimate(run) {
       const n = run.agents.length;
-      const web = run.agents.filter((a) => a.web_query).length;
-      let text = `${n} agent${n === 1 ? '' : 's'}, then 1 call to combine their results: ${n + 1} model calls`;
+      const web = run.agents.filter((a) => a.webOn && a.web_query.trim() && !a.files.length).length;
+      const exploring = run.can_explore ? n - web : 0;
+      const least = n + 1;
+      const most = least + exploring * AGENT_TOOL_ROUNDS;
+      let text = `${n} agent${n === 1 ? '' : 's'}, then 1 call to combine their results: ${most > least ? `${least} to ${most}` : least} model calls`;
       if (web) text += `, ${web} web search${web === 1 ? '' : 'es'}`;
       return text + '.';
     },
@@ -661,7 +667,7 @@ document.addEventListener('alpine:init', () => {
     // whatever is typed here can only narrow what the agents may read.
     async runPlan(item) {
       item.planError = '';
-      const agents = item.run.agents.map((a) => ({ task: a.task, files: a.files, web_query: a.web_query }));
+      const agents = item.run.agents.map((a) => ({ task: a.task, files: a.files, web_query: a.webOn ? a.web_query : '' }));
       try {
         const res = await fetch(`/api/agent-runs/${item.run.id}/run`, {
           method: 'POST',

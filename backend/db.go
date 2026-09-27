@@ -1167,7 +1167,9 @@ type AgentRun struct {
 	UpdatedAt      int64   `json:"updated_at"`
 	Agents         []Agent `json:"agents"`
 	// What the plan card may add to a subtask; filled for planned runs only.
-	FolderFiles []string `json:"folder_files,omitempty"`
+	FolderFiles  []string `json:"folder_files,omitempty"`
+	WebAvailable bool     `json:"web_available,omitempty"`
+	CanExplore   bool     `json:"can_explore,omitempty"`
 }
 
 type Agent struct {

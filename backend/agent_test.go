@@ -177,7 +177,7 @@ func TestValidatePlan(t *testing.T) {
 		{Task: "Imports", Files: []string{" main.py ", "go.txt"}},
 	}
 
-	got := validatePlan(plan, files, false)
+	got := validatePlan(plan, files, false, false)
 	if len(got) != 2 {
 		t.Fatalf("without a key: want the README and main.py subtasks only, got %+v", got)
 	}
@@ -185,12 +185,17 @@ func TestValidatePlan(t *testing.T) {
 		t.Errorf("files should be deduplicated, trimmed and limited to the folder list, got %+v", got)
 	}
 
-	got = validatePlan(plan, files, true)
+	got = validatePlan(plan, files, true, false)
 	if len(got) != 3 || got[1].WebQuery != "latest go release" || len(got[1].Files) != 0 {
 		t.Fatalf("with a key the web subtask stays, got %+v", got)
 	}
 
-	both := validatePlan([]planSubtask{{Task: "Find the port", Files: []string{"README.md"}, WebQuery: "Stockroom server port"}}, files, true)
+	explored := validatePlan([]planSubtask{{Task: "Who is on call?", Files: []string{"../x"}}, {Task: " ", Files: []string{}}}, files, false, true)
+	if len(explored) != 1 || len(explored[0].Files) != 0 || explored[0].WebQuery != "" {
+		t.Errorf("when agents can explore, a subtask with no inputs stays (an empty task doesn't), got %+v", explored)
+	}
+
+	both := validatePlan([]planSubtask{{Task: "Find the port", Files: []string{"README.md"}, WebQuery: "Stockroom server port"}}, files, true, false)
 	if len(both) != 1 || both[0].WebQuery != "" || both[0].Files[0] != "README.md" {
 		t.Errorf("a subtask with files keeps them and loses its web query, got %+v", both)
 	}
@@ -199,13 +204,13 @@ func TestValidatePlan(t *testing.T) {
 		{Task: "Find TAX_RATE in main.py and README.md.", Files: []string{}},
 		{Task: "Check domain.py and main.pyc", Files: []string{}},
 		{Task: "Who is on call?", Files: []string{}},
-	}, files, false)
+	}, files, false, false)
 	if len(named) != 1 || !slices.Equal(named[0].Files, []string{"README.md", "main.py"}) {
 		t.Errorf("files named in the task should become its inputs, whole names only, got %+v", named)
 	}
 
 	long := planSubtask{Task: strings.Repeat("é", maxAgentTask+50), Files: []string{}, WebQuery: strings.Repeat("q", 300)}
-	got = validatePlan([]planSubtask{long}, files, true)
+	got = validatePlan([]planSubtask{long}, files, true, false)
 	if len([]rune(got[0].Task)) != maxAgentTask || len(got[0].WebQuery) != maxAgentWebQuery {
 		t.Errorf("task and query should be capped, got %d and %d", len([]rune(got[0].Task)), len(got[0].WebQuery))
 	}
@@ -214,7 +219,7 @@ func TestValidatePlan(t *testing.T) {
 	for i := range many {
 		many[i] = planSubtask{Task: "t", Files: []string{"main.py"}}
 	}
-	if got := validatePlan(many, files, false); len(got) != maxPlanSubtasks {
+	if got := validatePlan(many, files, false, false); len(got) != maxPlanSubtasks {
 		t.Errorf("want at most %d subtasks, got %d", maxPlanSubtasks, len(got))
 	}
 }

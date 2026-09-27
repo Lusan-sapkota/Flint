@@ -33,7 +33,10 @@ const (
 	// inputs and the reply.
 	agentPromptTokens = 512
 	// Three ranked results with title, URL and snippet (formatSearchResults).
-	webReserveChars    = 3000
+	webReserveChars = 3000
+	// Tool rounds an exploring agent gets before it must answer with what
+	// it has read (maxToolAttemptsPerTurn's bounded-retry idea again).
+	maxAgentToolRounds = 6
 	agentCharsPerToken = 2
 )
 
@@ -50,6 +53,8 @@ Example: "Who wrote a.txt and what does b.py import?" -> {"subtasks":[{"task":"F
 %s
 Files in the attached folder:
 %s`
+
+const planExplore = `Agents can also look through the folder themselves, so files is optional: list the files you know a subtask needs, or [] to let its agent find them.`
 
 const (
 	planWebOn      = `Web search is available: a subtask that needs current facts from the internet gets one web_query and no files.`
@@ -116,10 +121,11 @@ func agentFiles(folder string) (map[string]int64, error) {
 }
 
 // validatePlan applies E24's rules: files must be in the folder's list,
-// a web query needs a Brave key and a subtask without files, and a subtask
-// left with no input at all is dropped, since an agent only reasons about
-// what it's given.
-func validatePlan(subtasks []planSubtask, files map[string]int64, webOK bool) []Agent {
+// and a web query needs a Brave key and a subtask without files. A subtask
+// left with no input at all is kept only when agents can explore the
+// folder themselves; otherwise it's dropped, since that agent could only
+// reason about what it's given.
+func validatePlan(subtasks []planSubtask, files map[string]int64, webOK, explore bool) []Agent {
 	var out []Agent
 	for _, st := range subtasks {
 		task := truncateRunes(strings.TrimSpace(st.Task), maxAgentTask)
@@ -146,7 +152,7 @@ func validatePlan(subtasks []planSubtask, files map[string]int64, webOK bool) []
 		if webOK && len(kept) == 0 {
 			query = truncateRunes(strings.TrimSpace(st.WebQuery), maxAgentWebQuery)
 		}
-		if task == "" || (len(kept) == 0 && query == "") {
+		if task == "" || (len(kept) == 0 && query == "" && !explore) {
 			continue
 		}
 		if kept == nil {
@@ -185,6 +191,17 @@ func truncateRunes(s string, n int) string {
 		return string(r[:n])
 	}
 	return s
+}
+
+// canExplore reports whether this chat's agents may look through the
+// attached folder themselves with the read-only tools: that needs a folder
+// and a model that supports tool calls. Others get their inputs only.
+func (s *Server) canExplore(ctx context.Context, user *User, c Conversation) bool {
+	if folderOf(c) == nil {
+		return false
+	}
+	info := s.ollama.modelInfo(s.ollamaURLFor(user), c.Model)
+	return slices.Contains(s.ollama.Capabilities(ctx, s.ollamaURLFor(user), info), "tools")
 }
 
 // agentInputChars is how much input text fits one agent's window, in
@@ -276,6 +293,10 @@ func (s *Server) planAgentRun(ctx context.Context, user *User, convo *Conversati
 	if webOK {
 		web, example = planWebOn, planWebExample
 	}
+	explore := s.canExplore(ctx, user, convo.Conversation)
+	if explore {
+		web += " " + planExplore
+	}
 
 	numCtx := s.numCtxFor(user, convo.Conversation)
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
@@ -293,14 +314,14 @@ func (s *Server) planAgentRun(ctx context.Context, user *User, convo *Conversati
 	if err := json.Unmarshal([]byte(out), &plan); err != nil {
 		return nil, fmt.Errorf("the model's plan wasn't valid JSON: %w", err)
 	}
-	agents := validatePlan(plan.Subtasks, files, webOK)
+	agents := validatePlan(plan.Subtasks, files, webOK, explore)
 	if len(agents) < 2 {
 		return nil, nil
 	}
 	planNotes(agents, files, agentInputChars(numCtx))
 
 	now := time.Now().UnixMilli()
-	run := AgentRun{ID: uuid.NewString(), ConversationID: convo.ID, Task: task, Status: "planned", CreatedAt: now, UpdatedAt: now, FolderFiles: names}
+	run := AgentRun{ID: uuid.NewString(), ConversationID: convo.ID, Task: task, Status: "planned", CreatedAt: now, UpdatedAt: now, FolderFiles: names, WebAvailable: webOK, CanExplore: explore}
 	for i := range agents {
 		agents[i].ID = uuid.NewString()
 		agents[i].Position = i
@@ -415,9 +436,9 @@ func (s *Server) handleRunAgentRun(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	agents := validatePlan(body.Agents, files, user.BraveAPIKey != nil && *user.BraveAPIKey != "")
+	agents := validatePlan(body.Agents, files, user.BraveAPIKey != nil && *user.BraveAPIKey != "", s.canExplore(r.Context(), user, convo.Conversation))
 	if len(agents) == 0 {
-		writeError(w, http.StatusBadRequest, "nothing to run: each subtask needs a task and a file from the folder or a web query")
+		writeError(w, http.StatusBadRequest, "nothing to run: each subtask needs a task, and this model needs a file from the folder or a web query for it")
 		return
 	}
 	planNotes(agents, files, agentInputChars(s.numCtxFor(user, convo.Conversation)))

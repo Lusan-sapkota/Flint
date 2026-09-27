@@ -293,10 +293,15 @@ func (s *Server) handleChatPage(w http.ResponseWriter, r *http.Request, user *Us
 			log.Printf("warning: loading this chat's agent runs: %v", err)
 		}
 		for i := range runs {
-			if runs[i].Status == "planned" && full.AttachedFolder != nil {
+			if runs[i].Status != "planned" {
+				continue
+			}
+			if full.AttachedFolder != nil {
 				files, _ := agentFiles(*full.AttachedFolder)
 				runs[i].FolderFiles = slices.Sorted(maps.Keys(files))
 			}
+			runs[i].WebAvailable = user.BraveAPIKey != nil && *user.BraveAPIKey != ""
+			runs[i].CanExplore = s.canExplore(r.Context(), user, full.Conversation)
 		}
 		timeline = buildTimeline(full.Messages, pending, saved, runs)
 
