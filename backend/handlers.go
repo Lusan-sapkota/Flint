@@ -32,6 +32,9 @@ type Server struct {
 
 	// Conversations with a background summarization in flight.
 	summarizing sync.Map
+	// Agent commands awaiting the user, by command id: where their
+	// approve/deny is delivered to the waiting agent.
+	agentDecisions sync.Map
 }
 
 func (s *Server) lockConversation(id string) func() {
@@ -836,25 +839,64 @@ func cleanGeneratedTitle(s string) string {
 }
 
 func (s *Server) injectWebSearchResults(ctx context.Context, conversationID string, user *User, query string) ([]SearchResult, error) {
-	results, err := braveSearch(ctx, *user.BraveAPIKey, query)
-	if err != nil {
+	ranked, err := s.searchWeb(ctx, user, query)
+	if err != nil || len(ranked) == 0 {
 		return nil, err
 	}
-	if len(results) == 0 {
-		return nil, nil
-	}
+	_, err = insertMessage(s.db, conversationID, "system", formatSearchResults(query, ranked))
+	return ranked, err
+}
 
+// searchWeb runs a Brave search and keeps the results closest to the query.
+func (s *Server) searchWeb(ctx context.Context, user *User, query string) ([]SearchResult, error) {
+	results, err := braveSearch(ctx, *user.BraveAPIKey, query)
+	if err != nil || len(results) == 0 {
+		return nil, err
+	}
 	ranked, err := rankByRelevance(ctx, s.ollama, s.ollamaURLFor(user), query, results, rankedResultCount)
 	if err != nil {
 		log.Printf("warning: embedding rank failed, using unranked results: %v", err)
-		ranked = results
-		if len(ranked) > rankedResultCount {
-			ranked = ranked[:rankedResultCount]
+		ranked = results[:min(len(results), rankedResultCount)]
+	}
+	return ranked, nil
+}
+
+// executeCommand runs an approved command in its folder and records the
+// outcome. The result text always states success or failure first: an
+// empty output after a nonzero exit otherwise looked like success.
+func (s *Server) executeCommand(ctx context.Context, cmd *Command) (resultText, displayStatus string) {
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
+	execCmd := exec.CommandContext(ctx, "sh", "-c", cmd.Command)
+	execCmd.Dir = cmd.Cwd
+	outputBytes, runErr := execCmd.CombinedOutput()
+
+	output := string(outputBytes)
+	if len(output) > 20000 {
+		output = output[:20000] + "\n...[truncated]"
+	}
+
+	status := "executed"
+	exitCode := 0
+	if runErr != nil {
+		status = "error"
+		if exitErr, ok := runErr.(*exec.ExitError); ok {
+			exitCode = exitErr.ExitCode()
+		} else {
+			output += fmt.Sprintf("\n[error: %v]", runErr)
+			exitCode = -1
 		}
 	}
 
-	_, err = insertMessage(s.db, conversationID, "system", formatSearchResults(query, ranked))
-	return ranked, err
+	if err := resolveCommand(s.db, cmd.ID, status, output, &exitCode); err != nil {
+		log.Printf("warning: failed to resolve command: %v", err)
+	}
+
+	if exitCode == 0 {
+		return fmt.Sprintf("[exit code: 0]\n%s", output), "success"
+	}
+	return fmt.Sprintf("[FAILED, exit code: %d]\n%s", exitCode, output), "failed"
 }
 
 func (s *Server) handleApproveCommand(w http.ResponseWriter, r *http.Request) {
@@ -917,41 +959,7 @@ func (s *Server) resolveCommandAndContinue(w http.ResponseWriter, r *http.Reques
 			log.Printf("warning: failed to resolve command: %v", err)
 		}
 	} else {
-		ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
-		defer cancel()
-
-		execCmd := exec.CommandContext(ctx, "sh", "-c", cmd.Command)
-		execCmd.Dir = cmd.Cwd
-		outputBytes, runErr := execCmd.CombinedOutput()
-
-		output := string(outputBytes)
-		if len(output) > 20000 {
-			output = output[:20000] + "\n...[truncated]"
-		}
-
-		status := "executed"
-		exitCode := 0
-		if runErr != nil {
-			status = "error"
-			if exitErr, ok := runErr.(*exec.ExitError); ok {
-				exitCode = exitErr.ExitCode()
-			} else {
-				output += fmt.Sprintf("\n[error: %v]", runErr)
-				exitCode = -1
-			}
-		}
-
-		if err := resolveCommand(s.db, cmd.ID, status, output, &exitCode); err != nil {
-			log.Printf("warning: failed to resolve command: %v", err)
-		}
-
-		if exitCode == 0 {
-			resultText = fmt.Sprintf("[exit code: 0]\n%s", output)
-			displayStatus = "success"
-		} else {
-			resultText = fmt.Sprintf("[FAILED, exit code: %d]\n%s", exitCode, output)
-			displayStatus = "failed"
-		}
+		resultText, displayStatus = s.executeCommand(r.Context(), cmd)
 	}
 
 	if err := insertToolResultMessage(s.db, convoID, cmd.ToolCallID, resultText); err != nil {

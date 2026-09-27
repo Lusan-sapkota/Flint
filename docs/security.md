@@ -75,6 +75,20 @@ The working directory is the attached folder, but a command can still
 `cd` elsewhere or use absolute paths. Commands time out after 60 seconds,
 and their output is capped at 20,000 characters.
 
+Commands an `@agent` agent proposes go through the same four layers:
+shown in the chat as "Agent N wants to run" with the exact text, held
+until approved, checked by the shield when proposed and again when run,
+and checked for preconditions. They are approved through their run
+(`POST /api/agent-runs/{id}/commands/{cmdId}/approve`), never through the
+chat's own approve route, which ignores them, and they never count as the
+chat's pending command. Approving flips the command from pending in one
+SQL statement that also checks the run belongs to the caller, so two
+racing approvals, or an approval and Stop, can't both win. Stop cancels
+every waiting command, and one approved in the same instant is cancelled
+too, never left to run. Each agent may propose at most the "Commands per
+agent" setting (8 by default), and stops after 5 failed or denied
+commands in a row.
+
 ## Network
 
 - Flint talks to Ollama, and to Brave Search only for an explicit `@web`
@@ -109,6 +123,23 @@ searched on an explicit `@memory` command.
 The Settings list names the chat a memory came from by joining on
 conversations owned by the same user, so it can never show the title of
 another account's chat.
+
+## Agents
+
+- **What an agent can read.** Only direct files of the attached folder
+  that the plan names (anything else, such as `../x` or `/etc/passwd`, is
+  dropped in code, both from the model's plan and from edits on the plan
+  card), the web results for its one query, and the output of commands
+  the user approved. Files are read in Go, never by the model.
+- **The web.** A search runs only if it is on the plan card when the user
+  presses Run, needs the account's Brave key, and is never combined with
+  files in one subtask, so a local fact isn't sent to Brave.
+- **Isolation.** Agent runs, agents and transcripts are reached only
+  through conversations the caller owns; another account gets 404.
+  Transcripts are shown to their owner and never sent back to the model.
+- **Made-up answers.** An agent that was given no files or web results
+  and ran no command that worked has its answer replaced with "nothing
+  to answer from", whatever it wrote, since it can't have read anything.
 
 ## Reporting a vulnerability
 

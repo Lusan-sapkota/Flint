@@ -1278,6 +1278,194 @@ details.flint-thinking > summary:focus {
   font-size: 0.8rem;
 }
 
+.flint-agent-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--flint-text-dim);
+}
+
+.flint-agent-summary button {
+  margin: 0;
+  width: auto;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.flint-agents-pill {
+  margin: 0;
+  width: auto;
+  padding: 0.15rem 0.65rem;
+  font-size: 0.8rem;
+  border-radius: 999px;
+  background: var(--flint-surface);
+  border: 1px solid var(--flint-border);
+  color: var(--flint-text-dim);
+  white-space: nowrap;
+}
+
+.flint-agents-pill.flint-agents-waiting {
+  border-color: var(--flint-accent);
+  color: var(--flint-accent);
+}
+
+.flint-agents-dialog {
+  width: min(1100px, 95vw);
+  max-width: none;
+  padding: 0;
+}
+
+.flint-agents-dialog article {
+  width: 100%;
+  max-width: none;
+  height: min(80vh, 800px);
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 1rem;
+}
+
+.flint-agents-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  background: none;
+  border: none;
+}
+
+.flint-agents-head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.flint-agents-head button {
+  margin: 0;
+  width: auto;
+  padding: 0.1rem 0.6rem;
+}
+
+.flint-agents-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) 1fr;
+  gap: 1rem;
+}
+
+.flint-agents-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+}
+
+.flint-agents-list li {
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0.6rem;
+  border: 1px solid var(--flint-border);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.flint-agents-list li.active {
+  border-color: var(--flint-accent);
+}
+
+.flint-agents-list li p {
+  margin: 0.25rem 0 0.35rem;
+}
+
+.flint-agents-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.flint-agents-transcript {
+  overflow-y: auto;
+  min-width: 0;
+}
+
+.flint-agents-answer {
+  border: 1px solid var(--flint-accent);
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.flint-agents-answer p {
+  margin: 0.25rem 0 0;
+}
+
+.flint-transcript-msg {
+  margin-bottom: 0.6rem;
+  font-size: 0.85rem;
+}
+
+.flint-transcript-msg pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0.25rem 0 0;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.8rem;
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+.flint-transcript-role,
+.flint-transcript-msg summary {
+  color: var(--flint-text-dim);
+  font-size: 0.8rem;
+}
+
+.flint-transcript-tool_call pre {
+  color: var(--flint-accent);
+}
+
+@media (max-width: 700px) {
+  .flint-agents-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .flint-agents-list {
+    max-height: 30vh;
+  }
+}
+
+.flint-agent-status {
+  color: var(--flint-text-dim);
+}
+
+.flint-agent-done {
+  color: var(--flint-accent);
+}
+
+.flint-agent-failed {
+  color: var(--pico-del-color, #e06c75);
+}
+
+.flint-agent-reply {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.flint-agent-reply input {
+  margin: 0;
+}
+
+.flint-agent-reply button {
+  margin: 0;
+  width: auto;
+}
+
 .flint-command-actions {
   display: flex;
   gap: 0.5rem;

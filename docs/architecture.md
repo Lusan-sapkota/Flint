@@ -37,7 +37,8 @@ backend/            Go module; run from here (asset paths are ../frontend/...)
   context.go        request budget and history fitting (see context-management.md)
   summary.go        background layered summaries
   memory.go         `@memory` save, draft, recall, folder memories, memory API
-  agent.go          `@agent` limits and the agent run and transcript API
+  agent.go          `@agent` plan call and validation, limits, run and transcript API
+  agentrun.go       running agents: concurrency, inputs, commands, budgets, results
   ablate.go         FLINT_ABLATE: switch scaffolding off for the benchmark
   ollama.go         Ollama client: chat (streaming and not), models, embeddings
   tools.go          the run_shell tool definition and reasoning nudge
@@ -70,7 +71,7 @@ Dockerfile, docker-compose.yml (Linux), docker-compose.desktop.yml (Mac/Windows)
 | `conversations` | owner, title, model, attached folder, last context use, token ratio |
 | `messages` | role (`user`/`assistant`/`system`/`tool`), content, thinking, tool calls |
 | `attachments` | metadata; the file itself lives under `ATTACHMENTS_DIR` |
-| `commands` | every model-proposed shell command, its status, output and exit code |
+| `commands` | every model-proposed shell command, its status, output and exit code; `agent_id` is set when an `@agent` agent proposed it |
 | `summaries` | layered summaries covering message id ranges (see context-management.md) |
 | `memories` | facts a user saved with `@memory`, optionally tied to a folder and to the chat it was saved from (`conversation_id`, cleared if that chat is deleted) |
 | `memories_fts` | FTS5 index over memories, kept in sync by triggers |
@@ -113,6 +114,32 @@ Each step is idempotent.
    the first message (skipped if the reply failed), then a background
    summarization pass.
 
+## An `@agent` run
+
+1. **Plan.** `@agent <task>` makes one call to the chat's model with a JSON
+   schema and the chat's own `num_ctx` (another size would reload the
+   model, E24). Go validates the plan (folder files only, files or one
+   web query, inputs or exploration) and saves it as a `planned` run; the
+   stream ends with `<<<AGENT_PLAN>>>`. Nothing enters the chat history.
+2. **Run.** `POST /api/agent-runs/{id}/run` takes the conversation's lock,
+   re-checks the run is still planned, validates the edited plan again,
+   and streams `<<<AGENTS>>>` lines until every agent ends. At most "max
+   agents" run at once, in plan order; the rest wait.
+3. **One agent.** Go reads its files (a big file keeps its start and end,
+   sized at 1.5 chars per token so the prompt really fits) or runs its
+   search, and builds a fresh history: instructions and the subtask with
+   its inputs. With a tool-capable model and a folder, it may call the
+   shell tool without a JSON format (a format suppresses tool calls,
+   E25), with the tool nudge on the last message. Each call is checked by
+   the shield and preconditions and waits for the user in the main chat;
+   the decision arrives through
+   `POST /api/agent-runs/{id}/commands/{cmdId}/{approve|deny}`, which
+   doesn't take the conversation's lock. Then one call with the result
+   schema gives `{"answer","found"}`, which Go checks and bounds. The
+   whole transcript goes to `agent_messages`, never to the chat.
+4. **Stop.** Closing the run's request (Stop, a closed tab) cancels every
+   agent and every waiting command.
+
 ## Streaming protocol
 
 Replies stream as `text/plain`: the model's tokens, plus marker lines the
@@ -130,6 +157,9 @@ client consumes:
 | `<<<MEMORY_DRAFT>>>{"text":..}` | a drafted memory for the user to review; ends the stream |
 | `<<<SEARCHING>>>{"query":..}` | an `@web` search has started |
 | `<<<SOURCES>>>{"query":..,"sources":[{"title","url","date"?}]}` | the results the answer will be based on; `date` only when every result has one |
+| `<<<AGENT_PLAN>>>{run}` | an `@agent` plan awaiting Run or Discard; ends the stream |
+| `<<<AGENTS>>>{"type":"state",..}` | on an `@agent` run's own stream (`POST /api/agent-runs/{id}/run`): the run's status and every agent's status, result and error, sent on each change |
+| `<<<AGENTS>>>{"type":"command",..}` | an agent asked to run a command (`status` pending), or what it did once decided (with `output`) |
 
 ## Fixed decisions
 

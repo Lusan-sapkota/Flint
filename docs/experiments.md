@@ -899,6 +899,35 @@ different files; see [benchmark.md](benchmark.md)), run as a normal chat,
   blank; once, after the filler turns, it answered an earlier turn
   instead of the question.
 
+### While building the agents
+
+Found live on the fixture, before the benchmark:
+
+- **A JSON format switches tool calls off.** With `format` and `tools` in
+  one request, qwen2.5-3b and 1.5b never called the tool and answered
+  straight away (1.5b claiming `found: true` with nothing read), and
+  llama3.2 put the answer schema's fields into its tool call. So an agent
+  that may run commands works without a format, and one last call with
+  the result schema and no tools gives the result.
+- **2 chars per token wasn't enough for agent inputs.** The log cut to
+  that size came to 8214-8320 tokens against the 8192 window (about 1.75
+  chars per token). Without a format Ollama rejected it; with the result
+  format it truncated silently, so the agent never saw the log and
+  answered "not found" or invented one. At 1.5 chars per token all three
+  models found `ERROR 4471` in the one result call (6 of 6 prompts), so
+  a two-step "answer, then JSON" variant wasn't needed.
+- **Agents narrate instead of calling the tool.** Without the chat's tool
+  nudge, qwen2.5:1.5b wrote "I'll look through the folder" or a command in
+  a code block, then invented answers in the result call ("port 8080",
+  "John Doe", `found: true`). With the nudge, qwen2.5-3b explored
+  properly (its no-file on-call agent read config.yaml, then notes.txt,
+  and answered Omar). 1.5b still answered those without a tool call, so
+  an agent given nothing that ran no working command now has its answer
+  replaced in Go with "nothing to answer from".
+- A qwen2.5-3b agent that already had config.yaml as input still asked
+  for more commands (a grep, then Python one-liners) instead of reading
+  its input; denying, and the commands-per-agent limit, end that.
+
 ## Open questions
 
 - **qwen3.5 thinking with no answer.** Once in E22 it streamed a long

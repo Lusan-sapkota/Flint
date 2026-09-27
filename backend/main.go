@@ -114,6 +114,7 @@ func main() {
 	mux.HandleFunc("GET /api/agent-runs/{id}", srv.requireAuth(srv.handleGetAgentRun))
 	mux.HandleFunc("POST /api/agent-runs/{id}/run", srv.requireAuth(srv.handleRunAgentRun))
 	mux.HandleFunc("POST /api/agent-runs/{id}/discard", srv.requireAuth(srv.handleDiscardAgentRun))
+	mux.HandleFunc("POST /api/agent-runs/{id}/commands/{cmdId}/{action}", srv.requireAuth(srv.handleDecideAgentCommand))
 	mux.HandleFunc("GET /api/agent-runs/{id}/agents/{agentId}", srv.requireAuth(srv.handleGetAgentTranscript))
 	mux.HandleFunc("GET /api/fs/dirs", srv.requireAuth(srv.handleListDirs))
 	mux.HandleFunc("GET /api/memories", srv.requireAuth(srv.handleListMemories))

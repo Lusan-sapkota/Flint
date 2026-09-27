@@ -295,6 +295,14 @@
                 <span>Agent plan</span>
                 <span class="flint-command-status" x-text="agentRunLabel(item.run.status)"></span>
               </header>
+              <template x-if="item.run.status !== 'planned'">
+                <div class="flint-agent-summary">
+                  <span x-text="agentSummary(item.run)"></span>
+                  <button type="button" class="secondary" x-show="item.run.status !== 'discarded'" @click="openAgents(item.run)">View agents</button>
+                </div>
+              </template>
+              <template x-if="item.run.status === 'planned'">
+              <div>
               <p class="flint-agent-estimate" x-text="agentEstimate(item.run)"></p>
               <ol class="flint-agent-list">
                 <template x-for="(agent, i) in item.run.agents" :key="agent.id">
@@ -330,13 +338,13 @@
                   </li>
                 </template>
               </ol>
-              <p class="flint-error" x-show="item.planError" x-text="item.planError"></p>
-              <template x-if="item.run.status === 'planned'">
-                <div class="flint-command-actions">
-                  <button type="button" @click="runPlan(item)" :disabled="streaming">Run</button>
-                  <button type="button" class="secondary" @click="discardPlan(item)">Discard</button>
-                </div>
+              <div class="flint-command-actions">
+                <button type="button" @click="runPlan(item)" :disabled="streaming">Run</button>
+                <button type="button" class="secondary" @click="discardPlan(item)">Discard</button>
+              </div>
+              </div>
               </template>
+              <p class="flint-error" x-show="item.planError" x-text="item.planError"></p>
             </div>
           </template>
 
@@ -344,12 +352,26 @@
             <div class="flint-command-card">
               <header>
                 {{template "icon-terminal"}}
-                <span>Shell command</span>
+                <span x-text="item.agentLabel ? item.agentLabel + ' wants to run' : 'Shell command'"></span>
                 <span class="flint-command-status" x-text="statusLabel(item.commandStatus)"></span>
               </header>
               <code class="flint-command-text" x-text="item.commandText"></code>
 
-              <template x-if="item.commandStatus === 'pending'">
+              <template x-if="item.agentRunId && item.commandStatus === 'pending'">
+                <div>
+                  <div class="flint-command-actions">
+                    <button type="button" @click="decideAgentCommand(item, 'approve')">Approve &amp; run</button>
+                    <button type="button" class="secondary" @click="decideAgentCommand(item, 'deny')">Deny</button>
+                    <button type="button" class="secondary" @click="item.replying = !item.replying" x-text="item.replying ? 'Cancel reply' : 'Reply instead'" title="Don't run it; tell this agent what to do instead"></button>
+                  </div>
+                  <form class="flint-agent-reply" x-show="item.replying" @submit.prevent="decideAgentCommand(item, 'deny', item.replyText)">
+                    <input type="text" x-model="item.replyText" :placeholder="'Tell ' + item.agentLabel + ' what to do instead'">
+                    <button type="submit" :disabled="!(item.replyText || '').trim()">Send</button>
+                  </form>
+                </div>
+              </template>
+
+              <template x-if="!item.agentRunId && item.commandStatus === 'pending'">
                 <div class="flint-command-actions">
                   <button type="button" @click="approve(item)" :disabled="streaming">Approve &amp; run</button>
                   <button type="button" class="secondary" @click="deny(item)" :disabled="streaming">Deny</button>
@@ -406,6 +428,9 @@
           <span class="flint-context-bar" aria-hidden="true"><span :style="`width: ${Math.min(100, contextUsed / contextMax * 100)}%`"></span></span>
           <span x-text="`${formatTokens(contextUsed)} / ${formatTokens(contextMax)}` + (condensed ? ` · ${condensed} condensed` : '')" :aria-label="`Context ${contextUsed} of ${contextMax} tokens` + (condensed ? `, ${condensed} older messages condensed` : '')"></span>
         </div>
+        <button type="button" class="flint-agents-pill" x-show="latestRun" x-cloak @click="openAgents(latestRun)"
+                :class="{ 'flint-agents-waiting': latestRun && agentCount(latestRun, 'waiting') }" x-text="latestRun ? agentPillText(latestRun) : ''"
+                title="See what each agent did"></button>
         <p class="flint-input-hint">
           <span class="flint-tips-track">
             <span class="flint-tips-set">{{template "input-tips"}}</span>
@@ -459,6 +484,64 @@
         </button>
       </div>
     </div>
+
+    <dialog x-ref="agentsDialog" class="flint-agents-dialog" @click.self="$el.close()" @close="closeAgents()">
+      <article>
+        <header class="flint-agents-head">
+          <h3 x-text="agentsRun ? agentSummary(agentsRun) : ''"></h3>
+          <button type="button" class="secondary" @click="$refs.agentsDialog.close()" aria-label="Close">×</button>
+        </header>
+        <div class="flint-agents-body">
+          <ul class="flint-agents-list">
+            <template x-for="a in (agentsRun ? agentsRun.agents : [])" :key="a.id">
+              <li :class="{ active: a.id === agentsSelectedId }" @click="selectAgent(a)" tabindex="0" @keydown.enter="selectAgent(a)">
+                <div class="flint-agents-row">
+                  <strong x-text="'Agent ' + (a.position + 1)"></strong>
+                  <span class="flint-agent-status" :class="'flint-agent-' + a.status" x-text="agentStatusLabel(a.status)"></span>
+                </div>
+                <p x-text="a.task"></p>
+                <div class="flint-agent-inputs">
+                  <template x-for="f in a.files" :key="f"><span class="flint-agent-chip" x-text="f"></span></template>
+                  <span class="flint-agent-chip" x-show="a.web_query" x-text="'web: ' + a.web_query"></span>
+                  <span class="flint-field-hint" x-show="!a.files.length && !a.web_query">looks through the folder</span>
+                </div>
+              </li>
+            </template>
+          </ul>
+          <section class="flint-agents-transcript">
+            <template x-if="!agentsSelected">
+              <p class="flint-field-hint">Select an agent to see what it did.</p>
+            </template>
+            <template x-if="agentsSelected">
+              <div>
+                <p class="flint-error" x-show="agentsSelected.error" x-text="agentsSelected.error"></p>
+                <div class="flint-agents-answer" x-show="agentAnswer(agentsSelected)">
+                  <strong>Result</strong>
+                  <p x-text="agentAnswer(agentsSelected)"></p>
+                </div>
+                <template x-for="m in agentTranscript" :key="m.id">
+                  <div class="flint-transcript-msg" :class="'flint-transcript-' + m.role">
+                    <template x-if="m.role === 'system' || m.role === 'user'">
+                      <details>
+                        <summary x-text="transcriptRole(m.role)"></summary>
+                        <pre x-text="m.content"></pre>
+                      </details>
+                    </template>
+                    <template x-if="m.role !== 'system' && m.role !== 'user'">
+                      <div>
+                        <span class="flint-transcript-role" x-text="transcriptRole(m.role)"></span>
+                        <pre x-text="m.content"></pre>
+                      </div>
+                    </template>
+                  </div>
+                </template>
+                <p class="flint-field-hint" x-show="['queued', 'running', 'waiting'].includes(agentsSelected.status)" x-text="agentStatusLabel(agentsSelected.status)"></p>
+              </div>
+            </template>
+          </section>
+        </div>
+      </article>
+    </dialog>
 
     <dialog x-ref="folderDialog" class="flint-folder-dialog" @click.self="$el.close()">
       <article>

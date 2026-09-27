@@ -259,7 +259,7 @@ func TestAllocateInputsAndPlanNotes(t *testing.T) {
 	if !strings.Contains(agents[1].Note, "large_log.txt (9.8 KB of 24.1 KB") {
 		t.Errorf("the log should be reported cut, got %q", agents[1].Note)
 	}
-	if n := agentInputChars(8192); n != (8192-responseReserve-agentPromptTokens)*2 || n >= 24695 {
+	if n := agentInputChars(8192); n != (8192-responseReserve-agentPromptTokens)*3/2 || n >= 24695 {
 		t.Errorf("at 8192 the fixture's 24.7 KB log must not count as fitting, got a budget of %d", n)
 	}
 }

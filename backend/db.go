@@ -315,6 +315,10 @@ func migrate(db *sql.DB) error {
 		`ALTER TABLE users ADD COLUMN max_agents INTEGER`,
 		`ALTER TABLE users ADD COLUMN cloud_max_agents INTEGER`,
 		`ALTER TABLE users ADD COLUMN agent_commands INTEGER`,
+		// Set for a command an @agent agent proposed. Such commands are
+		// approved through the run, never through the chat's own approve
+		// route, and never count as the chat's pending command.
+		`ALTER TABLE commands ADD COLUMN agent_id TEXT REFERENCES agents(id) ON DELETE CASCADE`,
 	} {
 		if _, err := db.Exec(stmt); err != nil && !strings.Contains(err.Error(), "duplicate column") {
 			return err
@@ -961,7 +965,7 @@ func getCommand(db *sql.DB, id, conversationID string) (*Command, error) {
 	var c Command
 	err := db.QueryRow(
 		`SELECT id, conversation_id, tool_call_id, command, cwd, status, output, exit_code, created_at, decided_at
-		 FROM commands WHERE id = ? AND conversation_id = ?`, id, conversationID,
+		 FROM commands WHERE id = ? AND conversation_id = ? AND agent_id IS NULL`, id, conversationID,
 	).Scan(&c.ID, &c.ConversationID, &c.ToolCallID, &c.Command, &c.Cwd, &c.Status, &c.Output, &c.ExitCode, &c.CreatedAt, &c.DecidedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -976,7 +980,7 @@ func getPendingCommand(db *sql.DB, conversationID string) (*Command, error) {
 	var c Command
 	err := db.QueryRow(
 		`SELECT id, conversation_id, tool_call_id, command, cwd, status, output, exit_code, created_at, decided_at
-		 FROM commands WHERE conversation_id = ? AND status = 'pending' ORDER BY created_at DESC LIMIT 1`, conversationID,
+		 FROM commands WHERE conversation_id = ? AND status = 'pending' AND agent_id IS NULL ORDER BY created_at DESC LIMIT 1`, conversationID,
 	).Scan(&c.ID, &c.ConversationID, &c.ToolCallID, &c.Command, &c.Cwd, &c.Status, &c.Output, &c.ExitCode, &c.CreatedAt, &c.DecidedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -1340,4 +1344,47 @@ func listAgentRuns(db *sql.DB, conversationID, userID string) ([]AgentRun, error
 		out = append(out, *run)
 	}
 	return out, nil
+}
+
+func createAgentCommand(db *sql.DB, id, conversationID, agentID, command, cwd string) (*Command, error) {
+	c := Command{ID: id, ConversationID: conversationID, Command: command, Cwd: cwd, Status: "pending", CreatedAt: time.Now().UnixMilli()}
+	_, err := db.Exec(
+		`INSERT INTO commands (id, conversation_id, tool_call_id, command, cwd, status, created_at, agent_id) VALUES (?, ?, '', ?, ?, ?, ?, ?)`,
+		c.ID, c.ConversationID, c.Command, c.Cwd, c.Status, c.CreatedAt, agentID,
+	)
+	return &c, err
+}
+
+// decideAgentCommand moves a pending agent command of the caller's run to
+// status in one statement, so of two racing approvals (or an approval and
+// a Stop) exactly one wins.
+func decideAgentCommand(db *sql.DB, cmdID, runID, userID, status string) (bool, error) {
+	res, err := db.Exec(`UPDATE commands SET status = ?, decided_at = ?
+		WHERE id = ? AND status = 'pending' AND agent_id IN (
+			SELECT a.id FROM agents a JOIN agent_runs r ON r.id = a.run_id JOIN conversations c ON c.id = r.conversation_id
+			WHERE r.id = ? AND c.user_id = ?)`,
+		status, time.Now().UnixMilli(), cmdID, runID, userID)
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	return n == 1, err
+}
+
+// cancelAgentCommand also catches a command approved in the instant the
+// run stopped, which would otherwise stay "approved" but never run.
+func cancelAgentCommand(db *sql.DB, cmdID string) error {
+	_, err := db.Exec(`UPDATE commands SET status = 'cancelled', decided_at = ? WHERE id = ? AND status IN ('pending', 'approved')`, time.Now().UnixMilli(), cmdID)
+	return err
+}
+
+func startAgent(db *sql.DB, agentID string) error {
+	_, err := db.Exec(`UPDATE agents SET status = 'running', started_at = ? WHERE id = ?`, time.Now().UnixMilli(), agentID)
+	return err
+}
+
+func finishAgent(db *sql.DB, agentID, status, result, errText string) error {
+	_, err := db.Exec(`UPDATE agents SET status = ?, result = ?, error = ?, finished_at = ? WHERE id = ?`,
+		status, result, errText, time.Now().UnixMilli(), agentID)
+	return err
 }

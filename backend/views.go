@@ -274,6 +274,11 @@ func (s *Server) handleChatPage(w http.ResponseWriter, r *http.Request, user *Us
 		data.CurrentUpdatedAt = full.UpdatedAt
 		data.ContextUsed = full.ContextUsed
 		data.ContextMax = full.ContextMax
+		// Before the first reply there's no measured use yet, but the window
+		// is known, so the meter shows from the start (at 0).
+		if data.ContextMax == 0 {
+			data.ContextMax = s.numCtxFor(user, full.Conversation)
+		}
 		data.Condensed = condensedCount(full.Messages, full.Summaries)
 		if full.AttachedFolder != nil {
 			data.CurrentFolder = *full.AttachedFolder

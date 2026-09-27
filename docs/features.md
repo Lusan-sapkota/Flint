@@ -72,7 +72,7 @@ Everything Flint does, grouped by area.
   for the whole window and bright for how much of it the last request used, and
   the token count ("192 / 4.1k") to its right. Hover it for details. It
   turns the accent color above 80%. It updates after every response,
-  including tool steps. Once older messages have been condensed into a
+  including tool steps, and shows from the start of a chat (at 0). Once older messages have been condensed into a
   summary, it says how many ("192 / 4.1k · 12 condensed"), so a model
   losing an early detail isn't a mystery.
 - **Model loading notice.** Shown while Ollama loads a model, instead of
@@ -246,8 +246,10 @@ decides what runs.
   and runs only after you approve it, the same flow as the chat's own
   commands, with the same safety shield and precondition checks. An agent
   stops asking and answers with what it has when its window is nearly
-  full, after 3 failed or denied commands in a row, or after 8 commands
-  (Commands per agent in Settings). Files named in the
+  full, after 5 failed or denied commands in a row (a command that works,
+  or a **Reply instead**, starts the count over), or after 8 commands
+  (Commands per agent in Settings). **Reply instead** on an agent's card
+  sends it what you type in place of running the command. Files named in the
   plan are then a head start, and a subtask with none is fine. A model
   without tool support (phi3, for one) only gets what the plan gives it,
   so each of its subtasks needs a file or a web search.
@@ -271,8 +273,26 @@ decides what runs.
   through the folder), and what a subtask without files will do. An
   edited plan is checked again the same way before it runs. The card
   stays after a reload.
+- **Running.** After **Run** the card folds to one line, and an **Agents**
+  pill appears after the context meter ("Agents 1/3 · 1 waiting" while
+  it runs, highlighted when an agent is waiting for your approval). The
+  pill, or **View agents** on the card, opens a large window listing each
+  agent with its task, inputs and status; select one to see its result
+  and everything it did (its instructions, what it was given, the
+  commands it asked for and their output), refreshed while it works. At
+  most "max agents" run at once (Settings → Connection); the rest wait.
+  **Stop** ends every agent, and any command still waiting is cancelled,
+  never run.
+- **Results.** Each agent ends with a fixed JSON result: its answer (at
+  most 150 words) and whether what it read actually contained it. An
+  agent that breaks the format, runs out of its 5 minutes of model time
+  (time spent waiting for your approval doesn't count), or hits an error
+  is shown as failed with the reason, never silently dropped. An agent
+  that was given nothing and ran no command that worked has its answer
+  replaced with "nothing to answer from": whatever it wrote, it can't have
+  read it anywhere.
 - `@agent` isn't added to the chat history while it's only a plan, and an
-  edit can't turn a message into one.
+  edit can't turn a message into one. The agents' transcripts never are.
 
 ## Long conversations
 

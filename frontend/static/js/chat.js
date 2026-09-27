@@ -191,6 +191,7 @@ document.addEventListener('alpine:init', () => {
   const SOURCES_MARKER = '<<<SOURCES>>>';
   const MEMORY_SAVED_MARKER = '<<<MEMORY_SAVED>>>';
   const AGENT_PLAN_MARKER = '<<<AGENT_PLAN>>>';
+  const AGENTS_MARKER = '<<<AGENTS>>>';
   const MARKERS = [TOOL_CALL_MARKER, STATS_MARKER, THINK_MARKER, LOADING_MARKER, CONTEXT_MARKER, MEMORY_DRAFT_MARKER, SEARCHING_MARKER, SOURCES_MARKER, MEMORY_SAVED_MARKER, AGENT_PLAN_MARKER];
   // One JSON value per line, consumed in place while the stream continues.
   const LINE_MARKERS = [CONTEXT_MARKER, THINK_MARKER, SEARCHING_MARKER, SOURCES_MARKER, MEMORY_SAVED_MARKER];
@@ -249,6 +250,10 @@ document.addEventListener('alpine:init', () => {
     searchingQuery: '',
     commandIndex: 0,
     suggestDismissed: false,
+    agentsRun: null,
+    agentsSelectedId: null,
+    agentTranscript: [],
+    transcriptTimer: null,
 
     init() {
       this.scrollToBottom();
@@ -256,7 +261,7 @@ document.addEventListener('alpine:init', () => {
 
     get pendingCommand() {
       const last = this.timeline[this.timeline.length - 1];
-      return last && last.kind === 'command' && last.commandStatus === 'pending' ? last : null;
+      return last && last.kind === 'command' && !last.agentRunId && last.commandStatus === 'pending' ? last : null;
     },
 
     // Model output is untrusted: everything marked produces goes through
@@ -662,21 +667,174 @@ document.addEventListener('alpine:init', () => {
 
     // The server validates the edited plan again against the folder, so
     // whatever is typed here can only narrow what the agents may read.
+    // The response then streams the run: <<<AGENTS>>> lines with each
+    // agent's state, and each command an agent asks to run.
     async runPlan(item) {
       item.planError = '';
       const agents = item.run.agents.map((a) => ({ task: a.task, files: a.files, web_query: a.webOn ? a.web_query : '' }));
+      this.streaming = true;
+      this.abortController = new AbortController();
       try {
         const res = await fetch(`/api/agent-runs/${item.run.id}/run`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ agents }),
+          signal: this.abortController.signal,
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           item.planError = data.error || res.statusText;
+          return;
+        }
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (value) buf += decoder.decode(value, { stream: true });
+          let nl;
+          while ((nl = buf.indexOf('\n')) !== -1) {
+            const line = buf.slice(0, nl);
+            buf = buf.slice(nl + 1);
+            if (line.startsWith(AGENTS_MARKER)) this.applyAgentEvent(item, JSON.parse(line.slice(AGENTS_MARKER.length)));
+          }
+          if (done) break;
         }
       } catch (e) {
-        item.planError = 'Could not reach the server.';
+        if (e.name === 'AbortError') {
+          item.run.status = 'cancelled';
+          for (const a of item.run.agents) if (['queued', 'running', 'waiting'].includes(a.status)) a.status = 'cancelled';
+          for (const t of this.timeline) if (t.agentRunId === item.run.id && t.commandStatus === 'pending') t.commandStatus = 'cancelled';
+        } else {
+          item.planError = 'Could not reach the server.';
+        }
+      } finally {
+        this.streaming = false;
+        this.abortController = null;
+        this.lastActive = Date.now();
+      }
+    },
+
+    applyAgentEvent(item, ev) {
+      // Running saves the edited plan under new agent ids, so the stream's
+      // list replaces the card's rather than being matched to it.
+      if (ev.type === 'state') {
+        item.run.status = ev.status;
+        item.run.agents = ev.agents;
+        return;
+      }
+      let card = this.timeline.find((t) => t.kind === 'command' && t.commandId === ev.id);
+      if (!card) {
+        this.timeline.push({ kind: 'command', agentRunId: ev.run_id, agentLabel: `Agent ${ev.agent}`, commandId: ev.id, commandText: ev.command, commandStatus: ev.status, replying: false, replyText: '' });
+        this.scrollToBottom();
+        return;
+      }
+      card.commandStatus = ev.status;
+      if (ev.output) card.commandResult = ev.output;
+    },
+
+    async decideAgentCommand(cmd, action, reply = '') {
+      cmd.commandStatus = 'resolving';
+      cmd.replying = false;
+      try {
+        const res = await fetch(`/api/agent-runs/${cmd.agentRunId}/commands/${cmd.commandId}/${action}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reply }),
+        });
+        if (!res.ok) cmd.commandStatus = 'unknown';
+      } catch (e) {
+        cmd.commandStatus = 'unknown';
+      }
+    },
+
+    // The pill follows the newest run that has started.
+    get latestRun() {
+      for (let i = this.timeline.length - 1; i >= 0; i--) {
+        const t = this.timeline[i];
+        if (t.kind === 'agentPlan' && !['planned', 'discarded'].includes(t.run.status)) return t.run;
+      }
+      return null;
+    },
+
+    agentCount(run, status) {
+      return run.agents.filter((a) => a.status === status).length;
+    },
+
+    agentPillText(run) {
+      const n = run.agents.length;
+      const finished = run.agents.filter((a) => ['done', 'failed', 'cancelled'].includes(a.status)).length;
+      if (run.status !== 'running') return `${n} agent${n === 1 ? '' : 's'}`;
+      const waiting = this.agentCount(run, 'waiting');
+      return `Agents ${finished}/${n}` + (waiting ? ` · ${waiting} waiting` : '');
+    },
+
+    agentSummary(run) {
+      const n = run.agents.length;
+      if (run.status === 'discarded') return 'Discarded';
+      const done = this.agentCount(run, 'done');
+      const failed = this.agentCount(run, 'failed');
+      let text = `${n} agent${n === 1 ? '' : 's'} · ${this.agentRunLabel(run.status)}`;
+      if (run.status !== 'running') text += ` · ${done} answered` + (failed ? `, ${failed} failed` : '');
+      return text;
+    },
+
+    get agentsSelected() {
+      return this.agentsRun ? this.agentsRun.agents.find((a) => a.id === this.agentsSelectedId) || null : null;
+    },
+
+    openAgents(run) {
+      this.agentsRun = run;
+      this.$refs.agentsDialog.showModal();
+      if (run.agents.length) this.selectAgent(run.agents[0]);
+    },
+
+    // A running agent's transcript is re-read while it's open; a finished
+    // one no longer changes.
+    selectAgent(agent) {
+      this.agentsSelectedId = agent.id;
+      this.agentTranscript = [];
+      clearInterval(this.transcriptTimer);
+      this.loadTranscript();
+      this.transcriptTimer = setInterval(() => {
+        const a = this.agentsSelected;
+        if (a && ['queued', 'running', 'waiting'].includes(a.status)) this.loadTranscript();
+      }, 1500);
+    },
+
+    async loadTranscript() {
+      const run = this.agentsRun;
+      const id = this.agentsSelectedId;
+      try {
+        const res = await fetch(`/api/agent-runs/${run.id}/agents/${id}`);
+        if (res.ok && this.agentsSelectedId === id) this.agentTranscript = await res.json();
+      } catch (e) {
+        // the next tick tries again
+      }
+    },
+
+    closeAgents() {
+      clearInterval(this.transcriptTimer);
+      this.agentsRun = null;
+      this.agentsSelectedId = null;
+      this.agentTranscript = [];
+    },
+
+    transcriptRole(role) {
+      return { system: 'Instructions', user: 'What it was given', assistant: 'Agent', tool_call: 'Asked to run', tool: 'Command output', result: 'Result (JSON)' }[role] || role;
+    },
+
+    agentStatusLabel(status) {
+      return { queued: 'Waiting to start', running: 'Working…', waiting: 'Waiting for your approval', done: 'Done', failed: 'Failed', cancelled: 'Stopped' }[status] || status;
+    },
+
+    agentAnswer(agent) {
+      if (!agent.result) return '';
+      try {
+        const r = JSON.parse(agent.result);
+        return r.found ? r.answer : `Not found in its inputs. ${r.answer}`.trim();
+      } catch (e) {
+        return '';
       }
     },
 
@@ -977,6 +1135,8 @@ document.addEventListener('alpine:init', () => {
           return 'Awaiting your approval';
         case 'resolving':
           return 'Running…';
+        case 'cancelled':
+          return 'Cancelled';
         default:
           return 'Unknown';
       }

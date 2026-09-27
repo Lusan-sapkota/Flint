@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -38,7 +39,7 @@ const (
 	agentPromptTokens = 512
 	// Three ranked results with title, URL and snippet (formatSearchResults).
 	webReserveChars    = 3000
-	agentCharsPerToken = 2
+	agentCharsPerToken = 1.5
 )
 
 // Measured in E24 (second version): "never the answer" stopped llama3.2
@@ -209,10 +210,12 @@ func (s *Server) canExplore(ctx context.Context, user *User, c Conversation) boo
 // agentInputChars is how much input text fits one agent's window, in
 // characters, after its reply and instructions. Inputs are files, not the
 // chat's own text, so the chat's calibration doesn't apply to them; they
-// are sized as dense text (~2 chars per token, E16), which the fixture's
-// log really is (24.7 KB, ~11k tokens). Prose gets less than would fit.
+// are sized as dense text. 2 chars per token (E16) was not enough: the
+// fixture's log, cut to that, came to 8.3k tokens against an 8192 window,
+// which Ollama rejected, or with a JSON format silently truncated so the
+// agent never saw the log. Prose gets less than would fit.
 func agentInputChars(numCtx int) int {
-	return max(0, (numCtx-responseReserve-agentPromptTokens)*agentCharsPerToken)
+	return max(0, int(float64(numCtx-responseReserve-agentPromptTokens)*agentCharsPerToken))
 }
 
 // allocateInputs splits budget characters between inputs of the given
@@ -460,7 +463,31 @@ func (s *Server) handleRunAgentRun(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	writeError(w, http.StatusNotImplemented, "the plan is saved; running agents isn't built yet")
+	if err := setAgentRunStatus(s.db, run.ID, "running"); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	run.Agents = agents
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	flusher, canFlush := w.(http.Flusher)
+	st := &agentRunStream{w: w, run: run, status: "running", flush: func() {
+		if canFlush {
+			flusher.Flush()
+		}
+	}}
+	st.setStatus("running")
+	s.runAgents(r.Context(), st, user, convo, s.maxAgentsFor(user, convo.Conversation))
+
+	status := "done"
+	if r.Context().Err() != nil {
+		status = "cancelled"
+	}
+	if err := setAgentRunStatus(s.db, run.ID, status); err != nil {
+		log.Printf("warning: saving agent run status: %v", err)
+	}
+	st.setStatus(status)
 }
 
 func (s *Server) handleGetAgentTranscript(w http.ResponseWriter, r *http.Request) {
