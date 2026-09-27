@@ -3,155 +3,147 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Changelog · Flint</title>
+  <title>Changelog · Flint Docs</title>
   <meta name="description" content="Release history and version comparisons">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="stylesheet" href="assets/css/docs.css">
   <script>
     (function() {
       try {
-        if (localStorage.getItem('flint_docs_sidebar_collapsed') === 'true') {
-          document.documentElement.classList.add('sidebar-collapsed-pre');
+        if (localStorage.getItem('flint_sidebar_collapsed') === 'true') {
+          document.documentElement.classList.add('sidebar-collapsed');
         }
       } catch (e) {}
     })();
   </script>
 </head>
-<body>
-  <div class="docs-layout">
-    <!-- Mobile Header -->
-    <header class="mobile-header" aria-label="Mobile header">
-      <button class="mobile-menu-toggle" id="menuToggle" aria-label="Open navigation menu" aria-expanded="false">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="3" y1="12" x2="21" y2="12"></line>
-          <line x1="3" y1="6" x2="21" y2="6"></line>
-          <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg>
-      </button>
-      <a href="index.html" class="mobile-brand">
-        <img src="images/logo.png" alt="Flint logo" width="28" height="28" class="mobile-logo">
-        <span class="mobile-brand-name">Flint</span>
-        <span class="version-badge">v0.2.0</span>
-      </a>
-      <a href="https://github.com/Lusan-sapkota/Flint" class="mobile-github" aria-label="GitHub repository" target="_blank" rel="noopener noreferrer">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-          <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
-        </svg>
-      </a>
-    </header>
-
-    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
-
-    <!-- Sidebar Navigation -->
-    <aside class="docs-sidebar" id="sidebar" aria-label="Documentation navigation">
-      <div class="sidebar-header">
-        <a href="index.html" class="sidebar-brand">
-          <img src="images/logo.png" alt="Flint logo" width="36" height="36" class="brand-logo">
-          <div class="brand-text">
-            <div class="brand-title-wrap">
-              <span class="brand-title">Flint</span>
-              <span class="version-badge">v0.2.0</span>
-            </div>
-            <span class="brand-tagline">Offline Ollama UI</span>
-          </div>
-        </a>
-        <div class="sidebar-header-actions">
-          <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" aria-label="Collapse sidebar (Ctrl+B)" title="Collapse sidebar (Ctrl+B)">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="9" y1="3" x2="9" y2="21"></line>
-              <path d="M15 10l-3 2 3 2"></path>
-            </svg>
-          </button>
-          <button class="mobile-close-btn" id="sidebarCloseBtn" aria-label="Close sidebar">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <div class="sidebar-links">
-        <a href="https://github.com/Lusan-sapkota/Flint" class="sidebar-link-btn" target="_blank" rel="noopener noreferrer">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+<body data-page="changelog.html">
+  <div class="docs-app">
+    <!-- Top Navigation Bar -->
+    <header class="top-nav" aria-label="Top Navigation">
+      <div class="top-nav-left">
+        <button class="icon-btn sidebar-toggle-btn" id="sidebarToggle" aria-label="Toggle navigation sidebar" title="Toggle sidebar (Ctrl+B)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
           </svg>
-          <span>GitHub</span>
-          <span class="external-icon">↗</span>
-        </a>
-        <a href="https://github.com/Lusan-sapkota/Flint/releases" class="sidebar-link-btn" target="_blank" rel="noopener noreferrer">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-          <span>Releases</span>
-          <span class="external-icon">↗</span>
+        </button>
+        <a href="index.html" class="brand-link">
+          <img src="images/logo.png" alt="Flint logo" width="30" height="30" class="brand-logo">
+          <span class="brand-name">Flint</span>
+          <span class="version-pill">v0.2.0</span>
         </a>
       </div>
 
-      <nav class="sidebar-nav" aria-label="Documentation pages">
-        <div class="nav-group">
-  <div class="nav-group-title">Get started</div>
-  <ul class="nav-group-items">
-    <li><a href="index.html" class="nav-item">Overview</a></li>
-    <li><a href="deployment.html" class="nav-item">Install and run</a></li>
-  </ul>
-</div>
-<div class="nav-group">
-  <div class="nav-group-title">Using Flint</div>
-  <ul class="nav-group-items">
-    <li><a href="features.html" class="nav-item">Features</a></li>
-    <li><a href="security.html" class="nav-item">Security</a></li>
-  </ul>
-</div>
-<div class="nav-group">
-  <div class="nav-group-title">How it works</div>
-  <ul class="nav-group-items">
-    <li><a href="architecture.html" class="nav-item">Architecture</a></li>
-    <li><a href="context-management.html" class="nav-item">Context management</a></li>
-  </ul>
-</div>
-<div class="nav-group">
-  <div class="nav-group-title">Evidence</div>
-  <ul class="nav-group-items">
-    <li><a href="experiments.html" class="nav-item">Experiments</a></li>
-    <li><a href="benchmark.html" class="nav-item">Benchmark</a></li>
-    <li><a href="testing.html" class="nav-item">Testing</a></li>
-  </ul>
-</div>
-<div class="nav-group">
-  <div class="nav-group-title">Project</div>
-  <ul class="nav-group-items">
-    <li><a href="changelog.html" class="nav-item active" aria-current="page">Changelog</a></li>
-    <li><a href="https://github.com/Lusan-sapkota/Flint/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" class="nav-item">Contributing <span class="external-icon" aria-hidden="true">↗</span></a></li>
-  </ul>
-</div>
-      </nav>
-
-      <div class="sidebar-footer">
-        <span class="sidebar-footer-text">Flint Documentation</span>
-        <span class="sidebar-footer-sub">Zero build step · 100% offline</span>
-      </div>
-    </aside>
-
-    <!-- Main Content Container -->
-    <main class="docs-main" id="mainContent">
-      <!-- Desktop Top Action Bar -->
-      <div class="main-top-bar">
-        <button class="sidebar-expand-btn" id="sidebarExpandBtn" aria-label="Expand sidebar (Ctrl+B)" title="Expand sidebar (Ctrl+B)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="9" y1="3" x2="9" y2="21"></line>
-            <path d="M13 10l3 2-3 2"></path>
+      <div class="top-nav-center">
+        <button class="search-trigger" id="searchTrigger" aria-label="Search documentation (Press Ctrl+K)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
-          <span>Show menu</span>
+          <span class="search-text">Search docs...</span>
+          <kbd class="search-kbd"><span class="kbd-cmd">Ctrl</span> K</kbd>
         </button>
       </div>
 
-      <article class="docs-content">
-        <h1 id="changelog">Changelog</h1>
+      <div class="top-nav-right">
+        <nav class="top-nav-links" aria-label="Quick links">
+          <a href="index.html" class="top-link">Docs</a>
+          <a href="features.html" class="top-link">Features</a>
+          <a href="architecture.html" class="top-link">Architecture</a>
+          <a href="changelog.html" class="top-link active">Changelog</a>
+        </nav>
+        <div class="top-nav-sep" aria-hidden="true"></div>
+        <div class="top-nav-actions">
+          <a href="https://github.com/Lusan-sapkota/Flint" class="icon-btn" aria-label="GitHub repository" target="_blank" rel="noopener noreferrer" title="View on GitHub">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+            </svg>
+          </a>
+          <a href="https://github.com/Lusan-sapkota/Flint/releases" class="icon-btn" aria-label="Releases" target="_blank" rel="noopener noreferrer" title="Releases">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- 3-Column Layout -->
+    <div class="docs-body">
+      <!-- Left Sidebar Navigation -->
+      <aside class="left-sidebar" id="leftSidebar" aria-label="Documentation Sidebar">
+        <nav class="sidebar-nav">
+          <div class="sidebar-group">
+  <div class="sidebar-group-title">Get started</div>
+  <ul class="sidebar-group-items">
+    <li><a href="index.html" class="sidebar-link"><span>Overview</span></a></li>
+    <li><a href="deployment.html" class="sidebar-link"><span>Install and run</span></a></li>
+  </ul>
+</div>
+<div class="sidebar-group">
+  <div class="sidebar-group-title">Using Flint</div>
+  <ul class="sidebar-group-items">
+    <li><a href="features.html" class="sidebar-link"><span>Features</span></a></li>
+    <li><a href="security.html" class="sidebar-link"><span>Security</span></a></li>
+  </ul>
+</div>
+<div class="sidebar-group">
+  <div class="sidebar-group-title">How it works</div>
+  <ul class="sidebar-group-items">
+    <li><a href="architecture.html" class="sidebar-link"><span>Architecture</span></a></li>
+    <li><a href="context-management.html" class="sidebar-link"><span>Context management</span></a></li>
+  </ul>
+</div>
+<div class="sidebar-group">
+  <div class="sidebar-group-title">Evidence</div>
+  <ul class="sidebar-group-items">
+    <li><a href="experiments.html" class="sidebar-link"><span>Experiments</span></a></li>
+    <li><a href="benchmark.html" class="sidebar-link"><span>Benchmark</span></a></li>
+    <li><a href="testing.html" class="sidebar-link"><span>Testing</span></a></li>
+  </ul>
+</div>
+<div class="sidebar-group">
+  <div class="sidebar-group-title">Project</div>
+  <ul class="sidebar-group-items">
+    <li><a href="changelog.html" class="sidebar-link active" aria-current="page"><span>Changelog</span></a></li>
+    <li><a href="https://github.com/Lusan-sapkota/Flint/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" class="sidebar-link"><span>Contributing</span> <span class="external-icon" aria-hidden="true">↗</span></a></li>
+  </ul>
+</div>
+        </nav>
+        <div class="sidebar-footer">
+          <span class="sidebar-meta">Flint Documentation</span>
+          <span class="sidebar-meta-sub">Zero build step · 100% offline</span>
+        </div>
+      </aside>
+
+      <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+      <!-- Center Main Reading Area -->
+      <main class="center-content" id="mainContent">
+        <div class="content-container">
+          <!-- Breadcrumb and page action header -->
+          <div class="content-top-meta">
+            <div class="breadcrumb" aria-label="Breadcrumb">
+              <span class="breadcrumb-group">PROJECT</span>
+              <span class="breadcrumb-sep">›</span>
+              <span class="breadcrumb-current">Changelog</span>
+            </div>
+            <button class="copy-page-btn" id="copyPageBtn" aria-label="Copy page URL" title="Copy link to page">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+              </svg>
+              <span>Copy link</span>
+            </button>
+          </div>
+
+          <!-- Main Article Content -->
+          <article class="doc-article">
+            <h1 id="overview">Changelog</h1>
 <p>Notable changes in each release. The measurements behind a change are in
 <a href="experiments.html">experiments</a>.</p>
 <h2 id="020---2026-09-27"><a href="https://github.com/Lusan-sapkota/Flint/compare/v0.1.4...v0.2.0">0.2.0</a> - 2026-09-27<a aria-label="Link to 0.2.0 - 2026-09-27" class="header-anchor" href="#020---2026-09-27">#</a></h2>
@@ -363,7 +355,9 @@
 <li>A Docker image for amd64 and arm64 on ghcr.io, run with Docker Compose
   against the Ollama already on your machine.</li>
 </ul>
-        <nav class="page-nav" aria-label="Page navigation">
+          </article>
+
+          <nav class="page-nav" aria-label="Page navigation">
 
             <a href="testing.html" class="page-nav-link prev">
               <span class="page-nav-sub">← Previous</span>
@@ -371,22 +365,78 @@
             </a>
             
 </nav>
-      </article>
 
-      <footer class="docs-page-footer">
-        <div class="docs-footer-inner">
-          <p class="docs-footer-copy">Flint is licensed under <a href="https://github.com/Lusan-sapkota/Flint/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">AGPL-3.0</a>.</p>
-          <a href="#mainContent" class="back-to-top" aria-label="Back to top of page">
-            <span>Back to top</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="18 15 12 9 6 15"></polyline>
-            </svg>
-          </a>
+          <footer class="content-footer">
+            <div class="footer-meta">
+              <p>Flint is open source software licensed under <a href="https://github.com/Lusan-sapkota/Flint/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">AGPL-3.0</a>.</p>
+            </div>
+            <a href="#mainContent" class="back-to-top" aria-label="Back to top">
+              <span>Back to top</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="18 15 12 9 6 15"></polyline>
+              </svg>
+            </a>
+          </footer>
         </div>
-      </footer>
-    </main>
+      </main>
+
+      <!-- Right "On This Page" Table of Contents -->
+      <aside class="right-toc" id="rightToc" aria-label="On this page navigation">
+        <div class="toc-container">
+  <div class="toc-title">ON THIS PAGE</div>
+  <nav class="toc-nav">
+    <ul class="toc-list">
+      <li class="toc-item toc-level-2"><a href="#overview" class="toc-link" data-target="overview">Overview</a></li>
+      <li class="toc-item toc-level-2"><a href="#020---2026-09-27" class="toc-link" data-target="020---2026-09-27">0.2.0 - 2026-09-27</a></li>
+      <li class="toc-item toc-level-3"><a href="#added" class="toc-link" data-target="added">Added</a></li>
+      <li class="toc-item toc-level-3"><a href="#changed" class="toc-link" data-target="changed">Changed</a></li>
+      <li class="toc-item toc-level-2"><a href="#014---2026-09-26" class="toc-link" data-target="014---2026-09-26">0.1.4 - 2026-09-26</a></li>
+      <li class="toc-item toc-level-3"><a href="#added_1" class="toc-link" data-target="added_1">Added</a></li>
+      <li class="toc-item toc-level-3"><a href="#changed_1" class="toc-link" data-target="changed_1">Changed</a></li>
+      <li class="toc-item toc-level-3"><a href="#fixed" class="toc-link" data-target="fixed">Fixed</a></li>
+      <li class="toc-item toc-level-2"><a href="#013---2026-09-26" class="toc-link" data-target="013---2026-09-26">0.1.3 - 2026-09-26</a></li>
+      <li class="toc-item toc-level-3"><a href="#added_2" class="toc-link" data-target="added_2">Added</a></li>
+      <li class="toc-item toc-level-3"><a href="#changed_2" class="toc-link" data-target="changed_2">Changed</a></li>
+      <li class="toc-item toc-level-3"><a href="#fixed_1" class="toc-link" data-target="fixed_1">Fixed</a></li>
+      <li class="toc-item toc-level-2"><a href="#012---2026-09-26" class="toc-link" data-target="012---2026-09-26">0.1.2 - 2026-09-26</a></li>
+      <li class="toc-item toc-level-3"><a href="#changed_3" class="toc-link" data-target="changed_3">Changed</a></li>
+      <li class="toc-item toc-level-3"><a href="#fixed_2" class="toc-link" data-target="fixed_2">Fixed</a></li>
+      <li class="toc-item toc-level-2"><a href="#011---2026-09-26" class="toc-link" data-target="011---2026-09-26">0.1.1 - 2026-09-26</a></li>
+      <li class="toc-item toc-level-3"><a href="#changed_4" class="toc-link" data-target="changed_4">Changed</a></li>
+      <li class="toc-item toc-level-3"><a href="#added_3" class="toc-link" data-target="added_3">Added</a></li>
+      <li class="toc-item toc-level-2"><a href="#010---2026-09-26" class="toc-link" data-target="010---2026-09-26">0.1.0 - 2026-09-26</a></li>
+    </ul>
+  </nav>
+</div>
+      </aside>
+    </div>
   </div>
 
+  <!-- Search Modal (Ctrl+K) -->
+  <div class="search-modal-backdrop" id="searchModalBackdrop" style="display: none;">
+    <div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search Documentation">
+      <div class="search-modal-header">
+        <svg class="search-modal-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" class="search-modal-input" id="searchInput" placeholder="Search documentation, features, experiments..." autocomplete="off" spellcheck="false">
+        <button class="search-modal-close" id="searchCloseBtn" aria-label="Close search">Esc</button>
+      </div>
+      <div class="search-modal-body">
+        <div class="search-results" id="searchResults">
+          <div class="search-empty">Type keywords to search across all Flint documentation...</div>
+        </div>
+      </div>
+      <div class="search-modal-footer">
+        <div class="search-hint"><span><kbd>↑</kbd> <kbd>↓</kbd> to navigate</span></div>
+        <div class="search-hint"><span><kbd>↵</kbd> to select</span></div>
+        <div class="search-hint"><span><kbd>esc</kbd> to close</span></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/search-index.js"></script>
   <script src="assets/js/docs.js"></script>
 </body>
 </html>

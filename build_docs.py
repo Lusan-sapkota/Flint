@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 """
-build_docs.py - Generates static, zero-dependency HTML documentation for Flint.
-Preserves 100% of markdown content and context while delivering a fast,
-offline-capable, responsive experience matching Flint's dark UI aesthetic.
+build_docs.py - Generates static, modern, zero-dependency HTML documentation for Flint.
+Features a 3-column layout inspired by modern documentation sites (like React docs):
+  - Sticky Top Navbar with Brand, Search (Ctrl+K), and Quick Links
+  - Left Sidebar with grouped hierarchical navigation
+  - Center Content column with breadcrumbs, clean reading width, code copy
+  - Right Sidebar with "ON THIS PAGE" Table of Contents and ScrollSpy
+  - Instant offline Search modal indexing all pages and sections
 """
 
 import os
 import re
+import json
 import shutil
 import markdown
 from bs4 import BeautifulSoup
@@ -50,42 +55,25 @@ NAV_STRUCTURE = [
     }
 ]
 
-# Linear reading order
 LINEAR_PAGES = [
     item for group in NAV_STRUCTURE for item in group["items"] if not item.get("external")
 ]
 
 def slugify(text, sep="-"):
-    """GitHub / Kramdown compatible slugify for heading anchors."""
-    # Strip HTML tags
     t = re.sub(r"<[^>]+>", "", text)
-    # Lowercase
     t = t.lower()
-    # Strip punctuation except hyphens, spaces, alphanumeric
     t = re.sub(r"[^\w\s-]", "", t)
-    # Whitespace to separator
     t = re.sub(r"[\s_]+", sep, t).strip(sep)
     return t
 
-class GitHubAnchorExtension(markdown.Extension):
-    """Ensures heading IDs match GitHub / kramdown anchors."""
-    def extendMarkdown(self, md):
-        md.registerExtension(self)
-
-def convert_md_to_html(md_text, current_url):
-    """Converts markdown text to HTML with accurate links and anchors."""
-    # Rewrite relative .md links before rendering
-    # e.g., (features.md#agents-agent) -> (features.html#agents-agent)
-    # e.g., (README.md) -> (index.html)
+def convert_md_to_html(md_text):
     def link_replacer(match):
-        pre = match.group(1) # [text]
-        target = match.group(2) # link
+        pre = match.group(1)
+        target = match.group(2)
         
-        # External links untouched
         if target.startswith("http://") or target.startswith("https://") or target.startswith("mailto:"):
             return f"[{pre}]({target})"
         
-        # Split anchor if present
         parts = target.split("#", 1)
         path = parts[0]
         anchor = f"#{parts[1]}" if len(parts) > 1 else ""
@@ -96,7 +84,7 @@ def convert_md_to_html(md_text, current_url):
             path = path[:-3] + ".html"
         elif path == "CONTRIBUTING.md":
             return f"[{pre}](https://github.com/Lusan-sapkota/Flint/blob/main/CONTRIBUTING.md{anchor})"
-        elif path == "LICENSE" or path == "./LICENSE":
+        elif path in ("LICENSE", "./LICENSE"):
             return f"[{pre}](https://github.com/Lusan-sapkota/Flint/blob/main/LICENSE)"
             
         return f"[{pre}]({path}{anchor})"
@@ -122,26 +110,37 @@ def convert_md_to_html(md_text, current_url):
         }
     )
     html = md.convert(processed_md)
-    
-    # Process HTML with BeautifulSoup to enhance tables, headings, and code blocks
     soup = BeautifulSoup(html, "html.parser")
     
-    # Wrap tables for responsive scrolling
+    # Wrap tables
     for table in soup.find_all("table"):
         wrapper = soup.new_tag("div", **{"class": "table-wrapper"})
         table.wrap(wrapper)
         
-    # Add anchor links to headings h2, h3, h4
-    for h in soup.find_all(["h2", "h3", "h4"]):
+    # Ensure h1 has id="overview"
+    h1 = soup.find("h1")
+    if h1:
+        h1["id"] = "overview"
+
+    # Extract TOC items and add anchor links
+    toc_items = []
+    for h in soup.find_all(["h2", "h3"]):
         h_id = h.get("id")
+        h_text = h.get_text().strip()
         if not h_id:
-            h_id = slugify(h.get_text())
+            h_id = slugify(h_text)
             h["id"] = h_id
-        anchor = soup.new_tag("a", href=f"#{h_id}", **{"class": "header-anchor", "aria-label": f"Link to {h.get_text()}"})
+        
+        # Save for right sidebar TOC
+        level = 2 if h.name == "h2" else 3
+        toc_items.append({"id": h_id, "title": h_text, "level": level})
+        
+        # Add heading anchor link
+        anchor = soup.new_tag("a", href=f"#{h_id}", **{"class": "header-anchor", "aria-label": f"Link to {h_text}"})
         anchor.string = "#"
         h.append(anchor)
         
-    # Enhance code blocks with copy button wrapper
+    # Code block wrappers with copy button
     for pre in soup.find_all("pre"):
         container = soup.new_tag("div", **{"class": "code-block"})
         pre.wrap(container)
@@ -154,28 +153,39 @@ def convert_md_to_html(md_text, current_url):
         btn.string = "Copy"
         container.insert(0, btn)
         
-    return str(soup)
+    return str(soup), toc_items
 
-def build_nav_html(current_url):
+def build_left_sidebar_html(current_url):
     nav_html = []
     for group in NAV_STRUCTURE:
-        nav_html.append(f'<div class="nav-group">')
-        nav_html.append(f'  <div class="nav-group-title">{group["group"]}</div>')
-        nav_html.append(f'  <ul class="nav-group-items">')
+        nav_html.append(f'<div class="sidebar-group">')
+        nav_html.append(f'  <div class="sidebar-group-title">{group["group"]}</div>')
+        nav_html.append(f'  <ul class="sidebar-group-items">')
         for item in group["items"]:
             is_active = (item.get("url") == current_url)
-            active_cls = ' class="nav-item active" aria-current="page"' if is_active else ' class="nav-item"'
+            active_cls = ' class="sidebar-link active" aria-current="page"' if is_active else ' class="sidebar-link"'
             if item.get("external"):
-                nav_html.append(f'    <li><a href="{item["url"]}" target="_blank" rel="noopener noreferrer"{active_cls}>{item["title"]} <span class="external-icon" aria-hidden="true">↗</span></a></li>')
+                nav_html.append(f'    <li><a href="{item["url"]}" target="_blank" rel="noopener noreferrer"{active_cls}><span>{item["title"]}</span> <span class="external-icon" aria-hidden="true">↗</span></a></li>')
             else:
-                nav_html.append(f'    <li><a href="{item["url"]}"{active_cls}>{item["title"]}</a></li>')
+                nav_html.append(f'    <li><a href="{item["url"]}"{active_cls}><span>{item["title"]}</span></a></li>')
         nav_html.append(f'  </ul>')
         nav_html.append(f'</div>')
     return "\n".join(nav_html)
 
-def build_page_template(page_item, content_html):
+def build_right_toc_html(toc_items):
+    html = ['<div class="toc-container">', '  <div class="toc-title">ON THIS PAGE</div>', '  <nav class="toc-nav">', '    <ul class="toc-list">']
+    html.append('      <li class="toc-item toc-level-2"><a href="#overview" class="toc-link" data-target="overview">Overview</a></li>')
+    for item in toc_items:
+        if item["id"] == "overview" or item["title"].lower() == "overview":
+            continue
+        lvl_cls = "toc-level-3" if item["level"] == 3 else "toc-level-2"
+        html.append(f'      <li class="toc-item {lvl_cls}"><a href="#{item["id"]}" class="toc-link" data-target="{item["id"]}">{item["title"]}</a></li>')
+    html.extend(['    </ul>', '  </nav>', '</div>'])
+    return "\n".join(html)
+
+def build_page_template(page_item, content_html, toc_items, group_title):
     current_url = page_item["url"]
-    title = f"{page_item['title']} · Flint" if page_item["url"] != "index.html" else "Flint — Offline Chat UI for Local Ollama Models"
+    title = f"{page_item['title']} · Flint Docs" if page_item["url"] != "index.html" else "Flint — Offline Chat UI for Local Ollama Models"
     description = page_item.get("desc", "Flint is a small, fully offline chat UI for local Ollama models.")
     
     # Calculate Prev / Next
@@ -210,7 +220,8 @@ def build_page_template(page_item, content_html):
             ''')
         prev_next_html.append('</nav>')
     
-    nav_html = build_nav_html(current_url)
+    left_sidebar_html = build_left_sidebar_html(current_url)
+    right_toc_html = build_right_toc_html(toc_items)
     
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -224,130 +235,155 @@ def build_page_template(page_item, content_html):
   <script>
     (function() {{
       try {{
-        if (localStorage.getItem('flint_docs_sidebar_collapsed') === 'true') {{
-          document.documentElement.classList.add('sidebar-collapsed-pre');
+        if (localStorage.getItem('flint_sidebar_collapsed') === 'true') {{
+          document.documentElement.classList.add('sidebar-collapsed');
         }}
       }} catch (e) {{}}
     }})();
   </script>
 </head>
-<body>
-  <div class="docs-layout">
-    <!-- Mobile Header -->
-    <header class="mobile-header" aria-label="Mobile header">
-      <button class="mobile-menu-toggle" id="menuToggle" aria-label="Open navigation menu" aria-expanded="false">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="3" y1="12" x2="21" y2="12"></line>
-          <line x1="3" y1="6" x2="21" y2="6"></line>
-          <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg>
-      </button>
-      <a href="index.html" class="mobile-brand">
-        <img src="images/logo.png" alt="Flint logo" width="28" height="28" class="mobile-logo">
-        <span class="mobile-brand-name">Flint</span>
-        <span class="version-badge">v0.2.0</span>
-      </a>
-      <a href="https://github.com/Lusan-sapkota/Flint" class="mobile-github" aria-label="GitHub repository" target="_blank" rel="noopener noreferrer">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-          <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
-        </svg>
-      </a>
-    </header>
-
-    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
-
-    <!-- Sidebar Navigation -->
-    <aside class="docs-sidebar" id="sidebar" aria-label="Documentation navigation">
-      <div class="sidebar-header">
-        <a href="index.html" class="sidebar-brand">
-          <img src="images/logo.png" alt="Flint logo" width="36" height="36" class="brand-logo">
-          <div class="brand-text">
-            <div class="brand-title-wrap">
-              <span class="brand-title">Flint</span>
-              <span class="version-badge">v0.2.0</span>
-            </div>
-            <span class="brand-tagline">Offline Ollama UI</span>
-          </div>
-        </a>
-        <div class="sidebar-header-actions">
-          <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" aria-label="Collapse sidebar (Ctrl+B)" title="Collapse sidebar (Ctrl+B)">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="9" y1="3" x2="9" y2="21"></line>
-              <path d="M15 10l-3 2 3 2"></path>
-            </svg>
-          </button>
-          <button class="mobile-close-btn" id="sidebarCloseBtn" aria-label="Close sidebar">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <div class="sidebar-links">
-        <a href="https://github.com/Lusan-sapkota/Flint" class="sidebar-link-btn" target="_blank" rel="noopener noreferrer">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+<body data-page="{current_url}">
+  <div class="docs-app">
+    <!-- Top Navigation Bar -->
+    <header class="top-nav" aria-label="Top Navigation">
+      <div class="top-nav-left">
+        <button class="icon-btn sidebar-toggle-btn" id="sidebarToggle" aria-label="Toggle navigation sidebar" title="Toggle sidebar (Ctrl+B)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
           </svg>
-          <span>GitHub</span>
-          <span class="external-icon">↗</span>
-        </a>
-        <a href="https://github.com/Lusan-sapkota/Flint/releases" class="sidebar-link-btn" target="_blank" rel="noopener noreferrer">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-          <span>Releases</span>
-          <span class="external-icon">↗</span>
+        </button>
+        <a href="index.html" class="brand-link">
+          <img src="images/logo.png" alt="Flint logo" width="30" height="30" class="brand-logo">
+          <span class="brand-name">Flint</span>
+          <span class="version-pill">v0.2.0</span>
         </a>
       </div>
 
-      <nav class="sidebar-nav" aria-label="Documentation pages">
-        {nav_html}
-      </nav>
-
-      <div class="sidebar-footer">
-        <span class="sidebar-footer-text">Flint Documentation</span>
-        <span class="sidebar-footer-sub">Zero build step · 100% offline</span>
-      </div>
-    </aside>
-
-    <!-- Main Content Container -->
-    <main class="docs-main" id="mainContent">
-      <!-- Desktop Top Action Bar -->
-      <div class="main-top-bar">
-        <button class="sidebar-expand-btn" id="sidebarExpandBtn" aria-label="Expand sidebar (Ctrl+B)" title="Expand sidebar (Ctrl+B)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="9" y1="3" x2="9" y2="21"></line>
-            <path d="M13 10l3 2-3 2"></path>
+      <div class="top-nav-center">
+        <button class="search-trigger" id="searchTrigger" aria-label="Search documentation (Press Ctrl+K)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
-          <span>Show menu</span>
+          <span class="search-text">Search docs...</span>
+          <kbd class="search-kbd"><span class="kbd-cmd">Ctrl</span> K</kbd>
         </button>
       </div>
 
-      <article class="docs-content">
-        {content_html}
-        {chr(10).join(prev_next_html)}
-      </article>
-
-      <footer class="docs-page-footer">
-        <div class="docs-footer-inner">
-          <p class="docs-footer-copy">Flint is licensed under <a href="https://github.com/Lusan-sapkota/Flint/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">AGPL-3.0</a>.</p>
-          <a href="#mainContent" class="back-to-top" aria-label="Back to top of page">
-            <span>Back to top</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="18 15 12 9 6 15"></polyline>
+      <div class="top-nav-right">
+        <nav class="top-nav-links" aria-label="Quick links">
+          <a href="index.html" class="top-link{ ' active' if current_url in ('index.html', 'deployment.html') else '' }">Docs</a>
+          <a href="features.html" class="top-link{ ' active' if current_url == 'features.html' else '' }">Features</a>
+          <a href="architecture.html" class="top-link{ ' active' if current_url in ('architecture.html', 'context-management.html') else '' }">Architecture</a>
+          <a href="changelog.html" class="top-link{ ' active' if current_url == 'changelog.html' else '' }">Changelog</a>
+        </nav>
+        <div class="top-nav-sep" aria-hidden="true"></div>
+        <div class="top-nav-actions">
+          <a href="https://github.com/Lusan-sapkota/Flint" class="icon-btn" aria-label="GitHub repository" target="_blank" rel="noopener noreferrer" title="View on GitHub">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+            </svg>
+          </a>
+          <a href="https://github.com/Lusan-sapkota/Flint/releases" class="icon-btn" aria-label="Releases" target="_blank" rel="noopener noreferrer" title="Releases">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
             </svg>
           </a>
         </div>
-      </footer>
-    </main>
+      </div>
+    </header>
+
+    <!-- 3-Column Layout -->
+    <div class="docs-body">
+      <!-- Left Sidebar Navigation -->
+      <aside class="left-sidebar" id="leftSidebar" aria-label="Documentation Sidebar">
+        <nav class="sidebar-nav">
+          {left_sidebar_html}
+        </nav>
+        <div class="sidebar-footer">
+          <span class="sidebar-meta">Flint Documentation</span>
+          <span class="sidebar-meta-sub">Zero build step · 100% offline</span>
+        </div>
+      </aside>
+
+      <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+      <!-- Center Main Reading Area -->
+      <main class="center-content" id="mainContent">
+        <div class="content-container">
+          <!-- Breadcrumb and page action header -->
+          <div class="content-top-meta">
+            <div class="breadcrumb" aria-label="Breadcrumb">
+              <span class="breadcrumb-group">{group_title.upper()}</span>
+              <span class="breadcrumb-sep">›</span>
+              <span class="breadcrumb-current">{page_item['title']}</span>
+            </div>
+            <button class="copy-page-btn" id="copyPageBtn" aria-label="Copy page URL" title="Copy link to page">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+              </svg>
+              <span>Copy link</span>
+            </button>
+          </div>
+
+          <!-- Main Article Content -->
+          <article class="doc-article">
+            {content_html}
+          </article>
+
+          {chr(10).join(prev_next_html)}
+
+          <footer class="content-footer">
+            <div class="footer-meta">
+              <p>Flint is open source software licensed under <a href="https://github.com/Lusan-sapkota/Flint/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">AGPL-3.0</a>.</p>
+            </div>
+            <a href="#mainContent" class="back-to-top" aria-label="Back to top">
+              <span>Back to top</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="18 15 12 9 6 15"></polyline>
+              </svg>
+            </a>
+          </footer>
+        </div>
+      </main>
+
+      <!-- Right "On This Page" Table of Contents -->
+      <aside class="right-toc" id="rightToc" aria-label="On this page navigation">
+        {right_toc_html}
+      </aside>
+    </div>
   </div>
 
+  <!-- Search Modal (Ctrl+K) -->
+  <div class="search-modal-backdrop" id="searchModalBackdrop" style="display: none;">
+    <div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search Documentation">
+      <div class="search-modal-header">
+        <svg class="search-modal-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" class="search-modal-input" id="searchInput" placeholder="Search documentation, features, experiments..." autocomplete="off" spellcheck="false">
+        <button class="search-modal-close" id="searchCloseBtn" aria-label="Close search">Esc</button>
+      </div>
+      <div class="search-modal-body">
+        <div class="search-results" id="searchResults">
+          <div class="search-empty">Type keywords to search across all Flint documentation...</div>
+        </div>
+      </div>
+      <div class="search-modal-footer">
+        <div class="search-hint"><span><kbd>↑</kbd> <kbd>↓</kbd> to navigate</span></div>
+        <div class="search-hint"><span><kbd>↵</kbd> to select</span></div>
+        <div class="search-hint"><span><kbd>esc</kbd> to close</span></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/search-index.js"></script>
   <script src="assets/js/docs.js"></script>
 </body>
 </html>
@@ -365,39 +401,61 @@ def main():
     os.makedirs(os.path.join(out_dir, "assets", "css"), exist_ok=True)
     os.makedirs(os.path.join(out_dir, "assets", "js"), exist_ok=True)
     
-    # Copy images, tools, CNAME, favicon
-    if os.path.exists(os.path.join(src_dir, "images")):
-        shutil.copytree(os.path.join(src_dir, "images"), os.path.join(out_dir, "images"), dirs_exist_ok=True)
-    if os.path.exists(os.path.join(src_dir, "tools")):
-        shutil.copytree(os.path.join(src_dir, "tools"), os.path.join(out_dir, "tools"), dirs_exist_ok=True)
-    if os.path.exists(os.path.join(src_dir, "CNAME")):
-        shutil.copy2(os.path.join(src_dir, "CNAME"), os.path.join(out_dir, "CNAME"))
-    if os.path.exists(os.path.join(src_dir, "favicon.ico")):
-        shutil.copy2(os.path.join(src_dir, "favicon.ico"), os.path.join(out_dir, "favicon.ico"))
-        
-    # Write .nojekyll so GitHub Pages does not run Jekyll
-    with open(os.path.join(out_dir, ".nojekyll"), "w") as f:
-        f.write("")
-        
-    # Render all pages
-    rendered_count = 0
-    for page in LINEAR_PAGES:
-        src_path = os.path.join(src_dir, page["file"])
-        out_path = os.path.join(out_dir, page["url"])
-        
-        with open(src_path, "r", encoding="utf-8") as f:
-            md_text = f.read()
+    # Build search index data
+    search_records = []
+    
+    for group in NAV_STRUCTURE:
+        for item in group["items"]:
+            if item.get("external"):
+                continue
+            src_path = os.path.join(src_dir, item["file"])
+            if not os.path.exists(src_path):
+                continue
+            with open(src_path, "r", encoding="utf-8") as f:
+                md_text = f.read()
+                
+            content_html, toc_items = convert_md_to_html(md_text)
             
-        content_html = convert_md_to_html(md_text, page["url"])
-        full_html = build_page_template(page, content_html)
-        
-        with open(out_path, "w", encoding="utf-8") as f:
-            f.write(full_html)
+            # Index page itself
+            search_records.append({
+                "page": item["title"],
+                "url": item["url"],
+                "title": item["title"],
+                "group": group["group"],
+                "snippet": item.get("desc", "")
+            })
             
-        print(f"Rendered {page['file']} -> {page['url']} ({len(full_html)} bytes)")
-        rendered_count += 1
-        
-    print(f"Successfully generated {rendered_count} pages in {out_dir}")
+            # Index sections
+            soup = BeautifulSoup(content_html, "html.parser")
+            for h in soup.find_all(["h2", "h3"]):
+                h_id = h.get("id")
+                # find text until next heading or p
+                p = h.find_next_sibling("p")
+                snippet = p.get_text()[:140] if p else ""
+                h_text = h.get_text().replace("#", "").strip()
+                search_records.append({
+                    "page": item["title"],
+                    "url": f"{item['url']}#{h_id}",
+                    "title": h_text,
+                    "group": group["group"],
+                    "snippet": snippet
+                })
+                
+            full_html = build_page_template(item, content_html, toc_items, group["group"])
+            out_path = os.path.join(out_dir, item["url"])
+            with open(out_path, "w", encoding="utf-8") as f:
+                f.write(full_html)
+            print(f"Rendered {item['file']} -> {item['url']} ({len(toc_items)} TOC items)")
+            
+    # Write search index JS
+    search_js_path = os.path.join(out_dir, "assets", "js", "search-index.js")
+    with open(search_js_path, "w", encoding="utf-8") as f:
+        f.write("window.FLINT_SEARCH_INDEX = " + json.dumps(search_records, indent=2) + ";\n")
+    print(f"Generated search index with {len(search_records)} entries")
+
+    # Copy changelog.md to docs/changelog.md for maintainer awk release script
+    shutil.copy2(os.path.join(src_dir, "changelog.md"), os.path.join(out_dir, "changelog.md"))
+    print("Preserved docs/changelog.md for maintainer release workflow")
 
 if __name__ == "__main__":
     main()
