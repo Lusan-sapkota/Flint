@@ -775,6 +775,83 @@ custom 16384 loaded qwen2.5-3b at 16384 (`/api/ps`) with the meter at
 and tool use at bigger windows on the small models (see the open
 question on a bigger window).
 
+## E24: Concurrency and planning for `@agent`, before any code
+
+Measured before designing `@agent`, which runs subtasks as separate
+model calls. RTX 4050 Laptop (6 GB, ~900 MiB used by the desktop),
+Ollama 0.34.2, `num_ctx` 4096, 200 generated tokens per request,
+temperature 0. Every concurrent request had a different prompt from its
+first token, so a shared prefix couldn't hide queuing.
+
+**The stock install queues.** With the systemd service as installed
+(`OLLAMA_NUM_PARALLEL` unset), requests to one model run one at a time:
+four ~2k-token requests on qwen2.5-3b finished at 3.6, 6.7, 10.3 and
+13.4 s, with constant tokens/s. A temporary second server with
+`OLLAMA_NUM_PARALLEL=4` (own port, same models, system service left
+alone) ran them together:
+
+| model | 1 req | 4 at once, stock | 4 at once, parallel 4 | loaded size, stock → parallel 4 | peak GPU, parallel 4 |
+|---|---|---|---|---|---|
+| qwen2.5-3b-instruct | 3.8 s | 13.5 s | 5.1 s | 2340 → 2853 MiB | 3793 MiB |
+| llama3.2:3b | 3.6 s | 11.6 s | 5.8 s | 2436 → 3780 MiB | 4716 MiB |
+| qwen2.5:1.5b | 2.0 s | 6.9 s | 3.1 s | 1112 → 1513 MiB | 2673 MiB |
+| phi3:3.8b | 4.9 s | 19.9 s | 33.0 s | 3621 → 8557 MiB | 4896 MiB |
+
+Two at once on parallel 4 cost almost nothing (qwen2.5-3b 4.0 s, llama
+4.0 s, 1.5b 2.2 s). All three GQA models stayed fully on the GPU at
+4 slots, each slot with the full 4096 (`n_ctx_slot`). phi3 has no GQA,
+so four 4k KV caches didn't fit: 14 of 33 layers on the GPU, and four
+requests took longer than queuing them. Some requests in a round hit
+Ollama's prompt cache from the previous round (prompt eval 0.02 s
+instead of 0.5 s); that only affects the prompt-eval share, not the
+queuing pattern.
+
+**Two models don't share the GPU.** qwen2.5-3b and llama3.2:3b sent
+together: on both servers `/api/ps` only ever showed one, and each
+switch reloaded (6-10 s `load_duration`); alternating four requests
+took 15 s stock and 28 s on parallel 4, where llama also spilled
+150 MiB to the CPU. A different `num_ctx` on the same model reloads it
+too (qwen2.5:1.5b, 4096 → 8192 → 4096: ~2.5 s each time).
+
+**Plan call with `format`.** A JSON schema (list of subtasks, each with
+`task`, `files`, `web_query`) on four tasks: one-line summaries of three
+files, three questions about three different files, one question about
+one file (shouldn't split), and a two-part current-events comparison
+with web search allowed. The file list with sizes was given, not the
+contents. All 32 responses (two prompt versions × four models × four
+tasks) were valid JSON matching the schema, phi3 included.
+
+- A `split` boolean in the schema was useless: it said false next to
+  three good subtasks on every qwen2.5 and llama plan.
+- First prompt: the file tasks split well on all four, except llama3.2
+  wrote guessed summaries as the tasks ("The config.yaml file stores ...
+  API keys"). Web: qwen2.5-3b returned nothing, llama and 1.5b one
+  subtask with every file and no query, phi3 queries plus unrelated
+  files.
+- Second prompt (no boolean, "an instruction, never the answer", one
+  file example and one web example): qwen2.5-3b 4/4 good plans.
+  qwen2.5:1.5b split the single question into two web queries although
+  web was off. llama3.2 searched for Go but forgot Rust. phi3 invented
+  `go.txt`/`rust.txt` as inputs and copied the example into an extra
+  subtask on the single-file question.
+
+**What this settles for `@agent`:**
+- Split is decided in Go: two or more subtasks left after validation,
+  never a model flag. Validation drops files not in the folder, clears
+  `web_query` without a Brave key, and drops a subtask with no inputs
+  left. With those rules qwen2.5-3b and 1.5b plan 4/4, llama3.2 and phi3
+  3/4 (one sample each at temperature 0, so small n). phi3's copied
+  subtask survives validation: the approval card is where the user
+  catches it.
+- Agents send the chat's exact `num_ctx`; anything else reloads the
+  model mid-run. They use the chat's model, since a second model swaps.
+- **Recommended local max-agents default: 2.** On the stock install
+  Ollama queues anyway, so 2 costs nothing and the context isolation is
+  the benefit. With `OLLAMA_NUM_PARALLEL=2` or more, two agents finish
+  in about the time of one on every GQA model here, at +500 MiB (qwen)
+  to +1.3 GB (llama) for four slots. Four slots already spill phi3 on
+  6 GB, so going above 2 is for bigger GPUs, set per account.
+
 ## Open questions
 
 - **qwen3.5 thinking with no answer.** Once in E22 it streamed a long
