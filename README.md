@@ -26,7 +26,7 @@ command an agent asks to run.
 ([agents](docs/features.html#agents-agent), [changelog](docs/changelog.html))
 
 <p align="center">
-  <img src="docs/images/hero-approval.png" alt="A shell command proposed by the model, waiting for Approve, Deny or Reply instead" width="900">
+  <img src="docs/images/agent-approval.png" alt="Agent 3 asks to run cat config.yaml in the main chat, with Approve, Deny and Reply instead; the label reads Agents 2/3, 1 waiting" width="900">
 </p>
 
 ## Quick start
@@ -133,26 +133,6 @@ becoming heavy itself.
   scaffolding by switching it off. ([experiments](docs/experiments.html),
   [benchmark](docs/benchmark.html))
 
-## Screenshots
-
-<p align="center">
-  <img src="docs/images/agent-plan.png" alt="An @agent plan: three subtasks with their files, one left to look through the folder itself, waiting for Run or Discard" width="900">
-</p>
-<p align="center">
-  <img src="docs/images/agent-approval.png" alt="Agent 3 asks to run cat config.yaml in the main chat, with Approve, Deny and Reply instead; the label reads Agents 2/3, 1 waiting" width="900">
-</p>
-<p align="center">
-  <img src="docs/images/agent-answer.png" alt="The combined answer in the chat, under a From 3 agents block listing what each agent found" width="900">
-</p>
-<p align="center">
-  <img src="docs/images/agents-window.png" alt="The agents window: each agent with its task and inputs, and Agent 3's transcript with the commands it ran and their output" width="900">
-</p>
-<p align="center">
-  <img src="docs/images/web-query.png" alt="An @web question answered from three ranked sources, listed above the answer" width="900">
-</p>
-<p align="center">
-  <img src="docs/images/memory.png" alt="@memory save marks where a memory was saved; @memory recalls it in the chat" width="900">
-</p>
 
 ## Who it's for
 
