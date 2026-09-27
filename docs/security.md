@@ -131,8 +131,9 @@ another account's chat.
   dropped in code, both from the model's plan and from edits on the plan
   card), the web results for its one query, and the output of commands
   the user approved. Files are read in Go, never by the model.
-- **The web.** A search runs only if it is on the plan card when the user
-  presses Run, needs the account's Brave key, and is never combined with
+- **The web.** The planner never proposes a search, and any web query in
+  its output is dropped. A search runs only if the user added it on the
+  plan card, needs the account's Brave key, and is never combined with
   files in one subtask, so a local fact isn't sent to Brave.
 - **Isolation.** Agent runs, agents and transcripts are reached only
   through conversations the caller owns; another account gets 404.

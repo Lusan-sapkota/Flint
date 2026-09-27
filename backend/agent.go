@@ -43,27 +43,23 @@ const (
 )
 
 // Measured in E24 (second version): "never the answer" stopped llama3.2
-// writing guessed summaries as tasks, and the web example made qwen2.5
-// use web_query at all. Whether to split is not asked: the model's own
-// flag contradicted its subtasks, so Go decides from what survives
-// validation.
+// writing guessed summaries as tasks. Whether to split is not asked: the
+// model's own flag contradicted its subtasks, so Go decides from what
+// survives validation. The planner never proposes web searches, even
+// with a Brave key: offered one, qwen2.5 searched for private facts such
+// as "Stockroom server port", so a search is only ever added by the user
+// on the plan card. web_query stays in the schema, always "", to keep
+// the measured shape.
 const agentPlanPrompt = `You plan work for helper agents. Each agent sees only the inputs you give it, never the other agents or the chat.
 If the task has 2 to 4 parts that can each be answered from different inputs, list one subtask per part. If it can't be split that way, return an empty subtasks list.
-Each subtask has: task, an instruction for the agent (what to find out, never the answer); files, the exact names it needs from the list below, or [] if none; web_query, a search query, or "" if none. %s
+Each subtask has: task, an instruction for the agent (what to find out, never the answer); files, the exact names it needs from the list below, or [] if none; web_query, always "". %s
 
 Example: "Who wrote a.txt and what does b.py import?" -> {"subtasks":[{"task":"Find who wrote a.txt","files":["a.txt"],"web_query":""},{"task":"List what b.py imports","files":["b.py"],"web_query":""}]}
-%s
+
 Files in the attached folder:
 %s`
 
 const planExplore = `Agents can also look through the folder themselves, so files is optional: list the files you know a subtask needs, or [] to let its agent find them.`
-
-const (
-	planWebOn      = `Web search is available: a subtask that needs current facts from the internet gets one web_query and no files.`
-	planWebOff     = `Web search is NOT available: web_query is always "".`
-	planWebExample = `Example: "Compare the newest Python and Node versions" -> {"subtasks":[{"task":"Find the newest Python version","files":[],"web_query":"latest Python release"},{"task":"Find the newest Node.js version","files":[],"web_query":"latest Node.js release"}]}
-`
-)
 
 var agentPlanSchema = json.RawMessage(`{"type":"object","properties":{"subtasks":{"type":"array","items":{"type":"object","properties":{"task":{"type":"string"},"files":{"type":"array","items":{"type":"string"}},"web_query":{"type":"string"}},"required":["task","files","web_query"]}}},"required":["subtasks"]}`)
 
@@ -273,14 +269,10 @@ func formatKB(n int) string {
 // approval. A nil run means the task doesn't split and should be answered
 // as a normal chat turn.
 func (s *Server) planAgentRun(ctx context.Context, user *User, convo *ConversationWithMessages, task string) (*AgentRun, error) {
-	files := map[string]int64{}
-	if folder := folderOf(convo.Conversation); folder != nil {
-		var err error
-		if files, err = agentFiles(*folder); err != nil {
-			return nil, err
-		}
+	files, err := agentFiles(*convo.AttachedFolder)
+	if err != nil {
+		return nil, err
 	}
-	webOK := user.BraveAPIKey != nil && *user.BraveAPIKey != ""
 
 	names := make([]string, 0, len(files))
 	for name := range files {
@@ -292,22 +284,19 @@ func (s *Server) planAgentRun(ctx context.Context, user *User, convo *Conversati
 		fmt.Fprintf(&list, "- %s (%d bytes)\n", name, files[name])
 	}
 	if len(names) == 0 {
-		list.WriteString("(no folder attached)\n")
-	}
-	web, example := planWebOff, ""
-	if webOK {
-		web, example = planWebOn, planWebExample
+		list.WriteString("(the folder has no readable files)\n")
 	}
 	explore := s.canExplore(ctx, user, convo.Conversation)
+	extra := ""
 	if explore {
-		web += " " + planExplore
+		extra = planExplore
 	}
 
 	numCtx := s.numCtxFor(user, convo.Conversation)
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
 	out, err := s.ollama.ChatJSON(ctx, s.ollamaURLFor(user), convo.Model, []OllamaMessage{
-		{Role: "system", Content: fmt.Sprintf(agentPlanPrompt, web, example, list.String())},
+		{Role: "system", Content: fmt.Sprintf(agentPlanPrompt, extra, list.String())},
 		{Role: "user", Content: task},
 	}, map[string]any{"num_ctx": numCtx, "temperature": 0}, agentPlanSchema)
 	if err != nil {
@@ -319,13 +308,14 @@ func (s *Server) planAgentRun(ctx context.Context, user *User, convo *Conversati
 	if err := json.Unmarshal([]byte(out), &plan); err != nil {
 		return nil, fmt.Errorf("the model's plan wasn't valid JSON: %w", err)
 	}
-	agents := validatePlan(plan.Subtasks, files, webOK, explore)
+	agents := validatePlan(plan.Subtasks, files, false, explore)
 	if len(agents) < 2 {
 		return nil, nil
 	}
 	planNotes(agents, files, agentInputChars(numCtx))
 
 	now := time.Now().UnixMilli()
+	webOK := user.BraveAPIKey != nil && *user.BraveAPIKey != ""
 	run := AgentRun{ID: uuid.NewString(), ConversationID: convo.ID, Task: task, Status: "planned", CreatedAt: now, UpdatedAt: now, FolderFiles: names, WebAvailable: webOK, CanExplore: explore, MaxCommands: agentCommandsFor(user)}
 	for i := range agents {
 		agents[i].ID = uuid.NewString()

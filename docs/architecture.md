@@ -118,9 +118,11 @@ Each step is idempotent.
 
 1. **Plan.** `@agent <task>` makes one call to the chat's model with a JSON
    schema and the chat's own `num_ctx` (another size would reload the
-   model, E24). Go validates the plan (folder files only, files or one
-   web query, inputs or exploration) and saves it as a `planned` run; the
-   stream ends with `<<<AGENT_PLAN>>>`. Nothing enters the chat history.
+   model, E24). It needs an attached folder. Go validates the plan
+   (folder files only, no web queries from the model, inputs or
+   exploration) and saves it as a `planned` run; the stream ends with
+   `<<<AGENT_PLAN>>>`. Nothing enters the chat history. A web search is
+   only added by the user on the card, and checked again at Run.
 2. **Run.** `POST /api/agent-runs/{id}/run` takes the conversation's lock,
    re-checks the run is still planned, validates the edited plan again,
    and streams `<<<AGENTS>>>` lines until every agent ends. At most "max

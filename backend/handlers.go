@@ -725,8 +725,8 @@ func (s *Server) runUserTurn(w http.ResponseWriter, r *http.Request, user *User,
 			return
 		}
 		content = task
-		if folderOf(convo.Conversation) == nil && (user.BraveAPIKey == nil || *user.BraveAPIKey == "") {
-			notice = "[@agent needs an attached folder or a Brave Search key to give its agents inputs, so this is answered as a normal chat.]\n\n"
+		if folderOf(convo.Conversation) == nil {
+			notice = "[@agent works on an attached folder, so this is answered as a normal chat. Attach a folder to use agents, or start a message with @web to search the web.]\n\n"
 		} else {
 			start()
 			if !s.ollama.IsLoaded(r.Context(), s.ollamaURLFor(user), convo.Model) {

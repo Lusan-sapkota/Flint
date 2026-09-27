@@ -286,10 +286,12 @@ func TestPlanAgentRunSavesAValidatedPlanOrDeclines(t *testing.T) {
 	createUser(db, "alice", "alice", "alice@x.io", "h")
 	createConversation(db, "c1", "alice", "m")
 	setAttachedFolder(db, "c1", dir)
+	key := "brave-key"
+	updateUserBraveAPIKey(db, "alice", &key)
 	user, _ := getUserByID(db, "alice")
 
 	var req map[string]any
-	srv := fakePlanner(t, `{"subtasks":[{"task":"Find the port","files":["README.md"],"web_query":""},{"task":"Who is on call","files":["notes.txt"],"web_query":"on call rota"},{"task":"Escape","files":["../x"],"web_query":""}]}`, &req)
+	srv := fakePlanner(t, `{"subtasks":[{"task":"Find the port","files":["README.md"],"web_query":""},{"task":"Who is on call","files":[],"web_query":"on call rota"},{"task":"Also on call","files":["notes.txt"],"web_query":""},{"task":"Escape","files":["../x"],"web_query":""}]}`, &req)
 	s := &Server{db: db, ollama: NewOllamaClient(), defaultOllamaURL: srv.URL}
 	s.ollama.models.Store(srv.URL+" m", OllamaModelInfo{Name: "m"})
 	convo, _ := getConversation(db, "c1", "alice")
@@ -301,15 +303,20 @@ func TestPlanAgentRunSavesAValidatedPlanOrDeclines(t *testing.T) {
 	if !slices.Equal(run.FolderFiles, []string{"README.md", "notes.txt"}) {
 		t.Errorf("the card needs the folder's files to add from, got %v", run.FolderFiles)
 	}
-	if run.Agents[1].WebQuery != "" {
-		t.Error("no Brave key: the web query must be dropped")
+	for _, a := range run.Agents {
+		if a.WebQuery != "" || a.Task == "Who is on call" {
+			t.Errorf("the planner's web queries are dropped even with a Brave key, got %+v", a)
+		}
+	}
+	if !run.WebAvailable {
+		t.Error("with a key the card may still add a web search")
 	}
 	if req["format"] == nil || req["options"].(map[string]any)["num_ctx"] != float64(boostedNumCtx) {
 		t.Errorf("the plan call must send the schema and the chat's own num_ctx, got %v", req)
 	}
 	system := req["messages"].([]any)[0].(map[string]any)["content"].(string)
-	if !strings.Contains(system, "- README.md (9 bytes)") || !strings.Contains(system, "NOT available") {
-		t.Errorf("the prompt should list the folder's files and say web is off, got %q", system)
+	if !strings.Contains(system, "- README.md (9 bytes)") || !strings.Contains(system, `web_query, always ""`) {
+		t.Errorf("the prompt should list the folder's files and never offer web search, got %q", system)
 	}
 	saved, _ := getAgentRun(db, run.ID, "alice")
 	if saved == nil || saved.Status != "planned" || len(saved.Agents) != 2 {

@@ -238,10 +238,14 @@ chat history makes a small model lose track. Like `@web` and `@memory`,
 it only happens when you ask for it, and Flint's own code, not the model,
 decides what runs.
 
-- **Planning.** One model call, constrained to a JSON schema, lists the
-  subtasks and the inputs each one needs: files from the attached folder
-  (its direct files, not subfolders), or one web search if you have a
-  Brave key. The planner sees file names and sizes, not contents.
+- **Planning.** `@agent` works on the attached folder; without one, the
+  message is answered as a normal chat, with a note. One model call,
+  constrained to a JSON schema, lists the subtasks and the files each one
+  needs from the folder (its direct files, not subfolders). The planner
+  sees file names and sizes, not contents, and never proposes a web
+  search, even with a Brave key: offered one, a small model searched the
+  web for facts that were in the folder. A web search is only ever
+  something you add on the plan card.
 - **Agents that look for themselves.** With a model that supports tool
   calls and a folder attached, an agent can also propose shell commands
   (`ls`, `grep`, `cat`, ...) to look through the folder. Each one appears
@@ -259,13 +263,12 @@ decides what runs.
 - **Checked in code, not trusted.** A file that isn't directly in the
   folder is dropped (so `../x`, `/etc/passwd` or a made-up name can't be
   given), a file named in a subtask's text is added to its inputs, and a
-  web query is dropped without a Brave key or when the subtask has files
-  (a local fact can't be on the web, and searching for it would only
-  send it to Brave). A subtask left with no input is dropped unless its
-  agent can look through the folder itself. Fewer than two subtasks
+  web search you add is dropped without a Brave key or when the subtask
+  has files (a local fact can't be on the web, and searching for it would
+  only send it to Brave). A subtask left with no input is dropped unless
+  its agent can look through the folder itself. Fewer than two subtasks
   means the task doesn't split, and it's answered as a normal chat, with
-  a line saying so. With no folder and no Brave key there's nothing to
-  give agents, so it's a normal chat straight away.
+  a line saying so.
 - **The plan card.** Each subtask shows its instruction, its files and
   web search, and a note when a file is too big for an agent's window
   and will be cut (start and end kept). Edit the instructions, add or
