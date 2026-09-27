@@ -62,9 +62,9 @@ Then open `http://localhost:3141`. Notes:
 
 - **Updating:** `docker compose pull && docker compose up -d` fetches the
   newest `latest`, and `./data` is kept. `latest` only moves for normal
-  releases, not pre-releases like `v0.2.0-beta`. To stay on one version,
+  releases, not pre-releases like `v0.3.0-beta`. To stay on one version,
   change the tag in the compose file, for example
-  `ghcr.io/lusan-sapkota/flint:0.1` (patch releases of 0.1) or `:0.1.0`
+  `ghcr.io/lusan-sapkota/flint:0.2` (patch releases of 0.2) or `:0.2.0`
   (exactly that one). Nothing updates automatically.
 
 ## From source
@@ -103,9 +103,9 @@ A new image is published for every release, for `linux/amd64` and
 
 | Tag | Follows |
 |---|---|
-| `latest` | the newest normal release (never a pre-release like `v0.2.0-beta`) |
-| `0.1` | the newest `0.1.x` patch release |
-| `0.1.4` | exactly that release |
+| `latest` | the newest normal release (never a pre-release like `v0.3.0-beta`) |
+| `0.2` | the newest `0.2.x` patch release |
+| `0.2.0` | exactly that release |
 
 The compose files use `latest`. To stay on one version, change the tag
 in the compose file. A published version always means the same code: a

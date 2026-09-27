@@ -101,10 +101,10 @@ are that version's section of [docs/changelog.md](docs/changelog.md):
 
 ```bash
 git switch main && git pull --ff-only
-git tag -a v0.1.4 -m "v0.1.4"
-git push origin v0.1.4
-awk '/^## \[0.1.4\]/{f=1;next} /^## \[/{f=0} f' docs/changelog.md > /tmp/notes.md
-gh release create v0.1.4 --title "v0.1.4" --notes-file /tmp/notes.md --verify-tag
+git tag -a v0.2.0 -m "v0.2.0"
+git push origin v0.2.0
+awk '/^## \[0.2.0\]/{f=1;next} /^## \[/{f=0} f' docs/changelog.md > /tmp/notes.md
+gh release create v0.2.0 --title "v0.2.0" --notes-file /tmp/notes.md --verify-tag
 ```
 
 Before tagging, the changelog section needs its date and a compare link
@@ -113,8 +113,8 @@ becomes a GitHub mention of a real account).
 
 Pushing the tag runs `.github/workflows/docker.yml`, which builds the
 image for `linux/amd64` and `linux/arm64` and pushes it to GitHub
-Container Registry, and at no other time. `v0.1.4` publishes `0.1.4`,
-`0.1` and `latest`; a pre-release tag such as `v0.2.0-beta` publishes
+Container Registry, and at no other time. `v0.2.0` publishes `0.2.0`,
+`0.2` and `latest`; a pre-release tag such as `v0.3.0-beta` publishes
 only its own version. It authenticates with the workflow's own
 `GITHUB_TOKEN`, so no secrets are needed. The workflow file has to exist
 in the tagged commit. After the very first publish, the package's

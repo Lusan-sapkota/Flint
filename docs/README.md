@@ -10,6 +10,12 @@ approval, memory across chats, and web search only when you ask. Ollama
 cloud models work too, under the same rules, tagged as cloud, and each
 account can set its own context window for local and for cloud models.
 
+**New in 0.2.0:** `@agent <task>` splits a question over your folder into
+subtasks, each run by its own agent with a clean context window, and
+writes one answer from their results. You approve the plan and every
+command an agent asks to run.
+([features](features.md#agents-agent), [changelog](changelog.md))
+
 ![A shell command proposed by the model, waiting for Approve, Deny or Reply instead](images/hero-approval.png)
 
 ## Quick start

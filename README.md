@@ -19,6 +19,12 @@ Brave Search API with your own key, only when you ask, sending only the
 query text. Ollama cloud models (`:cloud`) run on ollama.com, so Flint tags
 them "cloud" and says so in the chat.
 
+**New in 0.2.0:** `@agent <task>` splits a question over your folder into
+subtasks, each run by its own agent with a clean context window, and
+writes one answer from their results. You approve the plan and every
+command an agent asks to run.
+([agents](docs/features.md#agents-agent), [changelog](docs/changelog.md))
+
 <p align="center">
   <img src="docs/images/hero-approval.png" alt="A shell command proposed by the model, waiting for Approve, Deny or Reply instead" width="900">
 </p>
