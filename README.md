@@ -142,8 +142,8 @@ docker image prune -f   # optional: remove the old image
 ```
 
 `latest` only moves for normal releases, not pre-releases like
-`v0.2.0-beta`. To stay on one version, pin its tag in the compose file,
-for example `ghcr.io/lusan-sapkota/flint:0.1`.
+`v0.3.0-beta`. To stay on one version, pin its tag in the compose file,
+for example `ghcr.io/lusan-sapkota/flint:0.2`.
 
 **Or from source**, with Go installed:
 
