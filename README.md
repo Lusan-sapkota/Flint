@@ -7,9 +7,9 @@
 <p align="center">A small, fully offline chat UI for local Ollama models, built to get the most out of small models.</p>
 
 <p align="center">
-  <a href="https://github.com/Lusan-sapkota/Flint/releases"><img src="https://img.shields.io/github/v/tag/Lusan-sapkota/Flint?sort=semver&label=version" alt="Latest version"></a>
-  <a href="https://flint.lusansapkota.com.np">Docs</a> ·
-  <a href="docs/changelog.html">Changelog</a>
+  <a href="https://github.com/Lusan-sapkota/Flint/releases/latest"><img src="https://img.shields.io/github/v/tag/Lusan-sapkota/Flint?sort=semver&label=latest&color=f0a050" alt="Latest version"></a>
+  <a href="https://flint.lusansapkota.com.np"><img src="https://img.shields.io/badge/docs-flint.lusansapkota.com.np-blue" alt="Docs"></a>
+  <a href="https://flint.lusansapkota.com.np/changelog.html"><img src="https://img.shields.io/badge/changelog-what's%20new-green" alt="Changelog"></a>
 </p>
 
 No CDN calls, no telemetry, no cloud dependency. Everything the frontend
