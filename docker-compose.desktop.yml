@@ -1,6 +1,4 @@
-# Docker Desktop (Mac, Windows): Flint in Docker, Ollama as the normal app
-# on your machine. Host networking isn't available there the way it is on
-# Linux, so Flint reaches Ollama through host.docker.internal instead.
+# Docker Desktop (Mac/Windows), reaches Ollama via host.docker.internal:
 #   docker compose -f docker-compose.desktop.yml up -d
 services:
   flint:
@@ -12,14 +10,8 @@ services:
       # The folder browser starts here.
       HOME: ${FLINT_FOLDERS:-${HOME}}
     volumes:
-      # A plain folder next to this file, not a named volume: it survives
-      # `docker compose down -v` and is deleted only by deleting the folder.
-      # Create it before the first start (mkdir data) so it's owned by you,
-      # not root.
+      # Plain folder, survives `down -v`; mkdir data first so you own it.
       - ./data:/data
-      # Your folders, at the same path as on your machine (on a Mac,
-      # /Users/you), so a folder you attach in Flint is the real one. Your
-      # home folder by default; set FLINT_FOLDERS to one folder to let
-      # Flint (and the commands you approve) see only that.
+      # Your folders at their real path; set FLINT_FOLDERS to limit what Flint sees.
       - ${FLINT_FOLDERS:-${HOME}}:${FLINT_FOLDERS:-${HOME}}
     restart: unless-stopped

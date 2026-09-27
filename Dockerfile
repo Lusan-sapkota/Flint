@@ -5,19 +5,16 @@ RUN go mod download
 COPY backend/ ./
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /flint .
 
-# Alpine rather than scratch: the approved shell tool runs commands with sh,
-# so the image needs a shell and basic coreutils.
+# Alpine, not scratch: the shell tool needs sh.
 FROM alpine:3.22
-# uid 1000 matches the usual first user on Linux, so a bind-mounted data
-# folder that user created is writable from inside the container.
+# uid 1000 so a host-created ./data bind mount is writable.
 RUN adduser -D -u 1000 flint && mkdir /data && chown flint /data
 COPY --from=build /flint /app/backend/flint
 COPY frontend/ /app/frontend/
 USER flint
-# The binary resolves templates and static files relative to ../frontend.
+# Templates and static files resolve relative to ../frontend.
 WORKDIR /app/backend
-# 0.0.0.0 so a plain `docker run -p` can reach it; docker-compose.yml runs on
-# the host network and narrows this back to 127.0.0.1.
+# 0.0.0.0 for `docker run -p`; docker-compose.yml narrows it to 127.0.0.1.
 ENV DB_PATH=/data/chat.db ATTACHMENTS_DIR=/data/attachments HOST=0.0.0.0
 VOLUME /data
 EXPOSE 8080

@@ -1,26 +1,18 @@
 services:
   flint:
     image: ghcr.io/lusan-sapkota/flint:latest
-    # Host networking, so Flint reaches the system Ollama at localhost:11434,
-    # where the GPU and the models already are, without Ollama having to
-    # listen beyond localhost. Linux only.
+    # Reach the system Ollama on localhost without exposing it. Linux only.
     network_mode: host
     environment:
       HOST: 127.0.0.1
-      # Not 8080: that's the port every dev server reaches for first.
+      # Not 8080, which every dev server grabs first.
       PORT: ${FLINT_PORT:-3141}
       OLLAMA_BASE_URL: http://localhost:11434
       # The folder browser starts here.
       HOME: ${FLINT_FOLDERS:-${HOME}}
     volumes:
-      # A plain folder next to this file, not a named volume: it survives
-      # `docker compose down -v` and is deleted only by deleting the folder.
-      # Create it before the first start (mkdir data) so it's owned by you,
-      # not root.
+      # Plain folder, survives `down -v`; mkdir data first so you own it.
       - ./data:/data
-      # Your folders, at the same path as on your machine, so a folder you
-      # attach in Flint is the real one. Your home folder by default; set
-      # FLINT_FOLDERS to one folder to let Flint (and the commands you
-      # approve) see only that.
+      # Your folders at their real path; set FLINT_FOLDERS to limit what Flint sees.
       - ${FLINT_FOLDERS:-${HOME}}:${FLINT_FOLDERS:-${HOME}}
     restart: unless-stopped
