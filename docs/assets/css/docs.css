@@ -25,9 +25,9 @@
   --flint-danger: #e06c75;
   
   --top-nav-height: 60px;
-  --left-sidebar-width: 260px;
-  --right-toc-width: 240px;
-  --content-max-width: 840px;
+  --left-sidebar-width: 250px;
+  --right-toc-width: 220px;
+  --content-max-width: 1040px;
   
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
@@ -81,7 +81,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: 0 20px;
 }
 
 .top-nav-left {
@@ -254,8 +254,6 @@ body {
 .docs-body {
   display: flex;
   width: 100%;
-  max-width: 1540px;
-  margin: 0 auto;
   min-height: calc(100vh - var(--top-nav-height));
   position: relative;
 }
@@ -275,7 +273,7 @@ body {
   border-right: 1px solid var(--flint-border-subtle);
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 24px 14px 40px;
+  padding: 20px 12px 36px;
   scrollbar-width: thin;
   scrollbar-color: var(--flint-border) transparent;
   transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s ease;
@@ -391,13 +389,13 @@ body {
   min-width: 0;
   display: flex;
   justify-content: center;
-  padding: 0 40px 64px;
+  padding: 0 32px 56px;
 }
 
 .content-container {
   width: 100%;
   max-width: var(--content-max-width);
-  padding-top: 28px;
+  padding-top: 24px;
 }
 
 .content-top-meta {
@@ -824,7 +822,7 @@ img {
   flex-shrink: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 28px 16px 40px;
+  padding: 24px 14px 36px;
   border-left: 1px solid var(--flint-border-subtle);
   scrollbar-width: thin;
   scrollbar-color: var(--flint-border) transparent;
@@ -1076,19 +1074,27 @@ img {
    Responsive Adaptations (Tablet & Mobile)
    ========================================================================== */
 
-/* Laptop / Medium Desktop: Hide Right TOC */
-@media (max-width: 1200px) {
-  .right-toc {
-    display: none;
+/* Intermediate desktop/laptop range (961px to 1140px): keep all 3 columns visible with snug widths */
+@media (min-width: 961px) and (max-width: 1140px) {
+  :root {
+    --left-sidebar-width: 230px;
+    --right-toc-width: 200px;
+  }
+
+  .top-nav {
+    padding: 0 16px;
   }
 
   .center-content {
-    padding: 0 32px 64px;
+    padding: 0 20px 48px;
   }
 }
 
 /* Tablet & Mobile: Drawer Mode */
 @media (max-width: 960px) {
+  .right-toc {
+    display: none;
+  }
   .top-nav-left {
     min-width: auto;
   }
