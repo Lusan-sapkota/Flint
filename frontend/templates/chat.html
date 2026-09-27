@@ -208,7 +208,7 @@
           </template>
           <template x-if="item.kind === 'user' && item.content && editingIndex !== index">
             <div class="flint-msg-actions flint-msg-actions-user">
-              <template x-if="index === lastUserIndex && !streaming">
+              <template x-if="index === lastUserIndex && !streaming && !/^\s*@agent(\s|$)/i.test(item.content)">
                 <button type="button" @click="startEdit(index)" title="Edit message" aria-label="Edit message">{{template "icon-edit"}}</button>
               </template>
               <button type="button" @click="copyText(item.content, $el)" title="Copy message" aria-label="Copy message">
