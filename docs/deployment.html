@@ -184,9 +184,17 @@ reach Ollama, please open an issue.</p>
   root and the container can't write to it. The container runs as uid
   1000, the usual first user on Linux. It's separate from
   <code>backend/data/</code>, which a native <code>go run .</code> uses.</li>
-<li><strong>Folders:</strong> folder attach and the shell tool only see the container's
-  filesystem. To work on a project, bind-mount it (add a <code>volumes:</code> entry
-  such as <code>- /home/you/project:/home/flint/project</code>), or run Flint natively.</li>
+<li><strong>Folders:</strong> the compose files mount your home folder into the
+  container at the same path (<code>/home/you</code> on Linux, <code>/Users/you</code> on a Mac),
+  so the folder browser starts there and a path you attach is the real
+  one. Commands you approve run inside the container but can reach that
+  folder, as they would with Flint running natively. To expose less, set
+  <code>FLINT_FOLDERS</code> to one folder
+  (<code>FLINT_FOLDERS=/home/you/project docker compose up -d</code>): only that
+  folder is mounted, and the browser starts in it. On Windows the paths
+  inside the container can't match <code>C:\...</code> paths, so set
+  <code>FLINT_FOLDERS</code> and attach folders by their Linux path, or run Flint
+  natively.</li>
 <li><strong>Shell:</strong> the image is Alpine (23.5 MB), not scratch, because the shell
   tool needs <code>sh</code>. Commands only have the tools Alpine ships.</li>
 <li>

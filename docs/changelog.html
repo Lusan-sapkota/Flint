@@ -189,6 +189,14 @@
 <li>The context meter shows from the start of a chat, not only after the
   first reply.</li>
 </ul>
+<h3 id="fixed-020">Fixed<a aria-label="Link to Fixed" class="header-anchor" href="#fixed-020">#</a></h3>
+<ul>
+<li>In Docker, attaching a folder from your machine failed with "folder
+  does not exist", since the container only saw its own files. The
+  compose files now mount your home folder at the same path, so the
+  folder browser starts there and attached paths are the real ones. Set
+  <code>FLINT_FOLDERS</code> to one folder to expose only that.</li>
+</ul>
 <h2 id="014---2026-09-26"><a href="https://github.com/Lusan-sapkota/Flint/compare/v0.1.3...v0.1.4">0.1.4</a> - 2026-09-26<a aria-label="Link to 0.1.4 - 2026-09-26" class="header-anchor" href="#014---2026-09-26">#</a></h2>
 <h3 id="added_1">Added<a aria-label="Link to Added" class="header-anchor" href="#added_1">#</a></h3>
 <ul>
@@ -390,6 +398,7 @@
       <li class="toc-item toc-level-2"><a href="#020---2026-09-27" class="toc-link" data-target="020---2026-09-27">0.2.0 - 2026-09-27</a></li>
       <li class="toc-item toc-level-3"><a href="#added" class="toc-link" data-target="added">Added</a></li>
       <li class="toc-item toc-level-3"><a href="#changed" class="toc-link" data-target="changed">Changed</a></li>
+      <li class="toc-item toc-level-3"><a href="#fixed-020" class="toc-link" data-target="fixed-020">Fixed</a></li>
       <li class="toc-item toc-level-2"><a href="#014---2026-09-26" class="toc-link" data-target="014---2026-09-26">0.1.4 - 2026-09-26</a></li>
       <li class="toc-item toc-level-3"><a href="#added_1" class="toc-link" data-target="added_1">Added</a></li>
       <li class="toc-item toc-level-3"><a href="#changed_1" class="toc-link" data-target="changed_1">Changed</a></li>

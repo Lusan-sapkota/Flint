@@ -47,6 +47,14 @@ Notable changes in each release. The measurements behind a change are in
 - The context meter shows from the start of a chat, not only after the
   first reply.
 
+### Fixed
+
+- In Docker, attaching a folder from your machine failed with "folder
+  does not exist", since the container only saw its own files. The
+  compose files now mount your home folder at the same path, so the
+  folder browser starts there and attached paths are the real ones. Set
+  `FLINT_FOLDERS` to one folder to expose only that.
+
 ## [0.1.4] - 2026-09-26
 
 ### Added
