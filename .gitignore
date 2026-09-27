@@ -23,5 +23,6 @@
 
 # Local agent guidance, not project documentation
 CLAUDE.md
+AGENTS.md
 /bench/results/
 __pycache__/

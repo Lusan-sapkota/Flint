@@ -64,9 +64,7 @@ the published image, since otherwise the local copy keeps shadowing it.
 
 - **Update the docs in the same pull request.** Every change updates the
   pages it affects. Documentation is native static HTML in `docs/` alongside
-  its Markdown sources. Edit the Markdown files in `docs/` and run
-  `python3 build_docs.py` to regenerate the HTML pages and the offline
-  search index (`docs/assets/js/search-index.js`).
+  its Markdown sources. Update the affected pages directly in `docs/`.
 - **Measure changes to prompts or the context pipeline.** Run the
   benchmark ([docs/benchmark.html](docs/benchmark.html)) before and after,
   on a small task list with `--runs 3`, and add the numbers to
