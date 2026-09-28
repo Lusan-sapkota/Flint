@@ -4,7 +4,7 @@
 
 <h1 align="center">Flint</h1>
 
-<p align="center">A small, fully offline chat UI for local Ollama models, built to get the most out of small models.</p>
+<p align="center">An offline orchestration layer and chat UI for local Ollama models, built to get the most out of small models.</p>
 
 <p align="center">
   <a href="https://github.com/Lusan-sapkota/Flint/releases/latest"><img src="https://img.shields.io/github/v/tag/Lusan-sapkota/Flint?sort=semver&label=latest&color=f0a050" alt="Latest version"></a>
@@ -92,9 +92,11 @@ server-rendered UI.
 
 The bet underneath: a well-guided 3-4B model isn't an inferior model, it's
 an under-scaffolded one. The usual bottleneck isn't the model, it's naive
-unbounded context, no discipline around tool calls, and no memory. Flint's
-job is to be the best possible scaffolding around a small model without
-becoming heavy itself.
+unbounded context, no discipline around tool calls, and no memory. Flint
+acts as an **active orchestration layer** rather than a passive passthrough:
+managing token budgets, isolating micro-agents (`@agent`), and shielding
+shell tools without consuming the heavy RAM/VRAM footprint of Python/PyTorch
+stacks. ([architecture](docs/architecture.html#orchestration-layer))
 
 ## Highlights
 

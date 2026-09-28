@@ -144,7 +144,7 @@
           <!-- Main Article Content -->
           <article class="doc-article">
             <h1 id="overview">Flint docs</h1>
-<p>Flint is a small, fully offline chat UI for local Ollama models: one Go
+<p>Flint is an offline orchestration layer and chat UI for local Ollama models: one Go
 binary, SQLite, and a light server-rendered UI, with nothing fetched from
 a CDN. The idea behind it is that a well-guided 3-4B model isn't an
 inferior model but an under-scaffolded one, so Flint's job is to be the
@@ -192,7 +192,8 @@ go<span class="w"> </span>run<span class="w"> </span>.
 <p><strong>How it works</strong></p>
 <ul>
 <li><a href="architecture.html">Architecture</a>: the pieces, repository layout, data
-  model, a chat turn, the streaming protocol, where the ideas come from
+  model, a chat turn, the streaming protocol, why Flint is an orchestration layer,
+  comparisons to generic agent CLIs, resource footprint, where the ideas come from
   and what was deliberately not built.</li>
 <li><a href="context-management.html">Context management</a>: how a conversation is
   fit into a small model's window.</li>

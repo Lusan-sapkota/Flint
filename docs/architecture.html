@@ -164,6 +164,31 @@ under-scaffolded one. Flint's work goes into the scaffolding around it:
 careful context management, a structured tool loop with human approval,
 and durable history. It avoids anything that only adds weight, which is
 why there's no bundled RAG or embedding stack.</p>
+<h2 id="orchestration-layer">An orchestration layer, not just a chat UI<a aria-label="Link to An orchestration layer, not just a chat UI" class="header-anchor" href="#orchestration-layer">#</a></h2>
+<p>Calling Flint a "chat UI" is technically incomplete. A standard chat UI is a passive passthrough: it collects your message history and forwards an array of JSON objects directly to Ollama's <code>/api/chat</code>. When a chat grows long or a model attempts complex tool interactions, a raw endpoint degrades or overflows.</p>
+<p>Flint is an <strong>active orchestration engine</strong> that sits between the human, the local filesystem, and Ollama, coordinating four essential subsystems:</p>
+<ul>
+<li><strong>Context &amp; budget orchestration:</strong> Instead of naively sending every message, Flint enforces a strict token budget per request. It preserves the user's latest prompt verbatim, injects structured folder anchors, and runs background layered summarization so long-running chats fit inside small model windows without overflow.</li>
+<li><strong>Multi-agent decomposition orchestration (<code>@agent</code>):</strong> Small models struggle to hold a whole codebase and execute a multi-step plan simultaneously. Flint plans a task decomposition, provisions worker sub-agents with clean, isolated context windows, coordinates parallel tool execution, and synthesizes findings into a single coherent answer.</li>
+<li><strong>Tool &amp; safety orchestration:</strong> Flint brokers tool execution by checking preconditions (ensuring files and binaries exist), enforcing a hard safety shield against destructive commands (like <code>rm -rf ~</code> or fork bombs), and managing an interactive approval state machine (Approve, Deny, Reply instead).</li>
+<li><strong>Hardware &amp; model lifecycle orchestration:</strong> To keep local VRAM free for the primary chat model, Flint dynamically requests embedding models (like <code>nomic-embed-text</code>) for <code>@web</code> ranking and immediately instructs Ollama to unload them once search results are scored.</li>
+</ul>
+<h2 id="why-not-generic-agent-clis">Why not generic agent CLIs or frontier wrappers?<a aria-label="Link to Why not generic agent CLIs or frontier wrappers?" class="header-anchor" href="#why-not-generic-agent-clis">#</a></h2>
+<p>A natural question is: <em>"If Ollama provides a local endpoint, why not just point Claude Code, Aider, or another agent CLI at it?"</em></p>
+<p>Existing agent CLIs are built and prompt-tuned for <strong>frontier models</strong> (Claude 3.7 Sonnet, GPT-4o) that boast 128k–200k token windows, deep instruction-following, and flawless JSON tool schema generation. When pointed at a 3B–4B local model, they break down in practice:</p>
+<ul>
+<li><strong>Context bloat:</strong> Frontier CLIs dump thousands of lines into the context—full file listings, repository trees, git diffs, and verbose shell outputs. While a 200k-token model parses this easily, a 3B model experiences catastrophic attention degradation past 4k–8k tokens, losing track of instructions or looping repeatedly.</li>
+<li><strong>Tool syntax and hallucination:</strong> Small models frequently hallucinate non-existent CLI flags, guess file names that do not exist, or emit invalid tool call JSON when confronted with sprawling tool schemas. Flint provides focused, single-tool guidance (such as instructing models to use <code>grep -rni</code> with single short words rather than guessing paths) and validates commands before human review.</li>
+<li><strong>Monolithic vs. micro-agent reasoning:</strong> Frontier models can hold an entire project in context and execute an end-to-end plan in one turn. Small models cannot. Flint's <code>@agent</code> divides large questions into micro-subtasks, each executed in an isolated context window, so each small model instance only reasons about what it can comfortably fit.</li>
+<li><strong>Human-in-the-loop safety in the browser:</strong> Terminal CLIs often encourage "auto-approve fatigue" where users hit Enter repeatedly without reading shell commands. Flint puts approvals in an explicit visual interface with clear diffs and output previews.</li>
+</ul>
+<h2 id="resource-footprint">Resource footprint &amp; philosophy<a aria-label="Link to Resource footprint & philosophy" class="header-anchor" href="#resource-footprint">#</a></h2>
+<p>Flint is designed for personal hardware—such as a laptop with 8–16 GB of RAM and a 6 GB GPU running 3–4B models. Every architectural choice reflects this constraint:</p>
+<ul>
+<li><strong>23 MB container vs. multi-GB stacks:</strong> Popular local LLM web UIs (such as Open WebUI or LibreChat) bundle Python runtimes, PyTorch, LangChain, vector databases (ChromaDB), and Redis. Their Docker images frequently exceed 2–4 GB and consume 1–2 GB of system RAM just idling before a single model is loaded.</li>
+<li><strong>Pure Go &amp; SQLite:</strong> Flint compiles to a single static binary with no external dependencies (using pure-Go SQLite without cgo) and a 23.5 MB Alpine Docker image. It idles at ~15 MB of RAM, leaving every possible megabyte of CPU and GPU memory available for Ollama and model weights.</li>
+<li><strong>Zero build step &amp; zero CDN dependencies:</strong> The frontend uses vendored htmx, Alpine.js, and Pico.css with zero build tools (no Node.js, no webpack) and zero external network calls.</li>
+</ul>
 <h2 id="repository-layout">Repository layout<a aria-label="Link to Repository layout" class="header-anchor" href="#repository-layout">#</a></h2>
 <div class="highlight"><div class="code-block"><button aria-label="Copy code to clipboard" class="copy-code-btn" title="Copy code" type="button">Copy</button><pre><span></span><code>backend/            Go module; run from here (asset paths are ../frontend/...)
   main.go           config from env, routes, graceful shutdown, /healthz
@@ -488,6 +513,9 @@ honestly claim:</p>
     <ul class="toc-list">
       <li class="toc-item toc-level-2"><a href="#overview" class="toc-link" data-target="overview">Overview</a></li>
       <li class="toc-item toc-level-2"><a href="#the-bet" class="toc-link" data-target="the-bet">The bet</a></li>
+      <li class="toc-item toc-level-2"><a href="#orchestration-layer" class="toc-link" data-target="orchestration-layer">Orchestration layer</a></li>
+      <li class="toc-item toc-level-2"><a href="#why-not-generic-agent-clis" class="toc-link" data-target="why-not-generic-agent-clis">Why not generic CLIs?</a></li>
+      <li class="toc-item toc-level-2"><a href="#resource-footprint" class="toc-link" data-target="resource-footprint">Resource footprint</a></li>
       <li class="toc-item toc-level-2"><a href="#repository-layout" class="toc-link" data-target="repository-layout">Repository layout</a></li>
       <li class="toc-item toc-level-2"><a href="#data-model" class="toc-link" data-target="data-model">Data model</a></li>
       <li class="toc-item toc-level-2"><a href="#a-chat-turn" class="toc-link" data-target="a-chat-turn">A chat turn</a></li>

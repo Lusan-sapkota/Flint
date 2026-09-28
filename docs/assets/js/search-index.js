@@ -71,6 +71,13 @@ window.FLINT_SEARCH_INDEX = [
   },
   {
     "page": "Install and run",
+    "url": "deployment.html#updates",
+    "title": "Updates & offline philosophy",
+    "group": "Get started",
+    "snippet": "Flint has a strict zero-telemetry, offline-first design. It never checks for updates in the background or sends analytics."
+  },
+  {
+    "page": "Install and run",
     "url": "deployment.html#health",
     "title": "Health",
     "group": "Get started",
@@ -250,6 +257,27 @@ window.FLINT_SEARCH_INDEX = [
     "title": "The bet",
     "group": "How it works",
     "snippet": "A well-guided 3-4B local model isn't an inferior model, just an\nunder-scaffolded one. Flint's work goes into the scaffolding around it:\ncare"
+  },
+  {
+    "page": "Architecture",
+    "url": "architecture.html#orchestration-layer",
+    "title": "An orchestration layer, not just a chat UI",
+    "group": "How it works",
+    "snippet": "Flint is an active orchestration engine that sits between the human, the local filesystem, and Ollama, coordinating four essential subsystems."
+  },
+  {
+    "page": "Architecture",
+    "url": "architecture.html#why-not-generic-agent-clis",
+    "title": "Why not generic agent CLIs or frontier wrappers?",
+    "group": "How it works",
+    "snippet": "Existing agent CLIs are built and prompt-tuned for frontier models. When pointed at a 3B-4B local model, they break down in practice."
+  },
+  {
+    "page": "Architecture",
+    "url": "architecture.html#resource-footprint",
+    "title": "Resource footprint & philosophy",
+    "group": "How it works",
+    "snippet": "23 MB container vs. multi-GB stacks. Pure Go & SQLite with zero build step, leaving memory for Ollama and model weights."
   },
   {
     "page": "Architecture",
