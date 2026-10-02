@@ -45,6 +45,7 @@ CONFIGS = {
     "no-summaries": "summaries",
     "no-fit": "fit",
     "no-preconditions": "preconditions",
+    "no-tree": "tree",
     "bare": "nudge,anchor,summaries,fit,preconditions",
 }
 

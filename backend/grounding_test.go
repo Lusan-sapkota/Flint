@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -49,5 +50,37 @@ func TestGroundingNoteUsesLastAnswer(t *testing.T) {
 	msgs[2].Content = "It's in `main.go`."
 	if got := groundingNote(msgs, root); got != "" {
 		t.Errorf("want no note when the last answer is grounded, got %q", got)
+	}
+}
+
+func TestFileTreeShallowFirstAndCut(t *testing.T) {
+	root := t.TempDir()
+	os.MkdirAll(filepath.Join(root, "a", "deep"), 0o755)
+	os.MkdirAll(filepath.Join(root, ".git"), 0o755)
+	os.WriteFile(filepath.Join(root, "top.go"), nil, 0o644)
+	os.WriteFile(filepath.Join(root, ".env"), nil, 0o644)
+	os.WriteFile(filepath.Join(root, ".git", "HEAD"), nil, 0o644)
+	os.WriteFile(filepath.Join(root, "a", "mid.go"), nil, 0o644)
+	for i := range maxTreeChars / 10 {
+		os.WriteFile(filepath.Join(root, "a", "deep", fmt.Sprintf("f%07d.go", i)), nil, 0o644)
+	}
+
+	got := fileTree(root)
+	if want := "./: top.go\na/: mid.go\n(240 more files in deeper folders not listed)"; got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestGroundingNoteSuggestsRealPath(t *testing.T) {
+	root := t.TempDir()
+	os.MkdirAll(filepath.Join(root, "backend"), 0o755)
+	os.WriteFile(filepath.Join(root, "AGENTS.md"), nil, 0o644)
+	os.WriteFile(filepath.Join(root, "backend", "shield.go"), nil, 0o644)
+	msgs := []Message{{Role: "assistant", Content: "See `agents.md` and `src/shield.go`."}}
+	got := groundingNote(msgs, root)
+	for _, want := range []string{"`agents.md` (exists as `AGENTS.md`)", "`src/shield.go` (exists as `backend/shield.go`)"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("want %q in %q", want, got)
+		}
 	}
 }

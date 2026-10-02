@@ -1637,6 +1637,39 @@ different files; see <a href="benchmark.html">benchmark.md</a>), run as a normal
 <li><strong>Kept</strong>, on by default. The numbers are small (7-8 runs per cell)
   and one model. Re-measure if the wording changes.</li>
 </ul>
+<h2 id="e29-real-file-paths-in-the-anchor">E29: Real file paths in the anchor<a aria-label="Link to E29: Real file paths in the anchor" class="header-anchor" href="#e29-real-file-paths-in-the-anchor">#</a></h2>
+<p>In E28, 28 of 40 first answers named a file that doesn't exist. The
+  model only saw the folder's top level, so it guessed what was in the
+  subfolders. Built: the anchor lists real file paths, grouped by
+  folder and shallowest first, capped at 2400 characters (Flint's repo
+  fits in ~2400, about 600 tokens). Hidden folders, <code>node_modules</code>,
+  <code>__pycache__</code> and <code>vendor</code> are skipped; a cut says how many files
+  weren't listed. The E28 note also suggests a real path when a missing
+  name matches one by file name or case (<code>agents.md</code> → <code>AGENTS.md</code>).
+  Ablatable as <code>tree</code> and <code>suggest</code>.</p>
+<p>Test: qwen2.5-3b-instruct, Flint's repo root attached, six "without
+  running commands" questions with one known file each (<code>shield.go</code>,
+  <code>chat.js</code>, <code>ratelimit.go</code>, <code>websearch.go</code>, <code>flint.css</code>,
+  <code>tasks.py</code>). 5 runs per question and arm, shuffled.</p>
+<table>
+<thead><tr><th></th><th>top level only</th><th>with paths</th></tr></thead>
+<tbody>
+<tr><td>names the right file (keyword)</td><td>3/30</td><td>29/30</td></tr>
+<tr><td>names it plainly (read by hand)</td><td>3/30</td><td>24/30</td></tr>
+<tr><td>names a file that doesn't exist</td><td>13/30</td><td>1/30</td></tr>
+<tr><td>proposes a command anyway</td><td>9/30</td><td>8/30</td></tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Without the paths</strong> the model either said it couldn't tell or
+  invented a likely name. All 3 correct answers were the same question
+  (<code>chat.js</code>).</li>
+<li><strong>With them</strong>, the 5 answers that only matched by keyword pasted
+  most of the list back or named <code>chat.html</code> before <code>chat.js</code>.</li>
+<li><strong>Benchmark</strong> (fixture folder, 20 tasks, 2 runs): full 30/40,
+  no-tree 26/40. No category got worse. <code>list-data</code> still
+  used a command in both arms.</li>
+</ul>
 <h2 id="open-questions">Open questions<a aria-label="Link to Open questions" class="header-anchor" href="#open-questions">#</a></h2>
 <ul>
 <li><strong>qwen3.5 thinking with no answer.</strong> Once in E22 it streamed a long

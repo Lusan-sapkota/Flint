@@ -308,8 +308,10 @@
   again on each page load, so creating the file clears it (<a href="experiments.html#e27-file-names-in-an-answer-checked-against-the-folder">E27</a>).
   The next request also tells the model, so it checks before building on
   a name it made up (<a href="experiments.html#e28-telling-the-model-its-last-answer-named-missing-files">E28</a>).</li>
-<li><strong>Live folder listing.</strong> Each turn, a fresh listing of the folder's top
-  level goes next to the model's reply point, so it knows what exists.</li>
+<li><strong>Live folder listing.</strong> Each turn, the folder's real file paths,
+  subfolders included (up to about 600 tokens, shallowest first), go next
+  to the model's reply point, so it names files that exist instead of
+  guessing (<a href="experiments.html#e29-real-file-paths-in-the-anchor">E29</a>).</li>
 </ul>
 <h2 id="web-search-web">Web search (<code>@web</code>)<a aria-label="Link to Web search (@web)" class="header-anchor" href="#web-search-web">#</a></h2>
 <ul>

@@ -596,6 +596,13 @@ window.FLINT_SEARCH_INDEX = [
   },
   {
     "page": "Experiments",
+    "url": "experiments.html#e29-real-file-paths-in-the-anchor",
+    "title": "E29: Real file paths in the anchor",
+    "group": "Evidence",
+    "snippet": "Listing the folder's real file paths in the anchor: right file 3/30 -> 29/30, invented names 13/30 -> 1/30."
+  },
+  {
+    "page": "Experiments",
     "url": "experiments.html#baseline-before-any-agent-code",
     "title": "Baseline, before any agent code",
     "group": "Evidence",

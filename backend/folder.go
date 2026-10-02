@@ -106,6 +106,9 @@ func buildAnchorHeader(path string) string {
 		return ""
 	}
 
+	if tree := fileTree(path); tree != "" && !ablated["tree"] {
+		return fmt.Sprintf("[Workspace anchor]\nAttached folder: %s\nFiles, by folder:\n%s", path, tree)
+	}
 	return fmt.Sprintf("[Workspace anchor]\nAttached folder: %s\nEntries: %s", path, strings.Join(names, ", "))
 }
 
