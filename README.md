@@ -26,7 +26,7 @@ command an agent asks to run.
 ([agents](docs/features.html#agents-agent), [changelog](docs/changelog.html))
 
 <p align="center">
-  <img src="docs/images/agent-approval.png" alt="Agent 3 asks to run cat config.yaml in the main chat, with Approve, Deny and Reply instead; the label reads Agents 2/3, 1 waiting" width="900">
+  <img src="docs/images/agent-approval.png" alt="Agent 3 asks to run a grep in the main chat, with Approve, Deny and Reply instead, under the folded agent plan card and its flint" width="900">
 </p>
 
 ## Quick start
