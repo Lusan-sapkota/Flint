@@ -828,6 +828,12 @@ document.addEventListener('alpine:init', () => {
       return `Agents ${finished}/${n}` + (queued ? ` · ${queued} queued` : '') + (waiting ? ` · ${waiting} waiting` : '');
     },
 
+    agentMood(run) {
+      if (run.status === 'running') return this.agentCount(run, 'waiting') ? 'waiting' : 'working';
+      if (run.status === 'done') return this.agentCount(run, 'failed') ? 'meh' : 'happy';
+      return { planned: 'idle', failed: 'meh' }[run.status] || 'sleepy';
+    },
+
     agentSummary(run) {
       const n = run.agents.length;
       if (run.status === 'discarded') return 'Discarded';

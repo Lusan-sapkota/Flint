@@ -450,6 +450,12 @@ decides what runs.</p>
   shown as queued until a slot frees.
   <strong>Stop</strong> ends every agent, and any command still waiting is cancelled,
   never run.</li>
+<li><strong>The flint on the card.</strong> A small flint stone on the plan card shows
+  how the run is going at a glance: it bobs while the agents work, hops
+  with wide eyes when one is waiting for your approval, smiles when the
+  run is done, and goes grey when it was stopped. It's plain CSS, and it
+  holds still if your system asks for reduced motion.
+  <img alt="The flint's faces: planned, running, waiting for you, done, some failed, stopped" src="images/agent-buddy.png"/></li>
 <li><strong>Results.</strong> Each agent ends with a fixed JSON result: its answer (at
   most 150 words) and whether what it read actually contained it. An
   agent that breaks the format, runs out of its 5 minutes of model time

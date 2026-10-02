@@ -16,6 +16,8 @@ Notable changes in each release. The measurements behind a change are in
   folder are listed under its reply, so an invented path stands out
   (E27). The next request tells the model too, so it checks before
   building on a name it made up (E28).
+- The agent plan card has a small flint whose face shows the run's
+  state: working, waiting for your approval, done, or stopped.
 
 ## [0.2.1] - 2026-09-27
 
