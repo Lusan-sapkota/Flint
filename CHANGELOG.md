@@ -3,7 +3,7 @@
 Notable changes in each release. The measurements behind a change are in
 [experiments](experiments.md).
 
-## [Unreleased]
+## [0.4.0] - 2026-10-02
 
 ### Added
 
@@ -27,7 +27,6 @@ Notable changes in each release. The measurements behind a change are in
   first change to the last.
 - An edit that removes a name the file still uses says on which lines,
   so a rename doesn't stop at the import (E32).
-
 - An edit whose old text isn't in the file is pointed at the one line
   that contains every part of it, and told to send that whole line, then
   the whole changed line. A small model had otherwise repeated a garbled

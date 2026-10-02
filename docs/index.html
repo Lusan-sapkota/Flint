@@ -32,7 +32,7 @@
         <a href="index.html" class="brand-link">
           <img src="images/logo.png" alt="Flint logo" width="30" height="30" class="brand-logo">
           <span class="brand-name">Flint</span>
-          <span class="version-pill">v0.3.0</span>
+          <span class="version-pill">v0.4.0</span>
         </a>
       </div>
 
@@ -153,7 +153,14 @@ context that never overflows, shell commands that always wait for your
 approval, memory across chats, and web search only when you ask. Ollama
 cloud models work too, under the same rules, tagged as cloud, and each
 account can set its own context window for local and for cloud models.</p>
-<p><strong>New in 0.3.0:</strong> the model can read, edit and create files in
+<p><strong>New in 0.4.0:</strong> with a cloud model, a turn's edits are staged and
+reviewed together after its reply: one card shows every changed file, with
+Write all and Discard all, and halved the approvals for a change across two
+files in testing. Any diff with more than one change can be written in part,
+one checkbox per change. An edit that removes a name the file still uses (a
+rename that stopped at the import) is pointed at the lines that still use it.
+(<a href="features.html#reviewing-a-cloud-models-edits">features</a>, <a href="experiments.html#e32-multi-file-edits-for-cloud-models">experiments</a>, <a href="changelog.html">changelog</a>)</p>
+<p>0.3.0 added file tools: the model reads, edits and creates files in
 your attached folder. It reads on its own, inside the folder only and never
 a secret the shield blocks (with a cloud model, only after you approve
 each read); every edit is shown as a red/green diff and written only when

@@ -19,7 +19,16 @@ Brave Search API with your own key, only when you ask, sending only the
 query text. Ollama cloud models (`:cloud`) run on ollama.com, so Flint tags
 them "cloud" and says so in the chat.
 
-**New in 0.3.0:** the model can read, edit and create files in your
+**New in 0.4.0:** with a cloud model, a turn's edits are staged and reviewed
+together after its reply: one card shows every changed file, with Write
+all and Discard all, and halved the approvals for a change across two
+files in testing. Any diff with more than one change can be written in
+part, one checkbox per change. An edit that removes a name the file still
+uses (a rename that stopped at the import) is pointed at the lines that
+still use it.
+([features](docs/features.html#reviewing-a-cloud-models-edits), [experiments](docs/experiments.html#e32-multi-file-edits-for-cloud-models), [changelog](docs/changelog.html))
+
+0.3.0 added file tools: the model reads, edits and creates files in your
 attached folder. It reads on its own, inside the folder only and never a
 secret the shield blocks (with a cloud model, only after you approve each
 read); every edit is shown as a red/green diff and written only when you
