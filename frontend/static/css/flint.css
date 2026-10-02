@@ -1477,18 +1477,18 @@ details.flint-thinking > summary:focus {
   }
 }
 
-/* While the plan is reviewed, the flint sits beside the title and estimate only; the list runs full width. */
+/* While the plan is reviewed, the flint is a header icon like the other cards'; everything below runs full width. */
 .flint-agent-plan:not(.flint-agent-plan-folded) {
   display: block;
 }
 
 .flint-agent-plan:not(.flint-agent-plan-folded) .flint-buddy {
   float: left;
-  zoom: 0.85;
-  margin-right: 1rem;
+  zoom: 0.6;
+  margin: -1.05rem 0.9rem -1rem -0.2rem;
 }
 
-.flint-agent-plan:not(.flint-agent-plan-folded) .flint-agent-list {
+.flint-agent-plan:not(.flint-agent-plan-folded) .flint-agent-estimate {
   clear: left;
 }
 
