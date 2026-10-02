@@ -511,7 +511,7 @@
           </template>
         </ul>
         <textarea rows="1" x-ref="input" :placeholder="pendingCommand && replyingTo ? 'Tell the model what to do instead…' : 'Message Flint…'" x-model="input" @input="commandIndex = 0; suggestDismissed = false" @keydown="commandKeydown($event)" @keydown.enter="submitOnEnter($event)" @paste="handlePaste($event)" :disabled="!conversationId || streaming || (pendingCommand && !replyingTo)"></textarea>
-        <button type="button" class="flint-send-btn" x-show="!streaming" @click="send" :disabled="!conversationId || (pendingCommand && !replyingTo) || !input.trim() || inputSizeError">Send</button>
+        <button type="button" class="flint-send-btn" x-show="!streaming" @click="send" :disabled="!conversationId || (pendingCommand && !replyingTo) || !input.trim() || !!inputSizeError">Send</button>
         <button type="button" class="flint-send-btn flint-stop-btn secondary" x-show="streaming" @click="stop()" title="Stop generating" aria-label="Stop generating">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
           Stop
