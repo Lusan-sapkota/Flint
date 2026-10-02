@@ -19,15 +19,21 @@ Brave Search API with your own key, only when you ask, sending only the
 query text. Ollama cloud models (`:cloud`) run on ollama.com, so Flint tags
 them "cloud" and says so in the chat.
 
-**New in 0.2.0:** `@agent <task>` splits a question over your folder into
-subtasks, each run by its own agent with a clean context window, and
-writes one answer from their results. You approve the plan and every
-command an agent asks to run.
-([agents](docs/features.html#agents-agent), [changelog](docs/changelog.html))
+**New in 0.3.0:** the model can read, edit and create files in your
+attached folder. It reads on its own, inside the folder only; every edit
+is shown as a red/green diff and written only when you approve it. The
+folder's real file paths sit next to where the model writes, so it names
+files that exist instead of guessing, and any file it mentions that isn't
+there is flagged under its reply.
+([features](docs/features.html#folder-attach-and-the-shell-tool), [security](docs/security.html#file-tools), [changelog](docs/changelog.html))
 
 <p align="center">
-  <img src="docs/images/agent-approval.png" alt="Agent 3 asks to run a grep in the main chat, with Approve, Deny and Reply instead, under the folded agent plan card and its flint" width="900">
+  <img src="docs/images/write-tool.png" alt="An edit_file proposal shown as a red/green diff of config.yaml, max_connections 25 to 50, with Approve &amp; write, Deny and Reply instead" width="900">
 </p>
+
+0.2.0 added `@agent <task>`: a question over your folder split into
+subtasks, each run by its own agent, with one answer from their results
+([agents](docs/features.html#agents-agent)).
 
 ## Quick start
 

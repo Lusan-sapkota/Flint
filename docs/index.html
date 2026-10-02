@@ -153,12 +153,17 @@ context that never overflows, shell commands that always wait for your
 approval, memory across chats, and web search only when you ask. Ollama
 cloud models work too, under the same rules, tagged as cloud, and each
 account can set its own context window for local and for cloud models.</p>
-<p><strong>New in 0.2.0:</strong> <code>@agent &lt;task&gt;</code> splits a question over your folder into
-subtasks, each run by its own agent with a clean context window, and
-writes one answer from their results. You approve the plan and every
-command an agent asks to run.
-(<a href="features.html#agents-agent">features</a>, <a href="changelog.html">changelog</a>)</p>
-<p><img alt="Agent 3 asks to run a grep in the main chat, with Approve, Deny and Reply instead, under the folded agent plan card and its flint" src="images/agent-approval.png"/></p>
+<p><strong>New in 0.3.0:</strong> the model can read, edit and create files in
+your attached folder. It reads on its own, inside the folder only; every
+edit is shown as a red/green diff and written only when you approve it.
+The folder's real file paths now sit next to where the model writes, so
+it names files that exist instead of guessing, and any file it mentions
+that isn't there is flagged under its reply.
+(<a href="features.html#folder-attach-and-the-shell-tool">features</a>, <a href="security.html#file-tools">security</a>, <a href="changelog.html">changelog</a>)</p>
+<p><img alt="An edit_file proposal shown as a red/green diff of config.yaml, max_connections 25 to 50, with Approve &amp; write, Deny and Reply instead" src="images/write-tool.png"/></p>
+<p>0.2.0 added <code>@agent &lt;task&gt;</code>: a question over your folder split into
+subtasks, each run by its own agent, with one answer from their results
+(<a href="features.html#agents-agent">features</a>).</p>
 <h2 id="quick-start">Quick start<a aria-label="Link to Quick start" class="header-anchor" href="#quick-start">#</a></h2>
 <p>You need <a href="https://ollama.com">Ollama</a> running with a model pulled, for
 example <code>ollama pull qwen2.5:3b</code>.</p>
@@ -217,6 +222,7 @@ go<span class="w"> </span>run<span class="w"> </span>.
   pull request needs, and, for maintainers, how a release is made.</li>
 </ul>
 <h2 id="screenshots">Screenshots<a aria-label="Link to Screenshots" class="header-anchor" href="#screenshots">#</a></h2>
+<p><img alt="An edit_file proposal shown as a red/green diff of config.yaml, max_connections 25 to 50, with Approve &amp; write, Deny and Reply instead" src="images/write-tool.png"/></p>
 <p><img alt="An @agent plan: three subtasks with their files, one left to look through the folder itself, waiting for Run or Discard" src="images/agent-plan.png"/></p>
 <p><img alt="Agent 3 asks to run a grep in the main chat, with Approve, Deny and Reply instead, under the folded agent plan card and its flint" src="images/agent-approval.png"/></p>
 <p><img alt="The combined answer in the chat, under a From 3 agents block listing what each agent found" src="images/agent-answer.png"/></p>

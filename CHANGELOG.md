@@ -3,29 +3,35 @@
 Notable changes in each release. The measurements behind a change are in
 [experiments](experiments.md).
 
-## [Unreleased]
+## [0.3.0] - Unreleased
 
 ### Added
 
-- A message too big for the chat's context window is refused before it is
-  saved, instead of failing at Ollama after the wait. The limit counts only
-  what compaction can't remove, so older history doesn't shrink it. The
-  composer shows the limit as you type, and warns when a message will push
-  older messages out of verbatim context.
+- File tools in folder chats. The model reads files in the attached
+  folder on its own, and edits or creates them through a red/green diff
+  you approve before anything is written. Paths can't leave the folder,
+  and an edit to a file that changed since it was proposed is refused
+  (E30).
+- The folder anchor lists the folder's real file paths, not just its top
+  level, so the model names files that exist instead of guessing: the
+  right file in 29 of 30 answers, up from 3 (E29).
 - In a folder chat, file names the model mentions that aren't in the
   folder are listed under its reply, so an invented path stands out
   (E27). The next request tells the model too, so it checks before
   building on a name it made up (E28).
-- The folder anchor lists the folder's real file paths, not just its top
-  level, so the model names files that exist instead of guessing (E29).
-- File tools in folder chats: the model reads files in the attached
-  folder without asking, and edits or creates them through a diff you
-  approve before anything is written. Paths can't leave the folder, and an
-  edit to a file that changed since it was proposed is refused (E30).
-- The step cap counts only steps that asked for your approval (3);
-  reads and refused proposals are bounded by a total of 8.
+- A message too big for the chat's context window is refused before it
+  is saved, instead of failing at Ollama after the wait. The limit counts
+  only what compaction can't remove, so older history doesn't shrink it.
+  The composer warns when a message will push older messages out of
+  verbatim context.
 - The agent plan card has a small flint whose face shows the run's
   state: working, waiting for your approval, done, or stopped.
+
+### Changed
+
+- The step cap counts only steps that asked for your approval (3); reads
+  and refused proposals are bounded by a total of 8.
+- A started agent plan card folds into one compact row.
 
 ## [0.2.1] - 2026-09-27
 
