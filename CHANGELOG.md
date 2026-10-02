@@ -3,6 +3,16 @@
 Notable changes in each release. The measurements behind a change are in
 [experiments](experiments.md).
 
+## [Unreleased]
+
+### Added
+
+- A message too big for the chat's context window is refused before it is
+  saved, instead of failing at Ollama after the wait. The limit counts only
+  what compaction can't remove, so older history doesn't shrink it. The
+  composer shows the limit as you type, and warns when a message will push
+  older messages out of verbatim context.
+
 ## [0.2.1] - 2026-09-27
 
 ### Changed

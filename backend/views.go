@@ -258,6 +258,8 @@ type chatViewData struct {
 	CurrentUpdatedAt    int64
 	ContextUsed         int
 	ContextMax          int
+	MaxInput            int
+	CharsPerToken       float64
 	Condensed           int
 	CurrentFolder       string
 	CurrentModelHost    string
@@ -298,6 +300,8 @@ func (s *Server) handleChatPage(w http.ResponseWriter, r *http.Request, user *Us
 		if data.ContextMax == 0 {
 			data.ContextMax = s.numCtxFor(user, full.Conversation)
 		}
+		data.MaxInput = s.maxInputTokens(user, full, s.numCtxFor(user, full.Conversation))
+		data.CharsPerToken = charsPerToken / full.TokenRatio
 		data.Condensed = condensedCount(full.Messages, full.Summaries)
 		if full.AttachedFolder != nil {
 			data.CurrentFolder = *full.AttachedFolder

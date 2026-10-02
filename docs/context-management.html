@@ -241,8 +241,23 @@ models keep the placement the experiments measured (E22).</p>
    (E10). The model never writes tool output, so the cut marker can't be
    copied.</li>
 </ol>
-<p>After step 5 the prompt fits the budget. The only exception is protected
-text other than tool output that is bigger than the window by itself.</p>
+<p>After step 5 the prompt fits the budget. The only exception would be a
+user message too big to fit next to the protected messages, and that is
+refused before it is saved.</p>
+<h3 id="message-size-limit">Message size limit<a aria-label="Link to Message size limit" class="header-anchor" href="#message-size-limit">#</a></h3>
+<p>A user message is never truncated, so a paste bigger than the window used
+to reach Ollama, be rejected, and end in an error after the wait. The
+limit for the next message is the budget minus what the steps above can't
+remove: the manifest, the summaries, the protected recent messages, and
+tool output cut to its minimum (<code>maxInputTokens</code>). Older history doesn't
+count against it, because it gets dropped or condensed to make room. A
+plain "window minus used" limit would refuse messages that fit.</p>
+<p>The server refuses a bigger message with <code>413</code> before saving it. An
+edit is measured against the history it leaves and checked before
+anything is removed. The composer uses the same estimate with the chat's
+calibrated ratio. Past the limit it shows the error and disables Send.
+When a message will push older history out of verbatim context, it shows a
+warning that doesn't block sending.</p>
 <h2 id="summaries">Summaries<a aria-label="Link to Summaries" class="header-anchor" href="#summaries">#</a></h2>
 <p><code>summary.go</code>. These run in the background after a reply has finished
 streaming, so they never delay or hold open a response. History built

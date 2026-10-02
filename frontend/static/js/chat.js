@@ -238,6 +238,8 @@ document.addEventListener('alpine:init', () => {
     lastActive: config.lastActive,
     contextUsed: config.contextUsed,
     contextMax: config.contextMax,
+    maxInput: config.maxInput,
+    charsPerToken: config.charsPerToken,
     condensed: config.condensed,
     thinkOn: localStorage.getItem('flint-think') !== '0',
     editingIndex: null,
@@ -378,6 +380,23 @@ document.addEventListener('alpine:init', () => {
       return warnings.join(' ');
     },
 
+    // Same estimate as the server: bytes over the chat's calibrated chars/token.
+    get draftTokens() {
+      return Math.ceil(new TextEncoder().encode(this.input).length / this.charsPerToken) + 4;
+    },
+
+    // Mirrors refuseOversized in handlers.go, which has the final say.
+    get inputSizeError() {
+      if (!this.conversationId || this.draftTokens <= this.maxInput) return '';
+      return `This message is about ${this.formatTokens(this.draftTokens)} tokens, but this chat has room for ${this.formatTokens(this.maxInput)}. Send it in parts, or save it to a file and attach its folder.`;
+    },
+
+    // Not blocking: older history makes room, it just stops being verbatim.
+    get inputSizeWarning() {
+      if (this.inputSizeError || this.draftTokens < 256 || this.contextUsed + this.draftTokens <= this.contextMax - 1024) return '';
+      return `This message is about ${this.formatTokens(this.draftTokens)} tokens: older messages will be condensed or dropped to make room for it.`;
+    },
+
     removeAttachment(i) {
       this.attachments.splice(i, 1);
     },
@@ -470,7 +489,7 @@ document.addEventListener('alpine:init', () => {
 
     async send() {
       const content = this.input.trim();
-      if (!content || this.streaming || (this.pendingCommand && !this.replyingTo) || !this.conversationId) return;
+      if (!content || this.streaming || (this.pendingCommand && !this.replyingTo) || !this.conversationId || this.inputSizeError) return;
       // "Reply instead": deny the pending command without letting the model
       // continue, then send this as an ordinary message it responds to.
       const cmd = this.pendingCommand;
@@ -582,6 +601,11 @@ document.addEventListener('alpine:init', () => {
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
+          // Refused for size before anything was saved: give the text back.
+          if (res.status === 413 && method === 'POST' && this.timeline.at(-1)?.kind === 'user') {
+            this.timeline.pop();
+            this.input = payload.content;
+          }
           this.timeline.push({ kind: 'system', content: `Error: ${data.error || res.statusText}` });
           return;
         }
@@ -1023,6 +1047,8 @@ document.addEventListener('alpine:init', () => {
             if (lineMarker === CONTEXT_MARKER) {
               this.contextUsed = value.used;
               this.contextMax = value.max;
+              this.maxInput = value.maxInput;
+              this.charsPerToken = value.charsPerToken;
               this.condensed = value.condensed;
             } else if (lineMarker === SEARCHING_MARKER) {
               this.searchingQuery = value.query;

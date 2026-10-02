@@ -20,6 +20,7 @@ import (
 const (
 	maxAttachmentBytes    = 8 * 1024 * 1024
 	maxAttachmentsPerTurn = 4
+	maxMessageBody        = maxAttachmentsPerTurn*maxAttachmentBytes*4/3 + 8*1024*1024
 )
 
 // Every format here was checked to decode in Ollama's vision path. Keep

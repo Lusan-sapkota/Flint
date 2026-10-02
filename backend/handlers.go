@@ -598,6 +598,7 @@ func (s *Server) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 		Content     string             `json:"content"`
 		Attachments []AttachmentUpload `json:"attachments,omitempty"`
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxMessageBody)
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Content == "" {
 		writeError(w, http.StatusBadRequest, "content is required")
 		return
@@ -610,6 +611,9 @@ func (s *Server) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 	}
 	if convo == nil {
 		writeError(w, http.StatusNotFound, "conversation not found")
+		return
+	}
+	if s.refuseOversized(w, user, convo, body.Content) {
 		return
 	}
 
@@ -630,6 +634,7 @@ func (s *Server) handleEditLastMessage(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Content string `json:"content"`
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxMessageBody)
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || strings.TrimSpace(body.Content) == "" {
 		writeError(w, http.StatusBadRequest, "content is required")
 		return
@@ -676,6 +681,13 @@ func (s *Server) handleEditLastMessage(w http.ResponseWriter, r *http.Request) {
 	start := last
 	for start > 0 && convo.Messages[start-1].Role == "system" && strings.HasPrefix(convo.Messages[start-1].Content, webResultsPrefix) {
 		start--
+	}
+
+	// Checked before truncating, so a refused edit loses nothing.
+	kept := *convo
+	kept.Messages = convo.Messages[:start]
+	if s.refuseOversized(w, user, &kept, body.Content) {
+		return
 	}
 
 	carried := convo.Messages[last].Attachments
@@ -1064,13 +1076,7 @@ func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, use
 	s.streamAssistantTurnAttempt(w, r, user, convo, false)
 }
 
-func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Request, user *User, convo *ConversationWithMessages, retried bool) {
-	numCtx := s.numCtxFor(user, convo.Conversation)
-	options := map[string]any{"num_ctx": numCtx}
-	count := tokenCounter(convo.TokenRatio)
-
-	var tools []OllamaTool
-	var suffix string
+func (s *Server) turnSetup(user *User, convo *ConversationWithMessages, numCtx int) (tools []OllamaTool, suffix string, toolsTokens, budget int) {
 	if convo.AttachedFolder != nil && *convo.AttachedFolder != "" && consecutiveToolCycles(convo.Messages) < maxToolAttemptsPerTurn {
 		tools = []OllamaTool{runShellTool}
 		if !ablated["nudge"] && !forbidsCommands(convo.Messages) {
@@ -1089,9 +1095,41 @@ func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Reque
 		suffix = strings.TrimLeft(memories+"\n\n"+suffix, "\n")
 	}
 	toolsJSON, _ := json.Marshal(tools)
-	toolsTokens := estimateTokens(string(toolsJSON))
+	toolsTokens = estimateTokens(string(toolsJSON))
 	overhead := toolsTokens + estimateTokens(suffix)
-	budget := numCtx - responseReserve - int(float64(overhead)*float64(count))
+	budget = numCtx - responseReserve - int(float64(overhead)*float64(tokenCounter(convo.TokenRatio)))
+	return
+}
+
+// Only what fitting can't drop or condense counts against the next message.
+func (s *Server) maxInputTokens(user *User, convo *ConversationWithMessages, numCtx int) int {
+	_, _, _, budget := s.turnSetup(user, convo, numCtx)
+	count := tokenCounter(convo.TokenRatio)
+	floor := 0
+	for _, m := range buildOptimizedHistory(convo.Messages, convo.Summaries, s.attachmentsDir, 0, count) {
+		floor += count.text(m.Content)
+		for _, img := range m.Images {
+			floor += imageTokens(img)
+		}
+	}
+	return max(budget-floor-perMessageTokens, 0)
+}
+
+func (s *Server) refuseOversized(w http.ResponseWriter, user *User, convo *ConversationWithMessages, content string) bool {
+	limit := s.maxInputTokens(user, convo, s.numCtxFor(user, convo.Conversation))
+	size := tokenCounter(convo.TokenRatio).text(content)
+	if size <= limit {
+		return false
+	}
+	writeError(w, http.StatusRequestEntityTooLarge, fmt.Sprintf("This message is about %d tokens, but this chat has room for %d. Send it in parts, or save it to a file and attach its folder.", size, limit))
+	return true
+}
+
+func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Request, user *User, convo *ConversationWithMessages, retried bool) {
+	numCtx := s.numCtxFor(user, convo.Conversation)
+	options := map[string]any{"num_ctx": numCtx}
+	count := tokenCounter(convo.TokenRatio)
+	tools, suffix, toolsTokens, budget := s.turnSetup(user, convo, numCtx)
 
 	history := buildOptimizedHistory(convo.Messages, convo.Summaries, s.attachmentsDir, budget, count)
 	if ablated["fit"] {
@@ -1141,13 +1179,8 @@ func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Reque
 		}
 		return
 	}
-	// An overflow means the token estimate was off, which it always is on a
-	// new chat whose text is denser than chars/4 (a cat of a log of
-	// timestamps ran ~2 chars per token and overflowed an 8192 window by
-	// half). The rejection states the real size: recalibrate from it, refit
-	// and retry once. Nothing has been streamed yet, so the retry is
-	// invisible. Before this, a chat stayed stuck because only a successful
-	// reply ever recalibrated.
+
+	// model's context window is too small for the current conversation
 	var overflow *contextOverflowError
 	if errors.As(err, &overflow) && !retried && r.Context().Err() == nil {
 		s.calibrateTokenRatio(convo.ID, history, toolsTokens, overflow.promptTokens)
@@ -1171,7 +1204,9 @@ func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Reque
 		if err := setContextUsage(s.db, convo.ID, result.ContextUsed, numCtx); err != nil {
 			log.Printf("warning: failed to save context usage: %v", err)
 		}
-		line, _ := json.Marshal(map[string]int{"used": result.ContextUsed, "max": numCtx, "condensed": condensedCount(convo.Messages, convo.Summaries)})
+		// The unsaved reply will be protected history for the next message.
+		maxInput := max(s.maxInputTokens(user, convo, numCtx)-(result.ContextUsed-result.PromptTokens)-perMessageTokens, 0)
+		line, _ := json.Marshal(map[string]any{"used": result.ContextUsed, "max": numCtx, "condensed": condensedCount(convo.Messages, convo.Summaries), "maxInput": maxInput, "charsPerToken": charsPerToken / float64(count)})
 		fmt.Fprintf(w, "<<<CONTEXT>>>%s\n", line)
 		flush()
 	}

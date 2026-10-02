@@ -149,6 +149,8 @@
          lastActive: {{.CurrentUpdatedAt}},
          contextUsed: {{.ContextUsed}},
          contextMax: {{.ContextMax}},
+         maxInput: {{.MaxInput}},
+         charsPerToken: {{.CharsPerToken}},
          condensed: {{.Condensed}},
          timeline: {{.TimelineJSON}}
        })"
@@ -478,6 +480,8 @@
       </template>
       <template x-if="attachmentError"><p class="flint-error" x-text="attachmentError"></p></template>
       <template x-if="attachmentWarning"><p class="flint-warning" x-text="attachmentWarning"></p></template>
+      <template x-if="inputSizeError"><p class="flint-error" role="alert" x-text="inputSizeError"></p></template>
+      <template x-if="inputSizeWarning"><p class="flint-warning" x-text="inputSizeWarning"></p></template>
 
       <div class="flint-input-row">
         <button type="button" class="flint-icon-btn secondary" title="Attach a file" @click="$refs.fileInput.click()" :disabled="!conversationId || attachments.length >= 4">{{template "icon-paperclip"}}</button>
@@ -495,7 +499,7 @@
           </template>
         </ul>
         <textarea rows="1" x-ref="input" :placeholder="pendingCommand && replyingTo ? 'Tell the model what to do instead…' : 'Message Flint…'" x-model="input" @input="commandIndex = 0; suggestDismissed = false" @keydown="commandKeydown($event)" @keydown.enter="submitOnEnter($event)" @paste="handlePaste($event)" :disabled="!conversationId || streaming || (pendingCommand && !replyingTo)"></textarea>
-        <button type="button" class="flint-send-btn" x-show="!streaming" @click="send" :disabled="!conversationId || (pendingCommand && !replyingTo) || !input.trim()">Send</button>
+        <button type="button" class="flint-send-btn" x-show="!streaming" @click="send" :disabled="!conversationId || (pendingCommand && !replyingTo) || !input.trim() || inputSizeError">Send</button>
         <button type="button" class="flint-send-btn flint-stop-btn secondary" x-show="streaming" @click="stop()" title="Stop generating" aria-label="Stop generating">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
           Stop

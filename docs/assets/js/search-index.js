@@ -365,6 +365,13 @@ window.FLINT_SEARCH_INDEX = [
   },
   {
     "page": "Context management",
+    "url": "context-management.html#message-size-limit",
+    "title": "Message size limit",
+    "group": "How it works",
+    "snippet": "A user message is never truncated, so one too big to fit is refused before it is saved."
+  },
+  {
+    "page": "Context management",
     "url": "context-management.html#summaries",
     "title": "Summaries",
     "group": "How it works",

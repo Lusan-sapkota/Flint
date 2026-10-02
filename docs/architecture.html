@@ -377,8 +377,8 @@ client consumes:</p>
 <td>one JSON-string chunk of thinking, shown apart from the answer</td>
 </tr>
 <tr>
-<td><code>&lt;&lt;&lt;CONTEXT&gt;&gt;&gt;{"used":N,"max":M,"condensed":C}</code></td>
-<td>context use for this response, sent after every model response; <code>condensed</code> is how many messages a summary replaced in the request</td>
+<td><code>&lt;&lt;&lt;CONTEXT&gt;&gt;&gt;{"used":N,"max":M,"condensed":C,"maxInput":I,"charsPerToken":R}</code></td>
+<td>context use for this response, sent after every model response; <code>condensed</code> is how many messages a summary replaced in the request, <code>maxInput</code> the token limit for the next message, and <code>charsPerToken</code> the chat's calibrated ratio for estimating a draft</td>
 </tr>
 <tr>
 <td><code>&lt;&lt;&lt;TOOL_RESULT&gt;&gt;&gt;{"status":..,"output":..}</code></td>
