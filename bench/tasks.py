@@ -13,7 +13,12 @@ STOCKROOM_TOKEN is not set.
 """
 
 import re
+import subprocess
+import sys
+import tempfile
 from pathlib import Path
+
+import yaml
 
 
 def final(r):
@@ -104,6 +109,49 @@ def file_is(name, change=None, judge=None):
     return check
 
 
+def all_of(*checks):
+    """Every check must pass, for tasks that change more than one file."""
+
+    def check(r):
+        for c in checks:
+            ok, why = c(r)
+            if not ok:
+                return ok, why
+        return True, "files correct"
+
+    return check
+
+
+def reads_retries(r):
+    """main.py must take MAX_RETRIES from config.yaml: 6 as edited, 7 after changing only the config."""
+    if r["errors"]:
+        return False, f"request error on turn {r['errors'][0]}"
+    files = r.get("files", {})
+    if "max_retries: 6" not in files.get("config.yaml", ""):
+        return False, f"config.yaml is {files.get('config.yaml', '')[:120]!r}"
+    with tempfile.TemporaryDirectory() as d:
+        for name, content in files.items():
+            (Path(d) / name).parent.mkdir(parents=True, exist_ok=True)
+            (Path(d) / name).write_text(content)
+        got = []
+        for value in ("6", "7"):
+            cfg = Path(d) / "config.yaml"
+            cfg.write_text(re.sub(r"max_retries: \d+", "max_retries: " + value, cfg.read_text()))
+            p = subprocess.run([sys.executable, "-c", "import main; print(main.MAX_RETRIES)"], cwd=d, capture_output=True, text=True, timeout=10)
+            got.append(p.stdout.strip() or p.stderr.strip()[-120:])
+    if got != ["6", "7"]:
+        return False, f"main.py MAX_RETRIES gave {got} for config 6, 7"
+    return True, "reads config"
+
+
+def server_port(content):
+    try:
+        c = yaml.safe_load(content)
+        return c["server"]["port"] == 8080 and c["database"]["max_connections"] == 25
+    except Exception:
+        return False
+
+
 def doubles(content):
     g = {}
     try:
@@ -183,6 +231,13 @@ TASKS = [
     {"id": "edit-price", "category": "edit", "edits": True, "turns": ["In data/prices.csv, change the price of B-220 to 5.00."], "check": file_is("data/prices.csv", lambda s: s.replace("B-220,4.50", "B-220,5.00"))},
     {"id": "edit-add", "category": "edit", "edits": True, "turns": ["Add a function double(x) that returns x * 2 at the end of utils.py."], "check": file_is("utils.py", judge=doubles)},
     {"id": "edit-create", "category": "edit", "edits": True, "turns": ["Create a file CHANGES.md containing the line: Raised max connections."], "check": file_is("CHANGES.md", judge=lambda c: "Raised max connections" in c)},
+    # Two files in one message: on a cloud model every read also asks the user, so the 3-approval cap can cut these short.
+    {"id": "multi-rename", "category": "edit", "edits": True, "turns": ["Rename the function parse_sku to parse_code in utils.py, and update its caller in main.py."],
+     "check": all_of(file_is("utils.py", lambda s: s.replace("parse_sku", "parse_code")), file_is("main.py", lambda s: s.replace("parse_sku", "parse_code")))},
+    {"id": "multi-config", "category": "edit", "edits": True, "turns": ["Add max_retries: 6 under database in config.yaml, and change main.py so MAX_RETRIES is read from config.yaml instead of being hardcoded."],
+     "check": reads_retries},
+    {"id": "multi-port", "category": "edit", "edits": True, "turns": ["Stockroom is moving to port 8080. Update the port in README.md, and add a server section with port: 8080 to config.yaml."],
+     "check": all_of(file_is("README.md", lambda s: s.replace("7070", "8080")), file_is("config.yaml", judge=server_port))},
     {"id": "split-log", "category": "split", "turns": ["Two questions: what is the error code on the one ERROR line in large_log.txt, and what is the owner's email address in README.md?"], "check": answer(r"\b4471\b", r"dana@stockroom\.test")},
     {"id": "split-crowded", "category": "split", "turns": FILLER[:4] + ["What is TAX_RATE in utils.py, what port is in README.md, and what does check.py print?"], "check": answer(r"0?\.13\b|13\s?%", r"\b7070\b", r"\b42\b")},
 

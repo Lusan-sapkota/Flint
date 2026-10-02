@@ -354,9 +354,11 @@ model unsure what's on disk.</p>
 <p>What exists instead is <strong>Edit</strong> on the diff card: fix the part the model
 got wrong yourself, and the model is told exactly what was written.
 Multi-file review will be considered for cloud models and agents, which
-are capable enough to make coordinated changes worth reviewing as one; it
-would be measured first with benchmark tasks that change two files at
-once.</p>
+are capable enough to make coordinated changes worth reviewing as one. The
+first measurement (<a href="experiments.html#e31-two-file-edits-on-a-cloud-model">E31</a>): gpt-oss:120b on the cloud got every
+single-file edit right and 4 of 6 two-file changes, with each file's edit
+already right on its own card; the two misses were an edit that covered
+only part of what needed changing.</p>
 <h2 id="web-search-web">Web search (<code>@web</code>)<a aria-label="Link to Web search (@web)" class="header-anchor" href="#web-search-web">#</a></h2>
 <ul>
 <li>Start a message with <code>@web &lt;query&gt;</code> to search the web through the Brave

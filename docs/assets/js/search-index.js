@@ -609,6 +609,13 @@ window.FLINT_SEARCH_INDEX = [
     "snippet": "read_file without approval, edits as an approved diff; old_text/new_text beat line ranges 19/30 to 14/30."
   },
   {
+    "page": "Experiments",
+    "url": "experiments.html#e31-two-file-edits-on-a-cloud-model",
+    "title": "E31: Two-file edits on a cloud model",
+    "group": "Evidence",
+    "snippet": "gpt-oss:120b cloud: single-file edits 14/14, two-file 4/6; the approval cap doesn't hold for cloud reads or uninvited tool calls."
+  },
+  {
     "page": "Security",
     "url": "security.html#file-tools",
     "title": "File tools",

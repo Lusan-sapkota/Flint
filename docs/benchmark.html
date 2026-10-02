@@ -211,8 +211,8 @@ service called Stockroom, whose answers are known in advance:</p>
 </tr>
 <tr>
 <td>edit</td>
-<td>7</td>
-<td>the file left on disk is exactly right: four value changes, one in a subfolder that has to be read first, adding a function, creating a file</td>
+<td>10</td>
+<td>the files left on disk are exactly right: four value changes, one in a subfolder that has to be read first, adding a function, creating a file, and three changes across two files (a rename and its caller, a config key read by the code, a port in two places)</td>
 </tr>
 <tr>
 <td>long context</td>
@@ -227,10 +227,12 @@ service called Stockroom, whose answers are known in advance:</p>
 <code>check.py</code> or <code>fail.py</code>. Anything else is denied, including anything with
 <code>;</code>, <code>&amp;&amp;</code>, redirects or <code>$(…)</code>. A task with <code>deny_first</code> has its first
 proposed command denied whatever it is, so every run tests recovering from
-a denial. Edit tasks also approve file edits, and any command that
-doesn't reach outside the task's own copy (no <code>~</code>, <code>..</code> or other
-absolute path), so editing through the shell is scored fairly against
-the file tools. The fixture is copied to a fresh temporary
+a denial. Pending <code>read_file</code> cards (a cloud model's reads) are
+approved. Edit tasks also approve file edits, and any command that
+doesn't reach outside the task's own copy (no <code>~</code>, <code>..</code> or
+absolute path into a real top-level directory, so a sed address like
+<code>'/max_connections/a'</code> isn't mistaken for one), so editing through
+the shell is scored fairly against the file tools. The fixture is copied to a fresh temporary
 folder for every task.</p>
 <h2 id="configurations">Configurations<a aria-label="Link to Configurations" class="header-anchor" href="#configurations">#</a></h2>
 <p>Each configuration switches off some scaffolding through <code>FLINT_ABLATE</code>

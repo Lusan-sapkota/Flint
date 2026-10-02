@@ -1767,6 +1767,66 @@ different files; see <a href="benchmark.html">benchmark.md</a>), run as a normal
   approves them anyway. <strong>Not measured yet:</strong> the same tasks through
   shell only (<code>no-filetools</code>), and whether offering four tools changes
   the other categories.</p>
+<h2 id="e31-two-file-edits-on-a-cloud-model">E31: Two-file edits on a cloud model<a aria-label="Link to E31: Two-file edits on a cloud model" class="header-anchor" href="#e31-two-file-edits-on-a-cloud-model">#</a></h2>
+<p><strong>Question:</strong> E30 held back a multi-file review card because
+  qwen2.5-3b gets single edits wrong too often. Does a cloud model change
+  that? Model: <code>gpt-oss:120b-cloud</code>, among the cheapest cloud models
+  with tool calling ($0.15 in / $0.60 out per million tokens) and on the
+  free tier. Three new two-file edit tasks: <code>multi-rename</code>
+  (<code>parse_sku</code> to <code>parse_code</code> in <code>utils.py</code> and its caller),
+  <code>multi-config</code> (add <code>max_retries: 6</code> to <code>config.yaml</code> and read it in
+  <code>main.py</code>, scored by running the code with the config at 6 and then 7),
+  <code>multi-port</code> (the port in <code>README.md</code> plus a <code>server</code> section in
+  <code>config.yaml</code>). 2 runs each, with the 7 single-file edit tasks.</p>
+<table>
+<thead><tr><th></th><th>full</th><th>no-filetools (shell only)</th></tr></thead>
+<tbody>
+<tr><td>single-file (7 tasks)</td><td>14/14</td><td>13/14 (1 error)</td></tr>
+<tr><td><code>multi-rename</code></td><td>0/2</td><td>1/2 (1 error)</td></tr>
+<tr><td><code>multi-config</code></td><td>2/2</td><td>1/2 (1 error)</td></tr>
+<tr><td><code>multi-port</code></td><td>2/2</td><td>2/2</td></tr>
+<tr><td>approvals per two-file run</td><td>4.3 (max 5)</td><td>7.2 (max 9)</td></tr>
+<tr><td>seconds per two-file run</td><td>8.0</td><td>14.4</td></tr>
+</tbody>
+</table>
+<p>The three errors are <code>Internal Server Error</code> from ollama.com mid-turn,
+  all in shell-only runs; the cause wasn't found. Not counting them,
+  shell only missed nothing, and the file tools missed one task twice.</p>
+<ul>
+<li><strong>Both file-tool misses were the same:</strong> the model read both
+  files, renamed the definition, then edited only the import line of
+  <code>main.py</code> and left the call <code>parse_sku(order["sku"])</code> below it, and
+  said "All references now use the new function name." Each file's edit
+  was right as far as it went; what was missing was a second edit in
+  the same file. Its diff card shows only the import changing, so a
+  reader would catch it. Shell got it with <code>sed 's/parse_sku(/parse_code(/g'</code>,
+  one command for every occurrence.</li>
+<li><strong>The model calls tools Flint never offered:</strong> in shell-only runs
+  it called <code>apply_patch</code> (13 times), which the precondition check
+  refused as a missing command, and sent some empty commands.</li>
+<li><strong>The approval cap didn't cut any task short, for two reasons
+  found here, neither intended.</strong> A cloud read waits for approval, but
+  its result starts with <code>[read </code>, so the cap counts it as a free
+  read: in <code>full</code>, only edits count toward 3, which is why
+  <code>multi-config</code> could run 3 approved reads and 2 edits. And once the
+  cap is reached Flint stops <em>offering</em> tools, but it still runs any
+  tool call that comes back: gpt-oss keeps calling them, so shell-only
+  turns went to 9 approvals. qwen2.5-3b stops when no tools are offered,
+  which is why this never showed before. The cap was left as it is;
+  how to handle both is a decision, not a fix made in this run.</li>
+<li><strong>Harness:</strong> the shell-only <code>multi-config</code> runs first failed 0/2
+  because the benchmark denied <code>sed -i '/max_connections: 25/a…'</code>,
+  reading the sed address as an absolute path. Fixed (only a real
+  top-level directory counts) and re-run; the table has the re-run.
+  Pending <code>read_file</code> cards are now approved too.</li>
+</ul>
+<p><strong>What it means:</strong> on this model, single-file edits are no longer
+  the bottleneck (14/14 against qwen's 6/15), and two-file changes mostly
+  work through one card per file. The failure seen was a missed second
+  edit in the same file, which a turn-level review card wouldn't catch
+  any better than today's cards. A tool that edits several places in one
+  call would address it directly. Two runs per task: a direction, not a
+  measurement.</p>
 <h2 id="open-questions">Open questions<a aria-label="Link to Open questions" class="header-anchor" href="#open-questions">#</a></h2>
 <ul>
 <li><strong>qwen3.5 thinking with no answer.</strong> Once in E22 it streamed a long
@@ -1856,6 +1916,7 @@ different files; see <a href="benchmark.html">benchmark.md</a>), run as a normal
       <li class="toc-item toc-level-2"><a href="#e28-telling-the-model-its-last-answer-named-missing-files" class="toc-link" data-target="e28-telling-the-model-its-last-answer-named-missing-files">E28: Telling the model its last answer named missing files</a></li>
       <li class="toc-item toc-level-2"><a href="#e29-real-file-paths-in-the-anchor" class="toc-link" data-target="e29-real-file-paths-in-the-anchor">E29: Real file paths in the anchor</a></li>
       <li class="toc-item toc-level-2"><a href="#e30-read-write-and-edit-tools" class="toc-link" data-target="e30-read-write-and-edit-tools">E30: Read, write and edit tools</a></li>
+      <li class="toc-item toc-level-2"><a href="#e31-two-file-edits-on-a-cloud-model" class="toc-link" data-target="e31-two-file-edits-on-a-cloud-model">E31: Two-file edits on a cloud model</a></li>
       <li class="toc-item toc-level-2"><a href="#open-questions" class="toc-link" data-target="open-questions">Open questions</a></li>
     </ul>
   </nav>

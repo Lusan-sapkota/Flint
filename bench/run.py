@@ -87,20 +87,27 @@ class Client:
 
 def stays_inside(command, workdir):
     """Edit tasks approve any command that can't reach outside the task's own copy."""
-    return not re.search(r"(^|[\s'\"=])(~|\.\.|/(?!" + re.escape(workdir.lstrip("/")) + r"))", command)
+    if re.search(r"(^|[\s'\"=])(~|\.\.)", command):
+        return False
+    # A sed address like '/max_connections/a' isn't a path: only a real top-level directory counts (E31).
+    for m in re.finditer(r"(?:^|[\s'\"=])(/[^\s'\"]*)", command):
+        path = m.group(1)
+        if not path.startswith(workdir) and os.path.exists("/" + path.split("/")[1]):
+            return False
+    return True
 
 
 def run_turn(client, cid, text, turn, record, deny_first=False, approve_inside=None):
     """Send one message, drive its tool loop to the end, return the reply."""
     out = client.req(f"/api/conversations/{cid}/messages", {"content": text})
     transcript = out
-    # A turn allows at most 3 tool cycles (maxToolAttemptsPerTurn); 4 is a safe bound.
-    for _ in range(4):
+    # A turn allows at most 8 tool cycles (maxToolCyclesPerTurn); 9 is a safe bound.
+    for _ in range(9):
         m = re.search(r"<<<TOOL_CALL>>>(\{.*\})", out)
         if not m:
             break
         call = json.loads(m.group(1))
-        safe = looks_safe(call["command"]) or re.match(r"(edit_file|write_file) ", call["command"])
+        safe = looks_safe(call["command"]) or re.match(r"(read_file|edit_file|write_file) ", call["command"])
         if approve_inside:
             safe = safe or stays_inside(call["command"], approve_inside)
         verdict = "approve" if safe else "deny"
