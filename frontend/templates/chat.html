@@ -301,7 +301,7 @@
           </template>
 
           <template x-if="item.kind === 'agentPlan'">
-            <div class="flint-command-card flint-agent-plan">
+            <div class="flint-command-card flint-agent-plan" :class="{ 'flint-agent-plan-folded': item.run.status !== 'planned' }">
               <span class="flint-buddy" :data-mood="agentMood(item.run)" :title="agentRunLabel(item.run.status)" aria-hidden="true">
                 <span class="flint-buddy-spark"></span>
                 <span class="flint-buddy-stone"><span class="flint-buddy-eye"></span><span class="flint-buddy-eye"></span><span class="flint-buddy-mouth"></span></span>
@@ -309,7 +309,7 @@
               <div class="flint-agent-plan-body">
               <header>
                 <span>Agent plan</span>
-                <span class="flint-command-status" x-text="agentRunLabel(item.run.status)"></span>
+                <span class="flint-command-status" x-show="item.run.status === 'planned'" x-text="agentRunLabel(item.run.status)"></span>
               </header>
               <template x-if="item.run.status !== 'planned'">
                 <div class="flint-agent-summary">

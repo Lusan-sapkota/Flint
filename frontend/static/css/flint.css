@@ -1477,6 +1477,36 @@ details.flint-thinking > summary:focus {
   }
 }
 
+.flint-agent-plan-folded {
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.5rem 0.9rem;
+}
+
+.flint-agent-plan-folded .flint-buddy {
+  zoom: 0.7;
+}
+
+.flint-agent-plan-folded .flint-agent-plan-body {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: 0.75rem;
+}
+
+.flint-agent-plan-folded header {
+  margin-bottom: 0.1rem;
+}
+
+.flint-agent-plan-folded .flint-agent-summary {
+  display: contents;
+}
+
+.flint-agent-plan-folded .flint-agent-summary button {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
 .flint-agent-summary {
   display: flex;
   align-items: center;
