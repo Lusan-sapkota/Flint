@@ -14,8 +14,7 @@ const (
 	perMessageTokens = 4
 	defaultNumCtx    = 4096
 	boostedNumCtx    = 8192
-	// A cloud model's window costs no local memory, and ollama.com ignores
-	// num_ctx anyway (E23); this bounds what each turn resends instead.
+	// ollama.com ignores num_ctx (E23); this only bounds what each turn resends.
 	cloudNumCtx            = 32768
 	minNumCtx              = 2048
 	maxNumCtx              = 1048576
@@ -25,9 +24,7 @@ const (
 	maxToolAttemptsPerTurn = 3
 )
 
-// Every request sets num_ctx explicitly: a request without it makes Ollama
-// reload the model at its server default (verified: a model loaded at 8192
-// was reloaded at 4096), and the budget needs to know the real window.
+// Always set: without num_ctx Ollama reloads the model at its server default.
 func (s *Server) numCtxFor(user *User, c Conversation) int {
 	info := s.ollama.modelInfo(s.ollamaURLFor(user), c.Model)
 	n := defaultNumCtx
@@ -47,10 +44,7 @@ func (s *Server) numCtxFor(user *User, c Conversation) int {
 	return n
 }
 
-// tokenCounter turns the chars/4 estimate into a calibrated one. The ratio
-// is measured from Ollama's real prompt_eval_count on the previous request,
-// since chars/4 was measured off by 2x on number-dense text, and code and
-// tool output are exactly that kind of text.
+// chars/4 calibrated by the last real prompt_eval_count: plain chars/4 was 2x off on dense text.
 type tokenCounter float64
 
 func (r tokenCounter) text(s string) int {
@@ -174,10 +168,7 @@ func toOllamaMessage(m Message, attachmentsDir string, sendImages bool) OllamaMe
 	}
 	for _, a := range m.Attachments {
 		if !isImageMime(a.MimeType) {
-			// Ollama has no concept of a generic file attachment - only
-			// images go in the vision field. The model can't see the
-			// content, but it should at least know the file exists so it
-			// doesn't seem to ignore something the user just mentioned.
+			// Non-images can't reach the model, but it should know the file exists.
 			om.Content = strings.TrimRight(om.Content, "\n") + fmt.Sprintf("\n[Attached file: %s - not visible to you, only the user can see it]", a.Filename)
 			continue
 		}
@@ -200,20 +191,9 @@ type historyEntry struct {
 	droppable bool
 }
 
-// buildOptimizedHistory fits a conversation into budget tokens, cheapest
-// loss first: summaries replace the messages they cover, older unprotected
-// messages decay, old tool cycles condense to one line, and as a last
-// resort the oldest unprotected messages are dropped whole. Left to Ollama,
-// an oversized prompt either silently loses its middle messages or, when
-// the system messages alone overflow, is rejected outright (both verified);
-// dropping here tells the model and keeps the goal and folder context.
-// coveredBySummaries marks the messages a summary replaces in the request.
 func coveredBySummaries(messages []Message, summaries []Summary) (covered []bool, first int) {
 	_, firstSystem, firstUser := protectedAnchors(messages)
-	// The latest tool call and its result stay verbatim even once a summary
-	// covers them: they are the model's only in-context example of a real
-	// structured tool call. With every call summarized away, qwen2.5-3b fell
-	// back to writing commands as plain text, then kept copying that.
+	// Latest tool call stays verbatim: summarized away, qwen2.5-3b stopped making structured calls.
 	lastCall, lastResult := lastToolExchange(messages)
 	covered = make([]bool, len(messages))
 	first = -1
@@ -245,6 +225,7 @@ func condensedCount(messages []Message, summaries []Summary) int {
 	return n
 }
 
+// Fits history here because Ollama, given an oversized prompt, silently drops middle messages or rejects it.
 func buildOptimizedHistory(messages []Message, summaries []Summary, attachmentsDir string, budget int, count tokenCounter) []OllamaMessage {
 	n := len(messages)
 	protected := make([]bool, n)
@@ -269,10 +250,7 @@ func buildOptimizedHistory(messages []Message, summaries []Summary, attachmentsD
 
 	covered, firstCovered := coveredBySummaries(messages, summaries)
 
-	// Only tool output and later system messages decay. Truncating the
-	// dialogue itself taught the model to imitate it: qwen2.5-3b, shown its
-	// own old replies ending in "...[truncated]", began ending new replies
-	// that way. Summaries condense old dialogue instead.
+	// Dialogue never decays: truncated replies made qwen2.5-3b end its own with "...[truncated]".
 	shrunk := make([]Message, n)
 	copy(shrunk, messages)
 	for i := range shrunk {
@@ -387,10 +365,7 @@ func fitBudget(entries []historyEntry, budget int, count tokenCounter) []OllamaM
 		total += count.text(omitted)
 	}
 
-	// Protected messages alone can still overflow: one recent `cat` of a big
-	// file is up to 20k chars. Tool output is cut, oldest first, rather than
-	// letting Ollama reject the request; the model never writes tool output,
-	// so the cut marker can't be imitated.
+	// Protected messages can still overflow, so cut tool output oldest first; the model can't imitate that marker.
 	for i := range entries {
 		if total <= budget {
 			break

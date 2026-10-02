@@ -146,9 +146,7 @@ func (s *Server) handleRecoveryReset(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// handleDeleteAccount requires the password, and also every security answer
-// when questions are set: a stolen session alone must not be enough to
-// erase an account for good.
+// Security answers are required too when set: a stolen session alone must not erase an account.
 func (s *Server) handleDeleteAccount(w http.ResponseWriter, r *http.Request) {
 	user := userFromContext(r)
 	var body struct {

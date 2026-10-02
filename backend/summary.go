@@ -10,23 +10,16 @@ import (
 )
 
 const (
-	// A level holding more than this many summaries has its oldest ones
-	// merged into one summary a level up, so old content is re-condensed
-	// only a logarithmic number of times rather than on every pass.
+	// Merging a level up past this keeps re-condensing logarithmic, not once per pass.
 	summaryFanout = 3
-	// Per-message cap on what the summarizer sees, so one huge tool output
-	// can't push the summarization request itself past the window.
+	// So one huge tool output can't push the summarize request itself past the window.
 	summaryInputChars  = 1200
 	userNoteChars      = 300
 	maxSummariesPerRun = 4
 )
 
-// The model only writes notes on what the assistant found and did. What
-// the user said is copied verbatim instead (userNotes): the model can re-read
-// a file with a tool, but a user-stated fact the summary drops is gone, and
-// qwen2.5-3b dropped them repeatedly - once by ignoring them for the
-// chunk's latest question, once by recasting one as something the
-// assistant said, which the next merge then discarded.
+// Only the assistant's side is model-summarized; user text stays verbatim (userNotes)
+// because qwen2.5-3b repeatedly dropped user facts, which no tool can recover.
 const summarizePrompt = `Condense the chat transcript above into notes on what the assistant found out and did. The user's messages are kept separately, so only mention them as far as needed to make the notes clear. The assistant will later rely on these notes instead of the original messages, so anything left out is forgotten.
 
 Write at most %d short bullet points: exact file names, commands, identifiers and numbers; for each command, whether it succeeded or failed and the key result or error; and last, anything still unresolved.
@@ -41,7 +34,6 @@ Never add anything that is not in the notes. Reply with the bullet points only.`
 
 const userNotesPrompt = `The lines above are messages a user sent earlier in a chat, oldest first. Shorten them into at most %d bullet points. Keep every fact, name, number, requirement and instruction the user stated, word for word where possible. Drop greetings and plain questions that state nothing about the user or their project. Never add anything. Reply with the bullet points only.`
 
-// userNotes is the verbatim record of what the user said in a chunk.
 func userNotes(chunk []Message) string {
 	var b strings.Builder
 	for _, m := range chunk {
@@ -60,18 +52,13 @@ func userNotes(chunk []Message) string {
 	return b.String()
 }
 
-// summaryTokens is the target size of one summary: small against the
-// window, since every active summary is sent on every request.
+// Small: every active summary is sent on every request.
 func summaryTokens(numCtx int) int {
 	return numCtx / 32
 }
 
-// summarizableEnd is the index summarizing may run up to (exclusive). It
-// never reaches the latest user message (the current turn, including an
-// in-progress tool loop, stays verbatim - and an edit only ever truncates
-// from there, so it never invalidates a summary), the recent window, or the
-// latest image (which must keep being sent), and never splits a tool call
-// from its result.
+// Stops before the latest user message (edits truncate only from there, so summaries stay
+// valid), the recent window and the latest image, and never splits a tool call from its result.
 func summarizableEnd(messages []Message) int {
 	end := len(messages) - protectedWindow
 	for i := len(messages) - 1; i >= 0; i-- {
@@ -89,8 +76,6 @@ func summarizableEnd(messages []Message) int {
 	return max(end, 0)
 }
 
-// nextChunk picks the oldest run of not-yet-summarized messages, up to
-// about maxTokens, or ok=false if there's less than minTokens of it.
 func nextChunk(messages []Message, summaries []Summary, count tokenCounter, minTokens, maxTokens int) (chunk []Message, ok bool) {
 	var after int64 = -1
 	if len(summaries) > 0 {
@@ -149,8 +134,6 @@ func formatTranscript(messages []Message) string {
 	return b.String()
 }
 
-// mergeCandidates returns the oldest summaryFanout summaries of the lowest
-// level that has more than summaryFanout, or nil if no level does.
 func mergeCandidates(summaries []Summary) []Summary {
 	byLevel := map[int][]Summary{}
 	for _, s := range summaries {
@@ -164,11 +147,7 @@ func mergeCandidates(summaries []Summary) []Summary {
 	return nil
 }
 
-// summarizeInBackground condenses the oldest unsummarized messages once
-// there are enough of them, and merges summaries up a level when one level
-// grows too long. It runs after a reply has fully streamed, on its own
-// goroutine, so it never delays or holds open a response; history built
-// before it finishes just falls back to dropping the oldest messages.
+// Runs after the reply streams, so it never delays one; history built before it ends drops oldest messages.
 func (s *Server) summarizeInBackground(user *User, convoID string) {
 	if ablated["summaries"] {
 		return
@@ -193,10 +172,7 @@ func (s *Server) summarizeInBackground(user *User, convoID string) {
 	}()
 }
 
-// summarizeStep does one unit of work - a merge if one is due, else one
-// new chunk - and reports done when there was nothing to do, plus what it
-// did. force summarizes whatever is eligible instead of waiting for a
-// quarter of the window to build up.
+// force skips waiting for a quarter of the window to build up.
 func (s *Server) summarizeStep(ctx context.Context, user *User, convoID string, force bool) (done bool, did string, err error) {
 	convo, err := getConversation(s.db, convoID, user.ID)
 	if err != nil || convo == nil {
@@ -216,9 +192,7 @@ func (s *Server) summarizeStep(ctx context.Context, user *User, convoID string, 
 		if err != nil {
 			return true, "", err
 		}
-		// Verbatim until it outgrows its share of the window; only then is
-		// it condensed, alone, which a small model does far more reliably
-		// than picking user facts out of a mixed transcript.
+		// Condensed alone once oversized: far more reliable than extracting user facts from a transcript.
 		userSaid := said.String()
 		if count.text(userSaid) > numCtx/16 {
 			if userSaid, err = s.condense(ctx, user, convo, fmt.Sprintf(userNotesPrompt, target/10), userSaid, numCtx/16); err != nil {
@@ -246,16 +220,11 @@ func (s *Server) summarizeStep(ctx context.Context, user *User, convoID string, 
 	return false, fmt.Sprintf("condensed %d messages into a summary", len(chunk)), saveSummary(s.db, convoID, sm, nil)
 }
 
-// isCompactCommand reports whether a message is the `@compact` command.
 func isCompactCommand(content string) bool {
 	return strings.EqualFold(strings.TrimSpace(content), "@compact")
 }
 
-// compactNow handles `@compact`: it summarizes everything eligible right
-// away, reporting each step, instead of waiting for the automatic
-// threshold. The same messages stay verbatim as always (see
-// summarizableEnd). It shares the background guard, so it never runs
-// alongside an automatic pass on the same conversation.
+// Shares the background guard, so it never overlaps an automatic pass.
 func (s *Server) compactNow(w http.ResponseWriter, r *http.Request, user *User, convoID string) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
@@ -271,8 +240,7 @@ func (s *Server) compactNow(w http.ResponseWriter, r *http.Request, user *User, 
 		}
 	}
 	steps := 0
-	// ponytail: a hard cap on steps per command; a huge old chat may need
-	// @compact twice, which is cheaper than an unbounded request.
+	// ponytail: hard step cap; a huge old chat may need `@compact` twice.
 	for range 3 * maxSummariesPerRun {
 		done, did, err := s.summarizeStep(r.Context(), user, convoID, true)
 		if err != nil {
@@ -294,9 +262,7 @@ func (s *Server) compactNow(w http.ResponseWriter, r *http.Request, user *User, 
 }
 
 func (s *Server) condense(ctx context.Context, user *User, convo *ConversationWithMessages, system, input string, target int) (string, error) {
-	// Instructions go after the input, not in a system message: with a
-	// ~2k-token transcript ahead of them, qwen2.5-3b ignored a system prompt
-	// (the same dilution the tool nudge ran into, see streamAssistantTurn).
+	// After the input, not a system message: qwen2.5-3b ignored a system prompt behind ~2k tokens.
 	out, err := s.ollama.Chat(ctx, s.ollamaURLFor(user), convo.Model, []OllamaMessage{
 		{Role: "user", Content: input + "\n\n---\n\n" + system},
 	}, map[string]any{"num_ctx": s.numCtxFor(user, convo.Conversation), "temperature": 0.2, "num_predict": target * 2})

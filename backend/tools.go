@@ -7,10 +7,7 @@ import (
 
 var asksToRunPattern = regexp.MustCompile(`(?i)\b(run|execute|check|command|terminal|shell)\b`)
 
-// asksToRun reports whether the latest user message sounds like a request
-// to do something on the machine. Only then does a folder-less chat get
-// noFolderNote: added to every message, it leaked into unrelated answers
-// ("The capital of France is Paris. If you need to run a command...", E19).
+// Gates noFolderNote: added to every message, it leaked into unrelated answers (E19).
 func asksToRun(messages []Message) bool {
 	for i := len(messages) - 1; i >= 0; i-- {
 		if messages[i].Role == "user" {
@@ -20,8 +17,7 @@ func asksToRun(messages []Message) bool {
 	return false
 }
 
-// Without a folder the shell tool isn't offered, and asked to "run" something
-// the model wrote plausible fake output instead of saying it can't (E19).
+// Without it, a folder-less chat asked to "run" something got fake output (E19).
 const noFolderNote = "[No folder attached: you can't run commands in this chat.] If the user asks you to run or check something on their computer, don't pretend to. Give them the exact command to run themselves, and tell them they can attach a folder to this chat if they want you to run commands. Never make up a command's output."
 
 const toolReasoningPrompt = "Before calling a tool, briefly think through what you need to do and why this specific command helps, in one or two sentences, then call the tool. Prefer one small, single-purpose command at a time over a larger one."
@@ -46,9 +42,7 @@ var runShellTool = OllamaTool{
 
 var noCommandPhrases = []string{"without running", "without using", "without executing", "don't run", "dont run", "do not run", "don't execute", "do not execute", "no commands"}
 
-// The nudge presupposes a command ("...then call the tool") and outweighs a
-// user's explicit "without running any commands" (E9, E15, E17), so it's
-// left off when the latest user message forbids commands.
+// The nudge outweighs an explicit "without running any commands", so it's skipped then (E9, E15, E17).
 func forbidsCommands(messages []Message) bool {
 	for i := len(messages) - 1; i >= 0; i-- {
 		if messages[i].Role == "user" {

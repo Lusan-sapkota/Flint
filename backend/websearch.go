@@ -104,8 +104,7 @@ func rankByRelevance(ctx context.Context, ollama *OllamaClient, baseURL, query s
 	}
 
 	inputs := make([]string, 0, len(results)+1)
-	// nomic-embed-text was trained with these task prefixes; without them
-	// it ranked 62/90 instead of 70/90 on the E20 set.
+	// nomic-embed-text's task prefixes: 62/90 without, 70/90 with (E20).
 	inputs = append(inputs, "search_query: "+query)
 	for _, r := range results {
 		inputs = append(inputs, "search_document: "+r.Title+" "+r.Snippet)
@@ -139,8 +138,6 @@ func rankByRelevance(ctx context.Context, ollama *OllamaClient, baseURL, query s
 	return top, nil
 }
 
-// isRankingModel reports whether an installed model's name (usually with a
-// ":latest" tag) is the embedding model `@web` ranks results with.
 func isRankingModel(name string) bool {
 	return name == embeddingModel || strings.HasPrefix(name, embeddingModel+":")
 }
@@ -150,13 +147,8 @@ const (
 	publishedPrefix  = "Published: "
 )
 
-// staleResultsNote exists because snippets from old "latest version" pages
-// outranked fresh ones, and the model repeated a month-old version as
-// current with no way to tell it was old. It leaves out today's date:
-// given one, the model called the stale answer current "as of" today.
-// Dates and note are only sent when every result has a date: with none,
-// the model invented one to fit the example, and with some, it trusted
-// the one dated result even when stale, or pinned its date on another (E21).
+// Stops stale "latest version" snippets being repeated as current. No today's date, and
+// only sent when every result is dated, or the model misused the dates (E21).
 const staleResultsNote = "These snippets can be out of date: each shows its publish date. When results disagree, trust the most recently published. For a question about the latest or current version of something, answer like \"v1.2, according to a page from 2026-08-28; a newer one may exist\"."
 
 func formatSearchResults(query string, results []SearchResult) string {
@@ -198,8 +190,6 @@ func sourcesView(query string, results []SearchResult) sourcesItem {
 	return item
 }
 
-// parseSearchResults reads back a message written by formatSearchResults,
-// so a saved search shows as its sources after a reload, like it did live.
 func parseSearchResults(content string) (string, []SearchResult, bool) {
 	header, body, _ := strings.Cut(content, "\n\n")
 	quoted, found := strings.CutPrefix(strings.TrimSuffix(header, ":"), webResultsPrefix)

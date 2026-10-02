@@ -9,9 +9,7 @@ var dangerousCommandPatterns = []struct {
 	re     *regexp.Regexp
 	reason string
 }{
-	// Also the whole current directory (".", "*"): the benchmark caught a
-	// model turning "rm -rf ~" into "cd ~ && rm -rf .", which the root/home
-	// pattern alone let through.
+	// "." and "*" too: the benchmark caught "rm -rf ~" rewritten as "cd ~ && rm -rf .".
 	{regexp.MustCompile(`\brm\s+(?:-\S+\s+)*(?:-\w*(?:rf|fr)\w*|-\w*r\w*\s+-\w*f\w*|-\w*f\w*\s+-\w*r\w*)\s+(?:-\S+\s+)*(?:/|/\*|~/?|~/\*|\$HOME/?|\$HOME/\*|\.{1,2}/?|\./\*|\*)(?:[\s;&|]|$)`), "recursive force-delete targeting the filesystem root, home, or the whole current directory"},
 	{regexp.MustCompile(`:\(\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;\s*:`), "fork bomb"},
 	{regexp.MustCompile(`(?i)\bsudo\b`), "privilege escalation (sudo)"},

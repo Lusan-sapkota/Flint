@@ -70,9 +70,7 @@ type ChatResult struct {
 	Thinking     string
 	ToolCalls    []OllamaToolCall
 	TokensPerSec float64
-	// Prompt plus generated tokens: how much of the context window this
-	// request actually occupied. prompt_eval_count is the whole prompt even
-	// when part of it came from the cache.
+	// prompt_eval_count covers the whole prompt even when part came from the cache.
 	ContextUsed  int
 	PromptTokens int
 }
@@ -92,8 +90,7 @@ type OllamaModelInfo struct {
 	Size       int64              `json:"size,omitempty"`
 	Digest     string             `json:"digest,omitempty"`
 	Details    OllamaModelDetails `json:"details,omitempty"`
-	// Set for an Ollama cloud model (":cloud"), which runs on this host,
-	// not locally: every request to it leaves the machine.
+	// Ollama cloud model (":cloud"): every request to it leaves the machine.
 	RemoteHost string `json:"remote_host,omitempty"`
 }
 
@@ -104,17 +101,13 @@ type ollamaTagsResponse struct {
 type OllamaClient struct {
 	http *http.Client
 
-	// Keyed by model digest: a given model build's capabilities never
-	// change, so each is looked up via /api/show at most once.
+	// Keyed by digest: a model build's capabilities never change.
 	capsMu sync.Mutex
 	caps   map[string][]string
 
-	// Models whose chat template rejects a system message after the first
-	// one, learned from the first rejection.
 	systemFirstOnly sync.Map
 
-	// Last /api/tags entry per base URL and model name, for the window
-	// size of every request without a fetch each time.
+	// /api/tags entries, so every request gets the window size without a fetch.
 	models sync.Map
 }
 
@@ -147,9 +140,7 @@ func (c *OllamaClient) ListModels(ctx context.Context, baseURL string) ([]Ollama
 	return tags.Models, nil
 }
 
-// modelInfo is the model's /api/tags entry, listing once on a miss. A
-// model that can't be found yields the zero value, which numCtxFor reads
-// as local with no known limit.
+// A missing model yields the zero value, which numCtxFor reads as local with no known limit.
 func (c *OllamaClient) modelInfo(baseURL, name string) OllamaModelInfo {
 	if m, ok := c.models.Load(baseURL + " " + name); ok {
 		return m.(OllamaModelInfo)
@@ -164,14 +155,11 @@ func (c *OllamaClient) modelInfo(baseURL, name string) OllamaModelInfo {
 	return info
 }
 
-// ChatModels drops models that can't hold a conversation, such as
-// embedding-only ones (nomic-embed-text reports ["embedding"] only).
 // /api/tags doesn't carry capabilities, so this asks /api/show per model.
 func (c *OllamaClient) ChatModels(ctx context.Context, baseURL string, models []OllamaModelInfo) []OllamaModelInfo {
 	var out []OllamaModelInfo
 	for _, m := range models {
-		// Older Ollama versions don't report capabilities at all (nil);
-		// never hide a model just because we couldn't tell.
+		// Older Ollama reports nil capabilities; never hide a model for that.
 		if caps := c.Capabilities(ctx, baseURL, m); caps == nil || slices.Contains(caps, "completion") {
 			out = append(out, m)
 		}
@@ -179,8 +167,6 @@ func (c *OllamaClient) ChatModels(ctx context.Context, baseURL string, models []
 	return out
 }
 
-// Capabilities returns what Ollama reports for a model ("completion",
-// "thinking", "vision", "tools", "embedding", ...), or nil if unknown.
 func (c *OllamaClient) Capabilities(ctx context.Context, baseURL string, m OllamaModelInfo) []string {
 	c.capsMu.Lock()
 	v, ok := c.caps[m.Digest]
@@ -210,9 +196,7 @@ func (c *OllamaClient) RunningModels(ctx context.Context, baseURL string) (json.
 	return c.doRaw(ctx, http.MethodGet, baseURL+"/api/ps", nil)
 }
 
-// IsLoaded reports whether Ollama already has the model in memory. An
-// error counts as loaded: this only decides whether to show a "loading"
-// hint, never whether to send the request.
+// An error counts as loaded: this only decides whether to show a "loading" hint.
 func (c *OllamaClient) IsLoaded(ctx context.Context, baseURL, model string) bool {
 	names, err := c.runningNames(ctx, baseURL)
 	return err != nil || slices.Contains(names, model)
@@ -238,9 +222,7 @@ func (c *OllamaClient) runningNames(ctx context.Context, baseURL string) ([]stri
 	return names, nil
 }
 
-// LoadModel puts a model in memory without generating anything. Ollama
-// refuses /api/generate for embedding models, so those load through
-// /api/embed with no input instead.
+// Ollama refuses /api/generate for embedding models, so those load via /api/embed.
 func (c *OllamaClient) LoadModel(ctx context.Context, baseURL, name string, embedding bool) error {
 	if embedding {
 		_, err := c.doRaw(ctx, http.MethodPost, baseURL+"/api/embed", bytes.NewReader(mustMarshal(map[string]any{"model": name, "input": []string{}})))
@@ -250,9 +232,7 @@ func (c *OllamaClient) LoadModel(ctx context.Context, baseURL, name string, embe
 	return err
 }
 
-// UnloadModel frees a model's memory. Ollama answers before the memory is
-// actually released (about a second later), so this waits until /api/ps
-// stops listing it, or gives up after 10 seconds.
+// Ollama answers ~1s before memory is freed, so this polls /api/ps for up to 10s.
 func (c *OllamaClient) UnloadModel(ctx context.Context, baseURL, name string) error {
 	_, err := c.doRaw(ctx, http.MethodPost, baseURL+"/api/generate", bytes.NewReader(mustMarshal(map[string]any{"model": name, "keep_alive": 0, "stream": false})))
 	if err != nil {
@@ -283,9 +263,7 @@ func (c *OllamaClient) DeleteModel(ctx context.Context, baseURL, name string) er
 	return err
 }
 
-// Embed unloads the model right after: a web search embeds everything in
-// one call, and Ollama's default 5 minutes would keep it next to the chat
-// model in VRAM for nothing.
+// Unloads right after: Ollama's default 5 minutes would keep it next to the chat model in VRAM.
 func (c *OllamaClient) Embed(ctx context.Context, baseURL, model string, inputs []string) ([][]float64, error) {
 	data, err := c.doRaw(ctx, http.MethodPost, baseURL+"/api/embed", bytes.NewReader(mustMarshal(map[string]any{
 		"model":      model,
@@ -370,15 +348,11 @@ func (c *OllamaClient) doRaw(ctx context.Context, method, url string, body *byte
 	return json.RawMessage(data), nil
 }
 
-// Non-streaming, with thinking disabled: a thinking model (qwen3.5)
-// otherwise spends a small num_predict budget entirely on reasoning and
-// returns empty content. Non-thinking models accept think:false fine.
+// think:false: qwen3.5 otherwise spends a small num_predict budget thinking and returns nothing.
 func (c *OllamaClient) Chat(ctx context.Context, baseURL, model string, messages []OllamaMessage, options map[string]any) (string, error) {
 	return c.ChatJSON(ctx, baseURL, model, messages, options, nil)
 }
 
-// ChatJSON is Chat constrained to a JSON schema through Ollama's format
-// field; nil format means free text.
 func (c *OllamaClient) ChatJSON(ctx context.Context, baseURL, model string, messages []OllamaMessage, options map[string]any, format json.RawMessage) (string, error) {
 	return withSystemFallback(c, model, messages, func(messages []OllamaMessage) (string, error) {
 		return c.chat(ctx, baseURL, model, messages, options, format)
@@ -402,9 +376,7 @@ func (c *OllamaClient) chat(ctx context.Context, baseURL, model string, messages
 	return resp.Message.Content, nil
 }
 
-// think is nil to leave it to the model's default. It must stay nil for a
-// model without the "thinking" capability: Ollama rejects think:true there
-// with "does not support thinking".
+// think must stay nil without the "thinking" capability: Ollama rejects think:true there.
 func (c *OllamaClient) StreamChat(ctx context.Context, baseURL, model string, messages []OllamaMessage, tools []OllamaTool, options map[string]any, think *bool, onToken, onThinking func(string)) (ChatResult, error) {
 	return withSystemFallback(c, model, messages, func(messages []OllamaMessage) (ChatResult, error) {
 		return c.streamChat(ctx, baseURL, model, messages, tools, options, think, onToken, onThinking)
@@ -486,16 +458,10 @@ func (c *OllamaClient) streamChat(ctx context.Context, baseURL, model string, me
 	return ChatResult{Content: full.String(), Thinking: thinking.String(), ToolCalls: toolCalls, TokensPerSec: tokensPerSec, ContextUsed: contextUsed, PromptTokens: promptTokens}, nil
 }
 
-// systemNotFirst is the error qwen3.5's chat template raises for a system
-// message anywhere but first. Flint places `@web` results, recalled
-// memories, summaries and context notes later in the history as system
-// messages on purpose (closer to generation), which most templates allow.
+// qwen3.5's template rejects a non-first system message; Flint puts later ones near generation on purpose.
 const systemNotFirst = "System message must be at the beginning"
 
-// withSystemFallback resends with the later system messages as user
-// messages when the model's template refuses them, and remembers that
-// model, so every other model keeps the placement the experiments were
-// measured with. The rejection comes before any token is streamed.
+// Per refusing model only, so others keep the measured placement; the rejection precedes any token.
 func withSystemFallback[T any](c *OllamaClient, model string, messages []OllamaMessage, send func([]OllamaMessage) (T, error)) (T, error) {
 	if _, ok := c.systemFirstOnly.Load(model); ok {
 		return send(laterSystemAsUser(messages))
@@ -527,9 +493,7 @@ func readAll(r interface{ Read([]byte) (int, error) }, max int) ([]byte, error) 
 	return nil, err
 }
 
-// contextOverflowError is Ollama rejecting a prompt bigger than num_ctx.
-// Its body states the prompt's real size, the one exact token count Flint
-// can get for a prompt that never ran.
+// The body states the prompt's real size, the only exact count for a prompt that never ran.
 type contextOverflowError struct {
 	promptTokens int
 	err          error
@@ -540,8 +504,6 @@ func (e *contextOverflowError) Error() string { return e.err.Error() }
 // The body nests JSON inside a JSON string, so the quotes may be escaped.
 var nPromptTokens = regexp.MustCompile(`n_prompt_tokens\\?"\s*:\s*(\d+)`)
 
-// describeOllamaError turns "can't connect" into something a user can act
-// on; any other error from Ollama is passed through as it is.
 func describeOllamaError(err error, baseURL string) string {
 	var opErr *net.OpError
 	if errors.As(err, &opErr) {

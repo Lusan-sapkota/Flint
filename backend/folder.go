@@ -11,12 +11,7 @@ import (
 
 const maxAttachFileSize = 64 * 1024
 
-// The manifest is protected history sent on every request, so it has to
-// fit well inside boostedNumCtx: Go source measured ~3.4 chars per token,
-// making 12 KB about 3.6k tokens, under half the window. The old 40 KB cap
-// was ~12k tokens and made Ollama reject every request outright. Files past
-// the budget are listed as not included, and the model can read them with
-// the shell tool.
+// The manifest is resent every request: 12 KB is ~3.6k tokens; 40 KB overflowed the window and every request failed.
 const maxAttachTotalSize = 12 * 1024
 
 const manifestPrefix = "Attached folder: "
@@ -114,10 +109,7 @@ func buildAnchorHeader(path string) string {
 	return fmt.Sprintf("[Workspace anchor]\nAttached folder: %s\nEntries: %s", path, strings.Join(names, ", "))
 }
 
-// Only names of non-hidden subfolders, never file names or contents: this
-// backs the attach-folder browser, which only needs something to click
-// into. Symlinks to directories count, since that's how many project
-// folders are reached.
+// Subfolder names only, never file names or contents; symlinked dirs count.
 func listSubdirs(dir string) ([]string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {

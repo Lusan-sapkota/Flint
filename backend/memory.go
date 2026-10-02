@@ -9,11 +9,8 @@ import (
 	"strings"
 )
 
-// Memories are facts a user chose to keep across chats. Like `@web`, they
-// are only ever written or searched on an explicit `@memory` command,
-// never on the model's initiative, and a drafted memory is saved only after
-// the user has read and approved it: a small model's draft can be wrong,
-// and a wrong memory would resurface in every later chat.
+// Only on an explicit `@memory`, never the model's initiative; a draft is saved only after the
+// user approves it, since a wrong memory resurfaces in every later chat (E13).
 
 const maxMemoryChars = 4000
 
@@ -21,7 +18,6 @@ const memoryDraftPrompt = `From the conversation above, write down what is worth
 
 Write at most %d short bullet points. Keep every fact, name, number, decision, requirement and preference the user stated, word for word where possible, and the key conclusions reached. Leave out anything that only mattered in the moment: greetings, questions already answered, commands that were just exploring. Never add anything that is not in the conversation. Reply with the bullet points only.`
 
-// parseMemoryCommand recognizes `@memory save [text]` and `@memory <query>`.
 func parseMemoryCommand(content string) (save bool, rest string, ok bool) {
 	trimmed := strings.TrimSpace(content)
 	if len(trimmed) < len("@memory") || !strings.EqualFold(trimmed[:len("@memory")], "@memory") {
@@ -46,8 +42,6 @@ func folderOf(c Conversation) *string {
 	return nil
 }
 
-// fitMemories keeps memories, in the order given, until the next one
-// would pass maxTokens, and reports how many were left out.
 func fitMemories(memories []Memory, maxTokens int) (kept []Memory, left int) {
 	used := 0
 	for i, m := range memories {
@@ -73,9 +67,7 @@ func formatMemories(header string, memories []Memory, left int) string {
 	return b.String()
 }
 
-// folderMemoryBlock is the standing memory for a folder chat: every memory
-// saved from a chat on the same folder, newest first, within an eighth of
-// the window. It is rebuilt every turn, not stored in the conversation.
+// Rebuilt every turn, never stored in the conversation.
 func (s *Server) folderMemoryBlock(user *User, c Conversation) string {
 	folder := folderOf(c)
 	if folder == nil {
@@ -93,13 +85,8 @@ func (s *Server) folderMemoryBlock(user *User, c Conversation) string {
 	return formatMemories("Saved memories for this folder (the user saved these from earlier chats; treat them as known facts):", kept, left)
 }
 
-// recallMemories injects the memories matching query into the
-// conversation, like a web search, and returns a notice for the user when
-// there was nothing to add.
 const recallHeaderFormat = "Saved memories matching %q (the user saved these from earlier chats; treat them as known facts):"
 
-// parseRecallHeader reads the query back out of a saved recall block, so a
-// reloaded chat can show it the way it was typed.
 func parseRecallHeader(content string) (query, body string, ok bool) {
 	header, body, _ := strings.Cut(content, "\n")
 	prefix, suffix, _ := strings.Cut(recallHeaderFormat, "%q")
@@ -132,11 +119,7 @@ func (s *Server) recallMemories(user *User, convo Conversation, query string) (n
 	return ""
 }
 
-// saveMemoryFromChat handles `@memory save`. With text, that text is saved
-// as-is. Without, the model drafts a memory from the conversation and the
-// draft goes back to the client for review; nothing is saved until the
-// user approves it. Neither the command nor the draft enters the
-// conversation history.
+// A model draft is never saved until the user approves it; neither command nor draft enters history.
 func (s *Server) saveMemoryFromChat(w http.ResponseWriter, r *http.Request, user *User, convoID, text string) {
 	convo, err := getConversation(s.db, convoID, user.ID)
 	if err != nil {
@@ -184,9 +167,7 @@ func (s *Server) saveMemoryFromChat(w http.ResponseWriter, r *http.Request, user
 	fmt.Fprintf(w, "<<<MEMORY_DRAFT>>>%s\n", marker)
 }
 
-// memorySource is what a memory draft is written from: the conversation's
-// summaries plus the newest unsummarized messages, up to half the window.
-// The folder manifest is left out; it's file contents, not something said.
+// The folder manifest is left out: it's file contents, not something said.
 func memorySource(convo *ConversationWithMessages, budget int) string {
 	var after int64 = -1
 	if n := len(convo.Summaries); n > 0 {
@@ -241,8 +222,7 @@ func readMemoryContent(w http.ResponseWriter, r *http.Request) (content, convers
 	return content, body.ConversationID, true
 }
 
-// handleCreateMemory saves an approved draft. The folder comes from the
-// conversation it was drafted in, looked up under the caller's account.
+// The folder comes from the source conversation, looked up under the caller's account.
 func (s *Server) handleCreateMemory(w http.ResponseWriter, r *http.Request) {
 	user := userFromContext(r)
 	content, conversationID, ok := readMemoryContent(w, r)

@@ -94,9 +94,7 @@ type ConversationWithMessages struct {
 	TokenRatio float64 `json:"-"`
 }
 
-// Summary stands in for messages FirstMessageID..LastMessageID when
-// building history. Level 0 condenses messages; level n+1 condenses level-n
-// summaries, which are then marked merged but kept.
+// Level 0 condenses messages, level n+1 condenses level-n summaries (marked merged, kept).
 type Summary struct {
 	ID             int64
 	Level          int
@@ -295,10 +293,7 @@ func openDB(path string) (*sql.DB, error) {
 	return db, nil
 }
 
-// migrate covers changes CREATE TABLE IF NOT EXISTS can't retrofit onto a
-// database that already existed before the change - new columns on an
-// existing table. Each statement is idempotent (ignores "duplicate column"
-// so re-running against an already-migrated database is a no-op.
+// Columns CREATE TABLE IF NOT EXISTS can't add to old databases; append-only, idempotent via "duplicate column".
 func migrate(db *sql.DB) error {
 	for _, stmt := range []string{
 		`ALTER TABLE attachments ADD COLUMN filename TEXT NOT NULL DEFAULT ''`,
@@ -307,20 +302,16 @@ func migrate(db *sql.DB) error {
 		`ALTER TABLE conversations ADD COLUMN context_used INTEGER NOT NULL DEFAULT 0`,
 		`ALTER TABLE conversations ADD COLUMN context_max INTEGER NOT NULL DEFAULT 0`,
 		`ALTER TABLE conversations ADD COLUMN token_ratio REAL NOT NULL DEFAULT 1`,
-		// The chat a memory was saved from, so that chat can show where it
-		// happened. A memory outlives its chat, hence SET NULL.
+		// A memory outlives its source chat, hence SET NULL.
 		`ALTER TABLE memories ADD COLUMN conversation_id TEXT REFERENCES conversations(id) ON DELETE SET NULL`,
 		`ALTER TABLE users ADD COLUMN num_ctx INTEGER`,
 		`ALTER TABLE users ADD COLUMN cloud_num_ctx INTEGER`,
 		`ALTER TABLE users ADD COLUMN max_agents INTEGER`,
 		`ALTER TABLE users ADD COLUMN cloud_max_agents INTEGER`,
 		`ALTER TABLE users ADD COLUMN agent_commands INTEGER`,
-		// Set for a command an @agent agent proposed. Such commands are
-		// approved through the run, never through the chat's own approve
-		// route, and never count as the chat's pending command.
+		// Agent commands are approved via their run, never the chat route, and aren't the chat's pending command.
 		`ALTER TABLE commands ADD COLUMN agent_id TEXT REFERENCES agents(id) ON DELETE CASCADE`,
-		// The user message a finished @agent run saved its task as, so the
-		// chat shows that task once, as the run, not twice.
+		// Lets the chat show a finished run's task once, as the run, not twice.
 		`ALTER TABLE agent_runs ADD COLUMN message_id INTEGER REFERENCES messages(id) ON DELETE SET NULL`,
 	} {
 		if _, err := db.Exec(stmt); err != nil && !strings.Contains(err.Error(), "duplicate column") {
@@ -330,9 +321,7 @@ func migrate(db *sql.DB) error {
 	return migrateSearchIndex(db)
 }
 
-// An external-content FTS5 index over message text, kept in step by
-// triggers. Created here rather than in schema so a database from before
-// search existed gets its old messages indexed exactly once.
+// Created here, not in schema, so a pre-search database gets its old messages indexed exactly once.
 func migrateSearchIndex(db *sql.DB) error {
 	var exists int
 	if err := db.QueryRow(`SELECT count(*) FROM sqlite_master WHERE name = 'messages_fts'`).Scan(&exists); err != nil || exists > 0 {
@@ -360,9 +349,7 @@ type ChatSearchResult struct {
 	Snippet string `json:"snippet"`
 }
 
-// ftsQuery turns free text into a safe FTS5 query: every word is quoted (so
-// punctuation is never parsed as FTS syntax) and prefix-matched, so results
-// appear while a word is still being typed.
+// Words are quoted so punctuation is never parsed as FTS syntax, and prefix-matched for typing.
 func ftsQuery(q string) string {
 	var terms []string
 	for _, w := range strings.Fields(q) {
@@ -373,9 +360,7 @@ func ftsQuery(q string) string {
 
 const maxSearchResults = 20
 
-// Only user and assistant text is searched: tool output and system messages
-// (folder manifests, web results) would match nearly any query and bury
-// the conversation the user is actually looking for.
+// User and assistant text only: manifests and tool output would match nearly any query.
 func searchConversations(db *sql.DB, userID, q string) ([]ChatSearchResult, error) {
 	match := ftsQuery(q)
 	out := []ChatSearchResult{}
@@ -467,10 +452,7 @@ func updateUserOllamaURL(db *sql.DB, userID string, baseURL *string) error {
 	return err
 }
 
-// updateUserIntSetting sets one of the nullable per-account numbers
-// (num_ctx, cloud_num_ctx, max_agents, cloud_max_agents, agent_commands);
-// column is never
-// user input.
+// column is concatenated into SQL, so it must never be user input.
 func updateUserIntSetting(db *sql.DB, userID, column string, numCtx *int) error {
 	_, err := db.Exec(`UPDATE users SET `+column+` = ?, updated_at = ? WHERE id = ?`, numCtx, time.Now().UnixMilli(), userID)
 	return err
@@ -729,8 +711,7 @@ func activeSummaries(db *sql.DB, conversationID string) ([]Summary, error) {
 	return out, rows.Err()
 }
 
-// saveSummary stores a new summary and marks the summaries it replaces as
-// merged, in one transaction so history never sees both or neither.
+// One transaction, so history never sees both the summary and what it replaces, or neither.
 func saveSummary(db *sql.DB, conversationID string, s Summary, replaces []Summary) error {
 	tx, err := db.Begin()
 	if err != nil {
@@ -798,10 +779,7 @@ func insertAssistantMessage(db *sql.DB, conversationID, content, thinking string
 	return err
 }
 
-// Drops messages from fromID onward and every shell command proposed since
-// fromTime, including a still-pending one. Attachment rows cascade with
-// their message, but the files stay on disk so an edited message can
-// re-link them.
+// Also drops commands since fromTime, pending included; attachment files stay on disk for re-linking.
 func truncateConversation(db *sql.DB, conversationID string, fromID, fromTime int64) error {
 	tx, err := db.Begin()
 	if err != nil {
@@ -837,7 +815,7 @@ func getAttachmentPathsForUser(db *sql.DB, userID string) ([]string, error) {
 		JOIN conversations c ON c.id = m.conversation_id WHERE c.user_id = ?`, userID)
 }
 
-// deleteUser removes the account; every table cascades from users.
+// Every table cascades from users.
 func deleteUser(db *sql.DB, userID string) error {
 	_, err := db.Exec(`DELETE FROM users WHERE id = ?`, userID)
 	return err
@@ -913,8 +891,7 @@ func touchConversation(db *sql.DB, id string) error {
 
 const maxTitleRunes = 60
 
-// Truncates by rune, not byte, so a multibyte character is never split
-// into invalid UTF-8; newlines are collapsed so a title stays one line.
+// By rune, not byte, so UTF-8 is never split.
 func normalizeTitle(s string) string {
 	s = strings.Join(strings.Fields(s), " ")
 	if r := []rune(s); len(r) > maxTitleRunes {
@@ -923,8 +900,7 @@ func normalizeTitle(s string) string {
 	return s
 }
 
-// Sets an immediate placeholder title from the first message and reports
-// whether it did, i.e. whether this was the conversation's first message.
+// Reports whether it set one, i.e. whether this was the first message.
 func maybeSetTitle(db *sql.DB, id, firstMessage string) (string, bool, error) {
 	title := normalizeTitle(firstMessage)
 	if title == "" {
@@ -938,8 +914,7 @@ func maybeSetTitle(db *sql.DB, id, firstMessage string) (string, bool, error) {
 	return title, n > 0, err
 }
 
-// Only replaces the title if it is still the placeholder, so a rename the
-// user made in the meantime always wins.
+// Only replaces a still-unchanged placeholder, so a user rename always wins.
 func replacePlaceholderTitle(db *sql.DB, id, placeholder, title string) error {
 	_, err := db.Exec(`UPDATE conversations SET title = ? WHERE id = ? AND title = ?`, title, id, placeholder)
 	return err
@@ -954,9 +929,7 @@ func renameConversation(db *sql.DB, id, userID, title string) (bool, error) {
 	return n > 0, err
 }
 
-// conversationStarted reports whether the chat has anything the model
-// wrote or was asked: a non-system message or an agent run. The folder
-// manifest alone doesn't count.
+// The folder manifest alone doesn't count as started.
 func conversationStarted(db *sql.DB, id, userID string) (started, found bool, err error) {
 	err = db.QueryRow(`SELECT
 		EXISTS(SELECT 1 FROM messages WHERE conversation_id = c.id AND role != 'system')
@@ -1057,7 +1030,6 @@ func createMemory(db *sql.DB, userID string, folder, conversationID *string, con
 	return m, err
 }
 
-// chatMemories are the memories saved from one conversation, oldest first.
 func chatMemories(db *sql.DB, userID, conversationID string) ([]Memory, error) {
 	rows, err := db.Query(`SELECT id, folder, content, created_at, updated_at FROM memories WHERE user_id = ? AND conversation_id = ? ORDER BY created_at`, userID, conversationID)
 	if err != nil {
@@ -1066,8 +1038,7 @@ func chatMemories(db *sql.DB, userID, conversationID string) ([]Memory, error) {
 	return scanMemories(rows)
 }
 
-// listMemories joins the source chat on the owner too, so a memory can
-// only ever name one of the caller's own chats.
+// Joins the source chat on owner too, so a memory never names another account's chat.
 func listMemories(db *sql.DB, userID string) ([]Memory, error) {
 	rows, err := db.Query(`
 SELECT m.id, m.folder, m.content, m.created_at, m.updated_at, c.id, c.title
@@ -1096,9 +1067,7 @@ func folderMemories(db *sql.DB, userID, folder string) ([]Memory, error) {
 	return scanMemories(rows)
 }
 
-// searchMemories ranks by any matching word, not all of them: a recall
-// like "@memory astra deadline" should find a memory that only mentions
-// astra.
+// Any word, not all: "astra deadline" should find a memory mentioning only astra.
 func searchMemories(db *sql.DB, userID, q string) ([]Memory, error) {
 	var terms []string
 	for _, w := range strings.Fields(q) {
@@ -1145,8 +1114,7 @@ type WebSearch struct {
 	ConversationTitle string `json:"conversation_title"`
 }
 
-// listWebSearches reads the user's `@web` history back from the saved
-// result messages, newest first. A deleted chat takes its searches with it.
+// Read from saved result messages, so a deleted chat takes its searches with it.
 func listWebSearches(db *sql.DB, userID string, limit int) ([]WebSearch, error) {
 	rows, err := db.Query(
 		`SELECT m.content, m.created_at, c.id, c.title FROM messages m
@@ -1247,8 +1215,7 @@ func createAgentRun(db *sql.DB, run AgentRun) error {
 	return tx.Commit()
 }
 
-// getAgentRun returns nil when the run doesn't exist or belongs to another
-// account, so callers answer 404 either way.
+// nil for missing or another account's run alike, so callers answer 404 either way.
 func getAgentRun(db *sql.DB, runID, userID string) (*AgentRun, error) {
 	var run AgentRun
 	err := db.QueryRow(`SELECT r.id, r.conversation_id, r.task, r.status, r.answer, r.message_id, r.created_at, r.updated_at
@@ -1289,8 +1256,7 @@ func insertAgentMessage(db *sql.DB, agentID, role, content string) error {
 	return err
 }
 
-// getAgentMessages returns found=false when the agent isn't in that run or
-// the run belongs to another account.
+// found=false also for another account's run, so it reads as 404.
 func getAgentMessages(db *sql.DB, runID, agentID, userID string) ([]AgentMessage, bool, error) {
 	var n int
 	if err := db.QueryRow(`SELECT count(*) FROM agents a
@@ -1319,7 +1285,6 @@ func setAgentRunStatus(db *sql.DB, runID, status string) error {
 	return err
 }
 
-// replaceAgents swaps a planned run's agents for the edited ones.
 func replaceAgents(db *sql.DB, runID string, agents []Agent) error {
 	tx, err := db.Begin()
 	if err != nil {
@@ -1378,9 +1343,7 @@ func createAgentCommand(db *sql.DB, id, conversationID, agentID, command, cwd st
 	return &c, err
 }
 
-// decideAgentCommand moves a pending agent command of the caller's run to
-// status in one statement, so of two racing approvals (or an approval and
-// a Stop) exactly one wins.
+// One statement, so of two racing approvals (or approval and Stop) exactly one wins.
 func decideAgentCommand(db *sql.DB, cmdID, runID, userID, status string) (bool, error) {
 	res, err := db.Exec(`UPDATE commands SET status = ?, decided_at = ?
 		WHERE id = ? AND status = 'pending' AND agent_id IN (
@@ -1394,8 +1357,7 @@ func decideAgentCommand(db *sql.DB, cmdID, runID, userID, status string) (bool, 
 	return n == 1, err
 }
 
-// cancelAgentCommand also catches a command approved in the instant the
-// run stopped, which would otherwise stay "approved" but never run.
+// Also catches one approved as the run stopped, else it stays "approved" but never runs.
 func cancelAgentCommand(db *sql.DB, cmdID string) error {
 	_, err := db.Exec(`UPDATE commands SET status = 'cancelled', decided_at = ? WHERE id = ? AND status IN ('pending', 'approved')`, time.Now().UnixMilli(), cmdID)
 	return err

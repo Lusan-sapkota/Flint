@@ -19,18 +19,13 @@ import (
 	"github.com/google/uuid"
 )
 
-// Model time per agent (each command has its own 60-second cap). Waiting
-// for the user to approve a command doesn't count: reading a command
-// carefully must never be what makes an agent fail. A variable so tests
-// can shorten it.
+// Model time only: waiting on approval never counts, so reading a command carefully can't fail an agent.
 var agentTimeLimit = 5 * time.Minute
 
 const (
-	// Failed, blocked or denied commands in a row before the agent must
-	// answer with what it has. A success or a reply from the user resets it.
+	// Failed/blocked/denied commands in a row; a success or a user reply resets it.
 	agentFailureLimit = 5
-	// An agent stops being offered the shell once less than this is left
-	// of its window: too little for any output worth reading.
+	// Less window left than this: no output worth reading, so the shell is no longer offered.
 	agentMinToolRoom     = 1024
 	agentResultTokens    = 400
 	maxAgentResultChars  = 1500
@@ -52,9 +47,7 @@ type agentDecision struct {
 	reply   string
 }
 
-// agentRunStream owns a run's response stream and its in-memory state:
-// agents write their progress from several goroutines, and every change
-// goes out as one <<<AGENTS>>> line.
+// Agents write from several goroutines; mu keeps each change to one whole <<<AGENTS>>> line.
 type agentRunStream struct {
 	mu     sync.Mutex
 	w      io.Writer
@@ -90,8 +83,6 @@ func (st *agentRunStream) command(i int, cmd *Command, status, output string) {
 		"id": cmd.ID, "command": cmd.Command, "status": status, "output": output})
 }
 
-// runAgents runs every agent of a run, at most limit at once and in plan
-// order, until all finish or ctx (the request: Stop, a closed tab) ends.
 func (s *Server) runAgents(ctx context.Context, st *agentRunStream, user *User, convo *ConversationWithMessages, limit int) {
 	env := agentEnv{
 		user:     user,
@@ -133,8 +124,7 @@ type agentEnv struct {
 	commands int
 }
 
-// runAgent is one agent from start to result. Its history lives only
-// here and in its transcript; nothing of it reaches the chat's history.
+// An agent's history lives only here and in its transcript, never in the chat's history.
 func (s *Server) runAgent(ctx context.Context, st *agentRunStream, i int, env agentEnv) {
 	a := st.run.Agents[i]
 	startAgent(s.db, a.ID)
@@ -154,11 +144,7 @@ func (s *Server) runAgent(ctx context.Context, st *agentRunStream, i int, env ag
 		fail(err.Error())
 		return
 	}
-	// Only an agent given nothing looks through the folder. qwen2.5-3b
-	// agents that had their file in the prompt still went off running
-	// greps (failing ones) and Python one-liners, then answered "not
-	// found" for what was in front of them, so given inputs mean inputs
-	// only.
+	// Only an agent given nothing explores: given its file, qwen2.5-3b still ran greps and answered "not found".
 	explore := env.explore && len(a.Files) == 0 && a.WebQuery == ""
 	extra := ""
 	if explore {
@@ -196,9 +182,7 @@ func (s *Server) runAgent(ctx context.Context, st *agentRunStream, i int, env ag
 		return describeOllamaError(err, s.ollamaURLFor(env.user))
 	}
 
-	// Whether the agent has read anything at all: given files or web
-	// results, or a command that ran. Without that, whatever it answers is
-	// made up (qwen2.5:1.5b answered "John Doe" as found), so it isn't kept.
+	// With no inputs and no command that ran, the answer is made up (qwen2.5:1.5b "found" "John Doe").
 	evidence := !explore
 	proposed, failures := 0, 0
 	for explore {
@@ -206,9 +190,7 @@ func (s *Server) runAgent(ctx context.Context, st *agentRunStream, i int, env ag
 		if proposed >= env.commands || failures >= agentFailureLimit || room < agentMinToolRoom {
 			break
 		}
-		// The same nudge as the chat's, on the last message only and never
-		// stored: without it qwen2.5 wrote "I'll look through the folder"
-		// or a command in a code block instead of calling the tool.
+		// The chat's nudge, never stored: without it qwen2.5 wrote commands as text instead of tool calls.
 		nudged := slices.Clone(messages)
 		last := &nudged[len(nudged)-1]
 		last.Content = strings.TrimRight(last.Content, "\n") + "\n\n" + toolReasoningPrompt
@@ -270,10 +252,8 @@ func (s *Server) runAgent(ctx context.Context, st *agentRunStream, i int, env ag
 	st.update(i, func(a *Agent) { a.Status, a.Result = "done", result })
 }
 
-// agentCommand takes one proposed command through the same checks as the
-// chat's own and waits for the user's decision in the main chat. ok means
-// it ran and succeeded; reset means the user replied instead, which counts
-// as guidance rather than a failure.
+// Same shield and preconditions as the chat, then waits for the user's approval in the main chat.
+// reset means the user replied instead: guidance, not a failure.
 func (s *Server) agentCommand(ctx context.Context, st *agentRunStream, i int, env agentEnv, command string) (result string, ok, reset bool) {
 	if strings.TrimSpace(command) == "" {
 		return "[FAILED] The tool call had no command.", false, false
@@ -326,8 +306,6 @@ func (s *Server) agentCommand(ctx context.Context, st *agentRunStream, i int, en
 	return text, status == "success", false
 }
 
-// agentInputs is the text an agent is given: each planned file cut to its
-// share of the window, and the web results for its query.
 func (s *Server) agentInputs(ctx context.Context, env agentEnv, a Agent) (string, error) {
 	budget := agentInputChars(env.numCtx)
 	var b strings.Builder
@@ -367,8 +345,6 @@ func (s *Server) agentInputs(ctx context.Context, env agentEnv, a Agent) (string
 	return "Inputs:\n\n" + strings.TrimRight(b.String(), "\n"), nil
 }
 
-// readCut reads a file, or only its start and end when it's over limit
-// bytes, without loading the part in between.
 func readCut(path string, size int64, limit int) (string, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -391,7 +367,6 @@ func readCut(path string, size int64, limit int) (string, error) {
 	return joinCut(string(head), string(tail), size-int64(2*half)), nil
 }
 
-// cutToChars keeps the start and end of text within limit characters.
 func cutToChars(text string, limit int) string {
 	if len(text) <= limit {
 		return text
@@ -400,7 +375,6 @@ func cutToChars(text string, limit int) string {
 	return joinCut(text[:half], text[len(text)-half:], int64(len(text)-2*half))
 }
 
-// joinCut trims both halves to whole lines, so no line is shown half cut.
 func joinCut(head, tail string, cut int64) string {
 	if i := strings.LastIndexByte(head, '\n'); i > 0 {
 		cut += int64(len(head) - i - 1)
@@ -421,7 +395,6 @@ func estimateAgentTokens(messages []OllamaMessage) int {
 	return n
 }
 
-// parseAgentResult checks the fixed result shape and bounds the answer.
 func parseAgentResult(out string) (string, bool) {
 	var r struct {
 		Answer *string `json:"answer"`
@@ -438,9 +411,7 @@ func parseAgentResult(out string) (string, bool) {
 	return string(b), true
 }
 
-// handleDecideAgentCommand approves or denies a command an agent proposed.
-// It never takes the conversation's lock: the run holds that for as long
-// as its agents work, and this is how the user answers them meanwhile.
+// Never takes the conversation lock: the running agents hold it while they wait on this.
 func (s *Server) handleDecideAgentCommand(w http.ResponseWriter, r *http.Request) {
 	approve := r.PathValue("action") == "approve"
 	if !approve && r.PathValue("action") != "deny" {
@@ -476,8 +447,7 @@ const agentResultsPrefix = "Results from the agents that worked on this task, ea
 
 const combinePrompt = `You write the answer to the user's task from the results of helper agents, each of which worked on one part of it. Use only these results; keep exact names, numbers and quotes. If a part wasn't found or its agent failed, say plainly that it's missing instead of guessing. Answer the task directly; don't describe the agents.`
 
-// formatAgentResults is what the model sees of a run, now and in every
-// later turn: each agent's bounded result, or why it has none.
+// The only part of a run the model sees, now and in every later turn.
 func formatAgentResults(run *AgentRun) string {
 	var b strings.Builder
 	b.WriteString(agentResultsPrefix)
@@ -501,9 +471,7 @@ func formatAgentResults(run *AgentRun) string {
 	return b.String()
 }
 
-// combineAgents writes the answer from the finished agents and ends the
-// run's stream. The task, the agents' results and the answer enter the
-// chat's history, in that order, like any turn; transcripts never do.
+// Task, results and answer enter the chat's history like any turn; transcripts never do.
 func (s *Server) combineAgents(w http.ResponseWriter, r *http.Request, st *agentRunStream, user *User, convo *ConversationWithMessages) {
 	run := st.run
 	end := func(status, answer string, msgID *int64) {

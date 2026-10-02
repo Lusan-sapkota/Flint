@@ -6,10 +6,7 @@ import (
 	"strings"
 )
 
-// ablated turns scaffolding off for the benchmark (bench/), so each piece
-// can be measured against running without it. It's read once from
-// FLINT_ABLATE, a comma-separated list, and is empty in normal use. The
-// shield is deliberately not on the list: it is never switched off.
+// Benchmark-only (FLINT_ABLATE); the shield is deliberately never ablatable.
 var ablated = map[string]bool{}
 
 var ablatable = []string{"nudge", "anchor", "summaries", "fit", "preconditions"}
@@ -34,8 +31,6 @@ func loadAblations() {
 	}
 }
 
-// rawHistory is the "fit" ablation: every message as stored, nothing
-// fitted, the naive unbounded context Flint exists to replace.
 func rawHistory(messages []Message, attachmentsDir string) []OllamaMessage {
 	lastImage, _, _ := protectedAnchors(messages)
 	out := make([]OllamaMessage, 0, len(messages))

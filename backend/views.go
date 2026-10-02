@@ -109,9 +109,7 @@ func classifyCommandResult(result string) string {
 	}
 }
 
-// buildTimeline also places memories saved from this chat, and `@agent`
-// runs with the task that started them, at the point they happened, by
-// time: they're not messages, so the model never sees them.
+// Saved memories and `@agent` runs are placed by time: they aren't messages, so the model never sees them.
 func buildTimeline(messages []Message, pending *Command, saved []Memory, runs []AgentRun) []timelineItem {
 	toolResults := map[string]string{}
 	for _, m := range messages {
@@ -120,8 +118,7 @@ func buildTimeline(messages []Message, pending *Command, saved []Memory, runs []
 		}
 	}
 
-	// A finished run saved its task as a user message; the run already
-	// shows that task, and its results message becomes the results block.
+	// A finished run's task and results messages are already shown by the run itself.
 	byMessage := map[int64]*AgentRun{}
 	for i := range runs {
 		if runs[i].MessageID != nil {
@@ -150,8 +147,7 @@ func buildTimeline(messages []Message, pending *Command, saved []Memory, runs []
 				continue
 			}
 			item := timelineItem{Kind: "user", Content: m.Content}
-			// The tags are stripped before saving so the model sees plain
-			// text; show them again the way the user typed them.
+			// Tags are stripped before saving so the model sees plain text; restore them for display.
 			if n := len(out); n > 0 && out[n-1].Kind == "sources" {
 				item.Content = "@web " + m.Content
 			} else if n > 0 && out[n-1].Kind == "system" && out[n-1].recall {
@@ -160,8 +156,7 @@ func buildTimeline(messages []Message, pending *Command, saved []Memory, runs []
 			for _, a := range m.Attachments {
 				item.Attachments = append(item.Attachments, timelineAttach{ID: a.ID, MimeType: a.MimeType, Filename: a.Filename, IsImage: isImageMime(a.MimeType)})
 			}
-			// A search or recall is saved just before the message that asked
-			// for it; show it after.
+			// A search or recall is saved before the message that asked for it; show it after.
 			if n := len(out); n > 0 && (out[n-1].Kind == "sources" || out[n-1].recall) {
 				out = append(out[:n-1], item, out[n-1])
 			} else {
@@ -295,8 +290,7 @@ func (s *Server) handleChatPage(w http.ResponseWriter, r *http.Request, user *Us
 		data.CurrentUpdatedAt = full.UpdatedAt
 		data.ContextUsed = full.ContextUsed
 		data.ContextMax = full.ContextMax
-		// Before the first reply there's no measured use yet, but the window
-		// is known, so the meter shows from the start (at 0).
+		// The window is known before the first reply, so the meter shows from 0.
 		if data.ContextMax == 0 {
 			data.ContextMax = s.numCtxFor(user, full.Conversation)
 		}
@@ -346,14 +340,12 @@ func (s *Server) handleChatPage(w http.ResponseWriter, r *http.Request, user *Us
 	}
 	data.Models = preferredOrAll(s.ollama.ChatModels(r.Context(), s.ollamaURLFor(user), models), user.PreferredModels)
 	data.CurrentModelMissing = data.HasCurrent && err == nil && !hasModel(models, data.CurrentModel)
-	// Default the New chat picker to the open chat's model, else the most
-	// recently used one that's still offered (convos are newest first).
+	// convos are newest first, so this falls back to the most recently used offered model.
 	data.SelectedModel = data.CurrentModel
 	for i := 0; !hasModel(data.Models, data.SelectedModel) && i < len(convos); i++ {
 		data.SelectedModel = convos[i].Model
 	}
-	// Unknown capabilities (an older Ollama) never trigger the "can't see
-	// images" warning, only a positive report of no vision does.
+	// Only a positive no-vision report warns; unknown capabilities (older Ollama) don't.
 	data.CanSee = true
 	for _, m := range models {
 		if m.Name == data.CurrentModel {
@@ -453,8 +445,7 @@ func (s *Server) handleSettingsPage(w http.ResponseWriter, r *http.Request, user
 	if user.AgentCommands != nil {
 		data.AgentCommands = *user.AgentCommands
 	}
-	// Only the last four characters ever reach the page: enough to tell keys
-	// apart, not enough to use one.
+	// Only the last four characters reach the page: enough to tell keys apart, not to use one.
 	if user.BraveAPIKey != nil && *user.BraveAPIKey != "" {
 		key := *user.BraveAPIKey
 		data.BraveKeyHint = key[max(0, len(key)-4):]
@@ -482,8 +473,7 @@ func (s *Server) handleCreateConversationPage(w http.ResponseWriter, r *http.Req
 	http.Redirect(w, r, "/c/"+c.ID, http.StatusSeeOther)
 }
 
-// Falls back to every model when none of the preferred ones are installed
-// anymore, so a stale preference can't leave the New chat picker empty.
+// Falls back to every model so a stale preference can't leave the New chat picker empty.
 func preferredOrAll(models []OllamaModelInfo, preferred []string) []OllamaModelInfo {
 	var kept []OllamaModelInfo
 	for _, m := range models {
@@ -501,7 +491,6 @@ func hasModel(models []OllamaModelInfo, name string) bool {
 	return slices.ContainsFunc(models, func(m OllamaModelInfo) bool { return m.Name == name })
 }
 
-// remoteHostName shows a cloud model's host as a plain name, "ollama.com".
 func remoteHostName(host string) string {
 	if u, err := url.Parse(host); err == nil && u.Host != "" {
 		return u.Host

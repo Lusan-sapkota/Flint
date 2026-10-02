@@ -206,9 +206,7 @@ func (s *Server) startSession(w http.ResponseWriter, userID string) error {
 	return nil
 }
 
-// handleUpdateProfile changes the name and email. A new email needs the
-// current password: it's the login, so a stolen session could otherwise
-// change it and lock the owner out.
+// A new email needs the current password: it's the login, so a stolen session could lock the owner out.
 func (s *Server) handleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 	user := userFromContext(r)
 	var body struct {
@@ -250,8 +248,6 @@ func (s *Server) handleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"full_name": body.FullName, "email": body.Email})
 }
 
-// handleChangePassword keeps the current session and signs out every other
-// one, the usual reason to change a password being a device you don't trust.
 func (s *Server) handleChangePassword(w http.ResponseWriter, r *http.Request) {
 	user := userFromContext(r)
 	var body struct {

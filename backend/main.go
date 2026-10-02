@@ -54,9 +54,7 @@ func handleHealthz(srv *Server) http.HandlerFunc {
 func main() {
 	loadAblations()
 	port := getenv("PORT", "8080")
-	// Localhost by default: model-proposed shell commands run as this
-	// process and signup is open, so it must not be reachable from the
-	// network unless someone explicitly asks for that.
+	// Localhost by default: model-proposed commands run as this process and signup is open.
 	host := getenv("HOST", "127.0.0.1")
 	dbPath := getenv("DB_PATH", "data/chat.db")
 	ollamaBaseURL := getenv("OLLAMA_BASE_URL", "http://localhost:11434")
@@ -129,8 +127,7 @@ func main() {
 	mux.HandleFunc("POST /api/conversations/{id}/commands/{cmdId}/deny", srv.requireAuth(srv.handleDenyCommand))
 
 	static := http.StripPrefix("/static/", http.FileServer(http.Dir("../frontend/static")))
-	// no-cache still allows 304s via Last-Modified, but stops browsers
-	// heuristically serving stale JS/CSS for hours after an edit.
+	// no-cache keeps 304s but stops browsers heuristically serving stale JS/CSS.
 	mux.Handle("GET /static/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache")
 		static.ServeHTTP(w, r)

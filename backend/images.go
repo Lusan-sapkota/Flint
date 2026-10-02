@@ -23,8 +23,7 @@ const (
 	maxMessageBody        = maxAttachmentsPerTurn*maxAttachmentBytes*4/3 + 8*1024*1024
 )
 
-// Every format here was checked to decode in Ollama's vision path. Keep
-// SUPPORTED_IMAGE_TYPES in chat.js in sync.
+// Each format verified to decode in Ollama's vision path; keep SUPPORTED_IMAGE_TYPES in chat.js in sync.
 var imageMimeExtensions = map[string]string{
 	"image/png":  "png",
 	"image/jpeg": "jpg",
@@ -45,29 +44,19 @@ func stripDataURIPrefix(s string) string {
 	return s
 }
 
-// AttachmentUpload is one file from a message's attachments field: base64
-// (optionally data-URI-prefixed) content plus the original filename the
-// browser reported, kept only for display/download - never trusted for
-// anything else (the stored blob name is always a fresh UUID).
+// Filename is for display only, never trusted: the stored blob name is always a fresh UUID.
 type AttachmentUpload struct {
 	Data     string `json:"data"`
 	Filename string `json:"filename"`
 }
 
-// saveAttachments stores any file type, not just images - a message can
-// attach code, documents, archives, etc. Only image types (the fixed set
-// Ollama's vision API accepts) end up in the model's context, via
-// toOllamaMessage in context.go; anything else is retained purely for the
-// human to see and download, with a plain-text note so the model at least
-// knows a file was attached (see toOllamaMessage).
+// Any file type is stored; only images reach the model, others become a text note (toOllamaMessage).
 type decodedUpload struct {
 	data     []byte
 	filename string
 }
 
-// decodeUploads validates every upload before anything is written, so one
-// bad file rejects the whole message instead of leaving it saved with only
-// some of its attachments.
+// Validates all uploads before writing any, so one bad file never leaves a partial save.
 func decodeUploads(uploads []AttachmentUpload) ([]decodedUpload, error) {
 	if len(uploads) > maxAttachmentsPerTurn {
 		return nil, fmt.Errorf("at most %d attachments per message", maxAttachmentsPerTurn)
@@ -122,10 +111,7 @@ func loadAttachmentBase64(attachmentsDir string, a Attachment) (string, error) {
 	return base64.StdEncoding.EncodeToString(data), nil
 }
 
-// imageTokens estimates what one image costs in prompt tokens. Measured on
-// qwen3.5-4b it is width*height/1024 (180px: 38, 512px: 258, 1518px: 2211);
-// other vision models differ, so this errs high with a floor, and formats
-// the stdlib can't read the size of (webp, bmp) get a flat guess.
+// Measured on qwen3.5-4b as width*height/1024; errs high with a floor, flat guess for webp/bmp.
 func imageTokens(b64 string) int {
 	cfg, _, err := image.DecodeConfig(base64.NewDecoder(base64.StdEncoding, strings.NewReader(b64)))
 	if err != nil {

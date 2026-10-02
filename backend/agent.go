@@ -19,37 +19,26 @@ import (
 )
 
 const (
-	// E24: on a 6 GB GPU two parallel requests cost almost nothing on the
-	// GQA models, while four already pushed phi3 onto the CPU. A stock
-	// Ollama queues same-model requests anyway, so 2 is free there too.
+	// E24: 2 parallel requests are nearly free on a 6 GB GPU; 4 pushed phi3 onto the CPU.
 	defaultMaxAgents = 2
 	cloudMaxAgents   = 10
 	maxMaxAgents     = 64
-	// Commands one agent may propose, each approved by the user. The limit
-	// guards the user's attention, not the model, so it isn't split by
-	// local and cloud; a local agent's window fills well before 8 anyway.
+	// Each command needs user approval; this guards the user's attention, so it isn't split local/cloud.
 	defaultAgentCommands = 8
 
 	// The prompt asks for 2 to 4 (E24); a model that lists more is cut here.
 	maxPlanSubtasks  = 8
 	maxAgentTask     = 500
 	maxAgentWebQuery = 200
-	// Room in an agent's window for its instructions and task, besides the
-	// inputs and the reply.
+
 	agentPromptTokens = 512
 	// Three ranked results with title, URL and snippet (formatSearchResults).
 	webReserveChars    = 3000
 	agentCharsPerToken = 1.5
 )
 
-// Measured in E24 (second version): "never the answer" stopped llama3.2
-// writing guessed summaries as tasks. Whether to split is not asked: the
-// model's own flag contradicted its subtasks, so Go decides from what
-// survives validation. The planner never proposes web searches, even
-// with a Brave key: offered one, qwen2.5 searched for private facts such
-// as "Stockroom server port", so a search is only ever added by the user
-// on the plan card. web_query stays in the schema, always "", to keep
-// the measured shape.
+// E24: Go, not the model, decides whether to split. Searches are added only by the user
+// (qwen2.5 searched private facts); web_query stays "" to keep the measured shape.
 const agentPlanPrompt = `You plan work for helper agents. Each agent sees only the inputs you give it, never the other agents or the chat.
 If the task has 2 to 4 parts that can each be answered from different inputs, list one subtask per part. If it can't be split that way, return an empty subtasks list.
 Each subtask has: task, an instruction for the agent (what to find out, never the answer); files, the exact names it needs from the list below, or [] if none; web_query, always "". %s
@@ -69,7 +58,6 @@ type planSubtask struct {
 	WebQuery string   `json:"web_query"`
 }
 
-// parseAgentCommand recognizes "@agent <task>".
 func parseAgentCommand(content string) (task string, ok bool) {
 	trimmed := strings.TrimSpace(content)
 	if len(trimmed) < len("@agent") || !strings.EqualFold(trimmed[:len("@agent")], "@agent") {
@@ -82,11 +70,7 @@ func parseAgentCommand(content string) (task string, ok bool) {
 	return strings.TrimSpace(rest), true
 }
 
-// agentFiles lists what an agent may be given: the attached folder's
-// direct, non-hidden, non-binary files, by name, with their sizes. Unlike
-// the manifest there's no size budget here, since an agent's input is cut
-// to fit its own window instead. Only names from this list are ever read,
-// so a planned "../x" or "/etc/passwd" is simply not in it.
+// Only names from this list are ever read, so a planned "../x" or "/etc/passwd" can't be.
 func agentFiles(folder string) (map[string]int64, error) {
 	entries, err := os.ReadDir(folder)
 	if err != nil {
@@ -118,10 +102,8 @@ func agentFiles(folder string) (map[string]int64, error) {
 	return out, nil
 }
 
-// addNamedFiles gives each subtask the folder files its text names. Only
-// for the model's plan: qwen2.5:1.5b split correctly but named the file
-// only in the task ("Find TAX_RATE in utils.py") and left files empty. On
-// an edited plan it would put back a file the user just removed.
+// qwen2.5:1.5b named files only in the task text. Model plans only: on an edited plan it
+// would put back a file the user removed.
 func addNamedFiles(subtasks []planSubtask, files map[string]int64) {
 	for i := range subtasks {
 		st := &subtasks[i]
@@ -136,11 +118,6 @@ func addNamedFiles(subtasks []planSubtask, files map[string]int64) {
 	}
 }
 
-// validatePlan applies E24's rules: files must be in the folder's list,
-// and a web query needs a Brave key and a subtask without files. A subtask
-// left with no input at all is kept only when agents can explore the
-// folder themselves; otherwise it's dropped, since that agent could only
-// reason about what it's given.
 func validatePlan(subtasks []planSubtask, files map[string]int64, webOK, explore bool) []Agent {
 	var out []Agent
 	for _, st := range subtasks {
@@ -152,9 +129,7 @@ func validatePlan(subtasks []planSubtask, files map[string]int64, webOK, explore
 				kept = append(kept, f)
 			}
 		}
-		// Files or one web query, never both: qwen2.5:1.5b added searches
-		// like "Stockroom server port" next to the file that answers it,
-		// which only sends a private detail to Brave for nothing.
+		// Files or a web query, never both: otherwise private details go to Brave for nothing.
 		query := ""
 		if webOK && len(kept) == 0 {
 			query = truncateRunes(strings.TrimSpace(st.WebQuery), maxAgentWebQuery)
@@ -173,8 +148,7 @@ func validatePlan(subtasks []planSubtask, files map[string]int64, webOK, explore
 	return out
 }
 
-// namesFile reports whether text mentions name as a whole word, so
-// "main.py" isn't found inside "domain.py".
+// Whole-word match, so "main.py" isn't found inside "domain.py".
 func namesFile(text, name string) bool {
 	for i := 0; ; {
 		j := strings.Index(text[i:], name)
@@ -200,10 +174,7 @@ func truncateRunes(s string, n int) string {
 	return s
 }
 
-// canExplore reports whether this chat's agents may look through the
-// attached folder themselves by proposing shell commands, each approved in
-// the main chat like any other: that needs a folder and a model that
-// supports tool calls. Others get their inputs only.
+// Exploring agents propose shell commands, each approved by the user in the main chat.
 func (s *Server) canExplore(ctx context.Context, user *User, c Conversation) bool {
 	if folderOf(c) == nil {
 		return false
@@ -212,20 +183,11 @@ func (s *Server) canExplore(ctx context.Context, user *User, c Conversation) boo
 	return slices.Contains(s.ollama.Capabilities(ctx, s.ollamaURLFor(user), info), "tools")
 }
 
-// agentInputChars is how much input text fits one agent's window, in
-// characters, after its reply and instructions. Inputs are files, not the
-// chat's own text, so the chat's calibration doesn't apply to them; they
-// are sized as dense text. 2 chars per token (E16) was not enough: the
-// fixture's log, cut to that, came to 8.3k tokens against an 8192 window,
-// which Ollama rejected, or with a JSON format silently truncated so the
-// agent never saw the log. Prose gets less than would fit.
+// Files are sized as dense text, not by the chat's calibration: 2 chars/token (E16) overflowed 8192.
 func agentInputChars(numCtx int) int {
 	return max(0, int(float64(numCtx-responseReserve-agentPromptTokens)*agentCharsPerToken))
 }
 
-// allocateInputs splits budget characters between inputs of the given
-// sizes: smaller ones get all they need, and what they leave goes to the
-// bigger ones in equal shares.
 func allocateInputs(sizes []int64, budget int) []int {
 	order := make([]int, len(sizes))
 	for i := range order {
@@ -242,7 +204,6 @@ func allocateInputs(sizes []int64, budget int) []int {
 	return out
 }
 
-// planNotes says, per agent, which of its files will be cut to fit.
 func planNotes(agents []Agent, files map[string]int64, budget int) {
 	for i := range agents {
 		a := &agents[i]
@@ -274,9 +235,7 @@ func formatKB(n int) string {
 	return fmt.Sprintf("%.1f KB", float64(n)/1024)
 }
 
-// planAgentRun asks the model for a plan and saves it as a run awaiting
-// approval. A nil run means the task doesn't split and should be answered
-// as a normal chat turn.
+// A nil run means the task doesn't split and is answered as a normal chat turn.
 func (s *Server) planAgentRun(ctx context.Context, user *User, convo *ConversationWithMessages, task string) (*AgentRun, error) {
 	files, err := agentFiles(*convo.AttachedFolder)
 	if err != nil {
@@ -372,10 +331,8 @@ func (s *Server) handleGetAgentRun(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, run)
 }
 
-// lockPlannedRun finds the caller's run, takes its conversation's lock and
-// re-reads it inside, since a Run and a Discard (or a double-click) racing
-// each other must see each other's result. It answers the request itself
-// and returns nil unless the run is still planned.
+// Re-reads the run inside the lock so a racing Run/Discard/double-click sees the other's result.
+// Returns nil, having already answered the request, unless the run is still planned.
 func (s *Server) lockPlannedRun(w http.ResponseWriter, r *http.Request) (*AgentRun, func()) {
 	user := userFromContext(r)
 	run, err := getAgentRun(s.db, r.PathValue("id"), user.ID)
@@ -414,9 +371,7 @@ func (s *Server) handleDiscardAgentRun(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// handleRunAgentRun takes the plan as edited on the card. Edits are
-// untrusted input like the model's plan was, so they go through the same
-// validation against the folder as it is now.
+// Card edits are untrusted like the model's plan, so they get the same validation.
 func (s *Server) handleRunAgentRun(w http.ResponseWriter, r *http.Request) {
 	user := userFromContext(r)
 	var body struct {

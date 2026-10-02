@@ -30,10 +30,8 @@ type Server struct {
 	conversationQueueMu sync.Mutex
 	conversationQueue   map[string]*sync.Mutex
 
-	// Conversations with a background summarization in flight.
 	summarizing sync.Map
-	// Agent commands awaiting the user, by command id: where their
-	// approve/deny is delivered to the waiting agent.
+	// By command id: delivers the user's approve/deny to the waiting agent.
 	agentDecisions sync.Map
 }
 
@@ -196,8 +194,7 @@ func (s *Server) handleShowModel(w http.ResponseWriter, r *http.Request) {
 	w.Write(info)
 }
 
-// handleLoadModel unloads every other running model first, so loading one
-// never has to squeeze in next to another on a small GPU.
+// Unloads every other running model first so a small GPU never has to fit two.
 func (s *Server) handleLoadModel(w http.ResponseWriter, r *http.Request) {
 	user := userFromContext(r)
 	var body struct {
@@ -410,9 +407,7 @@ func (s *Server) handleRenameConversation(w http.ResponseWriter, r *http.Request
 	writeJSON(w, http.StatusOK, map[string]string{"title": title})
 }
 
-// switchConversationModel changes an empty chat's model. Once it has a
-// message or an agent run, the model is fixed: its history, summaries and
-// token calibration all came from that model.
+// Only an empty chat can switch: history, summaries and token calibration came from its model.
 func (s *Server) switchConversationModel(w http.ResponseWriter, r *http.Request, user *User, id, model string) {
 	models, err := s.ollama.ListModels(r.Context(), s.ollamaURLFor(user))
 	if err != nil {
@@ -555,8 +550,7 @@ func (s *Server) handleAttachFolder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if convo.AttachedFolder != nil {
-		// A pending command was approved-to-be against the old folder; running
-		// it in the new one would not be what the user read.
+		// A pending command run in a new folder would not be what the user read.
 		if pending, err := getPendingCommand(s.db, id); err != nil || pending != nil {
 			writeError(w, http.StatusConflict, "approve or deny the pending command before changing the folder")
 			return
@@ -568,9 +562,7 @@ func (s *Server) handleAttachFolder(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	// Changing folders rewrites the manifest where it sits instead of adding
-	// a new one: the first system message is the protected standing context,
-	// so an appended manifest would decay while the old one stayed.
+	// Rewrite in place: the first system message is protected, an appended manifest would decay.
 	if i := slices.IndexFunc(convo.Messages, func(m Message) bool {
 		return m.Role == "system" && strings.HasPrefix(m.Content, manifestPrefix)
 	}); i != -1 {
@@ -621,12 +613,7 @@ func (s *Server) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 	s.runUserTurn(w, r, user, id, body.Content, body.Attachments, nil)
 }
 
-// Edits the conversation's latest user message: that message and
-// everything after it (the reply, tool calls/results, any proposed
-// commands - including a still-pending one) are dropped, then the new text
-// runs through exactly the same path as a freshly sent message. Only the
-// latest one is editable, so no branch of history is ever silently
-// rewritten.
+// Only the latest user message is editable (it and everything after, pending command included, are dropped), so no history branch is silently rewritten.
 func (s *Server) handleEditLastMessage(w http.ResponseWriter, r *http.Request) {
 	user := userFromContext(r)
 	id := r.PathValue("id")
@@ -639,8 +626,7 @@ func (s *Server) handleEditLastMessage(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "content is required")
 		return
 	}
-	// An edit replaces the last message, but a memory or compact command
-	// never becomes one, so editing into it would just delete the original.
+	// These commands never become a user message, so editing into one would just delete the original.
 	_, isAgent := parseAgentCommand(body.Content)
 	if _, _, ok := parseMemoryCommand(body.Content); ok || isCompactCommand(body.Content) || isAgent {
 		writeError(w, http.StatusBadRequest, "send @memory, @compact or @agent as a new message instead of an edit")
@@ -657,8 +643,7 @@ func (s *Server) handleEditLastMessage(w http.ResponseWriter, r *http.Request) {
 
 	defer s.lockConversation(id)()
 
-	// Re-read inside the lock: a reply that finished streaming while we
-	// waited has changed what "everything after" means.
+	// Re-read inside the lock: a reply that finished while we waited changes what "everything after" means.
 	convo, err := getConversation(s.db, id, user.ID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
@@ -676,8 +661,7 @@ func (s *Server) handleEditLastMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// An @web search injects its results as a system message just before
-	// the user message; they belong to the old text, so they go too.
+	// `@web` results saved just before the user message belong to the old text, so they go too.
 	start := last
 	for start > 0 && convo.Messages[start-1].Role == "system" && strings.HasPrefix(convo.Messages[start-1].Content, webResultsPrefix) {
 		start--
@@ -699,8 +683,7 @@ func (s *Server) handleEditLastMessage(w http.ResponseWriter, r *http.Request) {
 	s.runUserTurn(w, r, user, id, body.Content, nil, carried)
 }
 
-// Shared by sending and editing. carried are attachments from an edited
-// message whose files are still on disk and get re-linked to the new one.
+// carried: an edited message's attachments, still on disk, re-linked to the new message.
 func (s *Server) runUserTurn(w http.ResponseWriter, r *http.Request, user *User, id, content string, uploads []AttachmentUpload, carried []Attachment) {
 	decoded, err := decodeUploads(uploads)
 	if err != nil {
@@ -709,8 +692,7 @@ func (s *Server) runUserTurn(w http.ResponseWriter, r *http.Request, user *User,
 	}
 
 	notice := ""
-	// A web search streams its progress before the turn itself starts, so
-	// the response may already be under way by the time the model runs.
+	// Search and agent progress may start the response before the model runs.
 	started := false
 	start := func() {
 		if !started {
@@ -783,8 +765,6 @@ func (s *Server) runUserTurn(w http.ResponseWriter, r *http.Request, user *User,
 		case user.BraveAPIKey == nil || *user.BraveAPIKey == "":
 			notice = "[Web search isn't configured — add a Brave Search API key in Settings to enable it. Answering without web results.]\n\n"
 		default:
-			// Shown while Brave and the re-ranking run, then the sources the
-			// answer will be based on, so the user can check them.
 			start()
 			line, _ := json.Marshal(map[string]string{"query": query})
 			fmt.Fprintf(w, "<<<SEARCHING>>>%s\n", line)
@@ -837,9 +817,7 @@ func (s *Server) runUserTurn(w http.ResponseWriter, r *http.Request, user *User,
 	}
 	s.streamAssistantTurn(w, r, user, convo)
 
-	// A failed reply saves no assistant message. Titling it anyway spent a
-	// model call (quota, on a cloud model) and held the request open, with
-	// the input still blocked, right when the user wants to retry.
+	// No title after a failed reply: it wastes a model call and keeps input blocked while the user retries.
 	if firstMessage && hasAssistantMessage(s.db, id) {
 		s.generateTitle(r.Context(), user, convo.Model, s.numCtxFor(user, convo.Conversation), id, placeholderTitle, content)
 	}
@@ -853,9 +831,7 @@ Title: Reversing a Python List In Place
 Message: my laptop battery drains really fast since the last update
 Title: Battery Drain After Update`
 
-// Runs after the reply has streamed, so it never delays the first token;
-// the model is already loaded at that point, which keeps this well under a
-// second in practice. Any failure just leaves the placeholder title.
+// Runs after the reply so it never delays the first token; any failure keeps the placeholder.
 func (s *Server) generateTitle(ctx context.Context, user *User, model string, numCtx int, id, placeholder, firstMessage string) {
 	if ctx.Err() != nil {
 		return
@@ -898,7 +874,6 @@ func (s *Server) injectWebSearchResults(ctx context.Context, conversationID stri
 	return ranked, err
 }
 
-// searchWeb runs a Brave search and keeps the results closest to the query.
 func (s *Server) searchWeb(ctx context.Context, user *User, query string) ([]SearchResult, error) {
 	results, err := braveSearch(ctx, *user.BraveAPIKey, query)
 	if err != nil || len(results) == 0 {
@@ -912,9 +887,7 @@ func (s *Server) searchWeb(ctx context.Context, user *User, query string) ([]Sea
 	return ranked, nil
 }
 
-// executeCommand runs an approved command in its folder and records the
-// outcome. The result text always states success or failure first: an
-// empty output after a nonzero exit otherwise looked like success.
+// The result always states success or failure first: empty output after a nonzero exit looked like success.
 func (s *Server) executeCommand(ctx context.Context, cmd *Command) (resultText, displayStatus string) {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
@@ -991,9 +964,7 @@ func (s *Server) resolveCommandAndContinue(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// A reply-instead denial is followed by the user's own message, which is
-	// what the model should act on, so it neither suggests a retry nor
-	// starts a turn of its own here.
+	// The user's next message says what to do instead, so no retry hint and no model turn here.
 	replyInstead := !approve && r.URL.Query().Get("reply") == "1"
 
 	var resultText, displayStatus string
@@ -1036,14 +1007,8 @@ func (s *Server) resolveCommandAndContinue(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 
-	// The plain-text stream below carries only the assistant's own tokens
-	// (and a possible <<<TOOL_CALL>>> marker) for the model's next turn -
-	// the command's actual output never otherwise reaches the browser, since
-	// it's persisted straight to the tool-result DB row. The UI needs to
-	// show the human what really happened, so a matching <<<TOOL_RESULT>>>
-	// marker is emitted first, display-only, before the assistant continues.
-	// A denial's text is written for the model; the card's "Denied" status
-	// already tells the user everything.
+	// Command output otherwise only reaches the DB, so the UI gets a display-only marker.
+	// A denial's text is written for the model; the card's "Denied" status covers the user.
 	shown := resultText
 	if displayStatus == "denied" {
 		shown = ""
@@ -1057,9 +1022,7 @@ func (s *Server) resolveCommandAndContinue(w http.ResponseWriter, r *http.Reques
 	s.streamAssistantTurn(w, r, user, convo)
 }
 
-// ?think=1 / ?think=0 from the thinking toggle; absent means the model's
-// own default. The client only sends it for models that report the
-// "thinking" capability.
+// nil means the model's own default; the client only sends it for thinking-capable models.
 func thinkParam(r *http.Request) *bool {
 	switch r.URL.Query().Get("think") {
 	case "1":
@@ -1088,9 +1051,7 @@ func (s *Server) turnSetup(user *User, convo *ConversationWithMessages, numCtx i
 	} else if (convo.AttachedFolder == nil || *convo.AttachedFolder == "") && asksToRun(convo.Messages) {
 		suffix = noFolderNote
 	}
-	// Folder memories go with the anchor, next to the generation point: as
-	// a system message after the manifest, qwen2.5-3b ignored them (the same
-	// dilution as the tool nudge).
+	// Next to the anchor: as a system message after the manifest, qwen2.5-3b ignored them (E14).
 	if memories := s.folderMemoryBlock(user, convo.Conversation); memories != "" {
 		suffix = strings.TrimLeft(memories+"\n\n"+suffix, "\n")
 	}
@@ -1147,15 +1108,13 @@ func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	// A cold load can take tens of seconds on a GPU the model doesn't fit
-	// in, with nothing else to show; say so instead of looking hung.
+	// A cold load can take tens of seconds; say so instead of looking hung.
 	if !s.ollama.IsLoaded(r.Context(), s.ollamaURLFor(user), convo.Model) {
 		fmt.Fprint(w, "<<<LOADING>>>\n")
 		flush()
 	}
 
-	// Thinking tokens travel as one JSON-string line each, so the client can
-	// show them apart from the answer without any escaping ambiguity.
+	// One JSON-string line per chunk keeps thinking apart from the answer without escaping ambiguity.
 	onThinking := func(t string) {
 		line, _ := json.Marshal(t)
 		fmt.Fprintf(w, "<<<THINK>>>%s\n", line)
@@ -1166,9 +1125,7 @@ func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Reque
 		flush()
 	}, onThinking)
 	if err != nil && r.Context().Err() != nil {
-		// The user pressed Stop (or the tab closed): keep what they already
-		// saw so history matches the screen. A tool call cut off mid-way is
-		// dropped, since a partial command must never become approvable.
+		// On Stop keep what the user saw; drop a cut-off tool call, a partial command must never become approvable.
 		if result.Content != "" || result.Thinking != "" {
 			if err := insertAssistantMessage(s.db, convo.ID, result.Content, result.Thinking, 0); err != nil {
 				log.Printf("warning: failed to save stopped assistant message: %v", err)
@@ -1180,7 +1137,6 @@ func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// model's context window is too small for the current conversation
 	var overflow *contextOverflowError
 	if errors.As(err, &overflow) && !retried && r.Context().Err() == nil {
 		s.calibrateTokenRatio(convo.ID, history, toolsTokens, overflow.promptTokens)
@@ -1198,8 +1154,7 @@ func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Sent on its own line for every response, not just final text ones,
-	// so the bar also moves after tool-call turns.
+	// Sent for every response so the bar also moves after tool-call turns.
 	if result.ContextUsed > 0 {
 		if err := setContextUsage(s.db, convo.ID, result.ContextUsed, numCtx); err != nil {
 			log.Printf("warning: failed to save context usage: %v", err)
@@ -1286,9 +1241,7 @@ func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-// calibrateTokenRatio stores how many real prompt tokens Ollama counted per
-// estimated token. Skipped when images were sent, since their cost is its
-// own estimate and would skew the text ratio.
+// Skipped when images were sent: their cost is a separate estimate and would skew the text ratio.
 func (s *Server) calibrateTokenRatio(convoID string, history []OllamaMessage, toolsTokens, promptTokens int) {
 	if promptTokens == 0 {
 		return
