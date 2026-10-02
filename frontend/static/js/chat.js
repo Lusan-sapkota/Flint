@@ -1208,12 +1208,6 @@ document.addEventListener('alpine:init', () => {
       return /^(edit_file|write_file) /.test(item.commandText || '');
     },
 
-    // An applied edit's result is "[exit code: 0] wrote path" followed by its diff.
-    editDiff(item) {
-      if (item.commandDiff) return item.commandDiff;
-      return item.commandStatus === 'success' ? (item.commandResult || '').split('\n').slice(1).join('\n') : '';
-    },
-
     diffLines(diff) {
       return diff.split('\n').map((text) => ({ text, cls: /^(\+\+\+|---)/.test(text) ? 'meta' : { '+': 'add', '-': 'del', '@': 'hunk' }[text[0]] || '' }));
     },

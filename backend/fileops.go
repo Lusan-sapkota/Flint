@@ -16,7 +16,6 @@ import (
 const (
 	maxReadLines    = 400
 	maxEditFileSize = 256 * 1024
-	maxDiffInResult = 4000
 )
 
 func fileTool(name, desc string, props map[string]any, required ...string) OllamaTool {
@@ -282,9 +281,22 @@ func (s *Server) applyEdit(cmd *Command) (resultText, displayStatus string) {
 	if err := resolveCommand(s.db, cmd.ID, "executed", e.Diff, &code); err != nil {
 		log.Printf("warning: failed to resolve edit: %v", err)
 	}
-	diff := e.Diff
-	if len(diff) > maxDiffInResult {
-		diff = diff[:maxDiffInResult] + "\n...[diff cut]"
+	// No diff for the model: shown one, qwen2.5-3b pasted it into its reply as broken markdown.
+	added, removed := 0, 0
+	for _, l := range strings.Split(e.Diff, "\n")[3:] {
+		switch {
+		case strings.HasPrefix(l, "+"):
+			added++
+		case strings.HasPrefix(l, "-"):
+			removed++
+		}
 	}
-	return fmt.Sprintf("[exit code: 0] wrote %s\n%s", e.Display, diff), "success"
+	return fmt.Sprintf("[exit code: 0] wrote %s (%d %s added, %d removed)", e.Display, added, plural(added, "line"), removed), "success"
+}
+
+func plural(n int, word string) string {
+	if n == 1 {
+		return word
+	}
+	return word + "s"
 }

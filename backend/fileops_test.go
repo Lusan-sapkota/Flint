@@ -94,7 +94,7 @@ func TestApplyEditRefusesAChangedFile(t *testing.T) {
 		t.Errorf("a file changed after the proposal must not be overwritten: %s %q", status, out)
 	}
 	os.WriteFile(path, []byte("one\n"), 0o600)
-	if out, status := s.applyEdit(cmd); status != "success" || !strings.HasPrefix(out, "[exit code: 0] wrote a.txt\n") {
+	if out, status := s.applyEdit(cmd); status != "success" || out != "[exit code: 0] wrote a.txt (1 line added, 1 removed)" {
 		t.Fatalf("got %s %q", status, out)
 	}
 	if data, _ := os.ReadFile(path); string(data) != "two\n" {

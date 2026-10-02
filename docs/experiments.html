@@ -1702,7 +1702,7 @@ different files; see <a href="benchmark.html">benchmark.md</a>), run as a normal
 <li><strong>Typo task: 0/5 in both.</strong> It didn't see <code>inventroy</code> and "fixed"
   something else. A perception failure, not a format one.</li>
 </ul>
-<p><strong>Live, three fixes</strong>, each from a failure seen in a real chat:</p>
+<p><strong>Live, four fixes</strong>, each from a failure seen in a real chat:</p>
 <ul>
 <li>Asked to change a price in <code>data/prices.csv</code> (not in the manifest), it
   guessed the old line (<code>B-220,4.00</code>) twice. Both edits were refused
@@ -1714,6 +1714,11 @@ different files; see <a href="benchmark.html">benchmark.md</a>), run as a normal
 <li>It once asked to read from line 1000000000000000; an out-of-range start
   now reads from the top instead of failing.</li>
 <li>A decided edit lost its diff on reload; every edit card now keeps it.</li>
+<li>Given the applied diff back as its tool result, the model pasted it
+  into its reply, where markdown turned the <code>-</code>/<code>+</code> lines into a
+  bulleted list. The result now says only "wrote config.yaml (1 line
+  added, 1 removed)"; the card shows the diff, and the model wrote the
+  change itself.</li>
 </ul>
 <p><strong>Benchmark, partial</strong> (7 edit tasks, commands inside the task's copy
   approved; stopped after 15 runs to spare the machine): with the file

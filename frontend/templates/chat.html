@@ -396,8 +396,8 @@
                 <span class="flint-command-status" x-text="statusLabel(item.commandStatus)"></span>
               </header>
               <code class="flint-command-text" x-show="!isEdit(item)" x-text="item.commandText"></code>
-              <template x-if="isEdit(item) && editDiff(item)">
-                <pre class="flint-diff"><template x-for="(l, i) in diffLines(editDiff(item))" :key="i"><span :class="l.cls" x-text="l.text + '\n'"></span></template></pre>
+              <template x-if="isEdit(item) && item.commandDiff">
+                <pre class="flint-diff"><template x-for="(l, i) in diffLines(item.commandDiff)" :key="i"><span :class="l.cls" x-text="l.text + '\n'"></span></template></pre>
               </template>
 
               <template x-if="item.agentRunId && item.commandStatus === 'pending'">
