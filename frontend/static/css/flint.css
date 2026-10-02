@@ -1477,6 +1477,21 @@ details.flint-thinking > summary:focus {
   }
 }
 
+/* While the plan is reviewed, the flint sits beside the title and estimate only; the list runs full width. */
+.flint-agent-plan:not(.flint-agent-plan-folded) {
+  display: block;
+}
+
+.flint-agent-plan:not(.flint-agent-plan-folded) .flint-buddy {
+  float: left;
+  zoom: 0.85;
+  margin-right: 1rem;
+}
+
+.flint-agent-plan:not(.flint-agent-plan-folded) .flint-agent-list {
+  clear: left;
+}
+
 .flint-agent-plan-folded {
   align-items: center;
   gap: 0.85rem;
