@@ -382,7 +382,7 @@ document.addEventListener('alpine:init', () => {
 
     // Same estimate as the server: bytes over the chat's calibrated chars/token.
     get draftTokens() {
-      return Math.ceil(new TextEncoder().encode(this.input).length / this.charsPerToken) + 4;
+      return Math.ceil(new TextEncoder().encode(this.input).length / (this.charsPerToken || 4)) + 4;
     },
 
     // Mirrors refuseOversized in handlers.go, which has the final say.
@@ -393,7 +393,7 @@ document.addEventListener('alpine:init', () => {
 
     // Not blocking: older history makes room, it just stops being verbatim.
     get inputSizeWarning() {
-      if (this.inputSizeError || this.draftTokens < 256 || this.contextUsed + this.draftTokens <= this.contextMax - 1024) return '';
+      if (!this.conversationId || this.inputSizeError || this.draftTokens < 256 || this.contextUsed + this.draftTokens <= this.contextMax - 1024) return '';
       return `This message is about ${this.formatTokens(this.draftTokens)} tokens: older messages will be condensed or dropped to make room for it.`;
     },
 
