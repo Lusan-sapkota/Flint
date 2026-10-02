@@ -416,6 +416,8 @@ type settingsViewData struct {
 	QuestionsJSON       string
 	RankingModel        string
 	RankingModelMissing bool
+	Version             string
+	Commit              string
 }
 
 func (s *Server) handleSettingsPage(w http.ResponseWriter, r *http.Request, user *User) {
@@ -455,6 +457,8 @@ func (s *Server) handleSettingsPage(w http.ResponseWriter, r *http.Request, user
 		QuestionsJSON:       string(questionsJSON),
 		RankingModel:        embeddingModel,
 		RankingModelMissing: modelsErr == "" && !slices.ContainsFunc(models, func(m OllamaModelInfo) bool { return isRankingModel(m.Name) }),
+		Version:             version,
+		Commit:              buildCommit(),
 	}
 	if user.OllamaBaseURL != nil {
 		data.OllamaBaseURL = *user.OllamaBaseURL

@@ -3119,3 +3119,11 @@ button.flint-danger-solid:hover {
   margin-left: 0.5rem;
   color: #f0a39b;
 }
+
+.flint-about-links {
+  padding-left: 1.1rem;
+}
+
+.flint-about-links li {
+  margin-bottom: 0.3rem;
+}

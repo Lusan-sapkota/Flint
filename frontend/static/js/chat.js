@@ -18,28 +18,6 @@ function flintEscapeHTML(s) {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
 
-// navigator.clipboard only exists in secure contexts; Flint is often
-// reached over plain http on a LAN address, so fall back to execCommand.
-async function flintCopy(text) {
-  if (navigator.clipboard && window.isSecureContext) {
-    await navigator.clipboard.writeText(text);
-    return;
-  }
-  const ta = document.createElement('textarea');
-  ta.value = text;
-  ta.style.position = 'fixed';
-  ta.style.opacity = '0';
-  document.body.appendChild(ta);
-  ta.select();
-  document.execCommand('copy');
-  ta.remove();
-}
-
-function flintFlashCopied(el) {
-  el.classList.add('copied');
-  setTimeout(() => el.classList.remove('copied'), 1500);
-}
-
 // Configured as soon as this script runs, not on DOMContentLoaded: Alpine
 // (also deferred) starts first and renders a page's saved messages before
 // that event, so they came out with marked's defaults - no code-block bar,
@@ -127,14 +105,6 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
   if (node.tagName === 'IMG' && isExternalURL(node.getAttribute('src'))) {
     node.removeAttribute('src');
   }
-});
-
-document.addEventListener('click', async (e) => {
-  const btn = e.target.closest('.flint-code-copy');
-  if (!btn) return;
-  await flintCopy(btn.closest('.flint-code').querySelector('code').textContent);
-  btn.textContent = 'Copied';
-  setTimeout(() => (btn.textContent = 'Copy'), 1500);
 });
 
 function flintRenameConversation(id, button) {

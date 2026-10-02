@@ -32,7 +32,7 @@
         <a href="index.html" class="brand-link">
           <img src="images/logo.png" alt="Flint logo" width="30" height="30" class="brand-logo">
           <span class="brand-name">Flint</span>
-          <span class="version-pill">v0.4.0</span>
+          <span class="version-pill">v0.4.1</span>
         </a>
       </div>
 
@@ -301,6 +301,9 @@ How a release is made (for maintainers) is in
 <li><strong>Docker:</strong> Run <code>docker compose pull &amp;&amp; docker compose up -d</code> in your Flint directory. Your accounts, chats, settings, and memories stored in <code>./data</code> are fully preserved across image updates.</li>
 <li><strong>Source:</strong> Run <code>git switch main &amp;&amp; git pull</code> and rebuild or run with <code>go run .</code>.</li>
 </ul>
+<p>Settings → About shows the version you're running and these same
+commands. A release image carries its tag and commit; a build from source
+shows <code>dev</code> and its commit.</p>
 <p>To stay notified when new releases are published:</p>
 <ul>
 <li><strong>GitHub Releases Watch:</strong> Click <strong>Watch</strong> → <strong>Custom</strong> → <strong>Releases</strong> on the <a href="https://github.com/Lusan-sapkota/Flint" target="_blank" rel="noopener noreferrer">Flint GitHub repository</a> to receive email or web notifications directly from GitHub.</li>

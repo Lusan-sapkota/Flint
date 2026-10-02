@@ -3,7 +3,10 @@ WORKDIR /src
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 COPY backend/ ./
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /flint .
+# Release builds pass the tag and commit (docker.yml); a plain build says "dev".
+ARG VERSION=dev
+ARG COMMIT=
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT}" -o /flint .
 
 # Alpine, not scratch: the shell tool needs sh.
 FROM alpine:3.22

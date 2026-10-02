@@ -3,6 +3,14 @@
 Notable changes in each release. The measurements behind a change are in
 [experiments](experiments.md).
 
+## [0.4.1] - 2026-10-02
+
+### Added
+
+- Settings → About: the version and build you're running, links to the
+  docs, changelog, repository and issues, and the commands to update.
+  Nothing is checked online.
+
 ## [0.4.0] - 2026-10-02
 
 ### Added

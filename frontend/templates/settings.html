@@ -388,6 +388,30 @@
       </div>
     </section>
 
+    <section class="flint-settings-section" x-show="tab === 'about'">
+      <div class="flint-settings-group">
+        <h3>Flint {{.Version}}</h3>
+        <p>A fully offline chat UI for local Ollama models: the best scaffolding around a small model, without getting heavy itself.{{if .Commit}} Build <code>{{.Commit}}</code>.{{end}}</p>
+        <p>Made by <a href="https://github.com/Lusan-sapkota" target="_blank" rel="noopener noreferrer">Lusan Sapkota</a>. If Flint is useful to you, <a href="https://github.com/Lusan-sapkota/Flint" target="_blank" rel="noopener noreferrer">star it on GitHub</a>.</p>
+        <ul class="flint-about-links">
+          <li><a href="https://flint.lusansapkota.com.np" target="_blank" rel="noopener noreferrer">Documentation</a></li>
+          <li><a href="https://flint.lusansapkota.com.np/changelog.html" target="_blank" rel="noopener noreferrer">Changelog</a></li>
+          <li><a href="https://github.com/Lusan-sapkota/Flint" target="_blank" rel="noopener noreferrer">GitHub repository</a></li>
+          <li><a href="https://github.com/Lusan-sapkota/Flint/issues" target="_blank" rel="noopener noreferrer">Report an issue</a></li>
+        </ul>
+      </div>
+      <div class="flint-settings-group">
+        <h3>Updating</h3>
+        <p class="flint-field-hint">Flint never checks for updates on its own, so nothing leaves this machine. Update when you choose; your chats and settings are kept.</p>
+        <p>Docker, in the folder with your compose file:</p>
+        <div class="flint-code"><div class="flint-code-bar"><span>sh</span><button type="button" class="flint-code-copy">Copy</button></div><pre><code>docker compose pull && docker compose up -d</code></pre></div>
+        <p>From source:</p>
+        <div class="flint-code"><div class="flint-code-bar"><span>sh</span><button type="button" class="flint-code-copy">Copy</button></div><pre><code>git switch main && git pull
+cd backend && go run .</code></pre></div>
+        <p class="flint-field-hint">To hear about new releases, watch the repository on GitHub (Watch → Custom → Releases).</p>
+      </div>
+    </section>
+
     </div>
   </div>
 </div>

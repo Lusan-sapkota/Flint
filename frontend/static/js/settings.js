@@ -31,6 +31,7 @@ document.addEventListener('alpine:init', () => {
     { id: 'models', label: 'Models' },
     { id: 'memories', label: 'Memories' },
     { id: 'account', label: 'Account' },
+    { id: 'about', label: 'About' },
   ];
   const tabFromHash = () => (TABS.some((t) => `#${t.id}` === location.hash) ? location.hash.slice(1) : TABS[0].id);
 
