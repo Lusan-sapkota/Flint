@@ -298,10 +298,24 @@
   download into a shell, and so on) are blocked before you ever see them.</li>
 <li><strong>Precondition check.</strong> A command whose program or read target doesn't
   exist goes back to the model without asking you.</li>
+<li><strong>Reading files.</strong> The model reads a file in the attached folder with
+  <code>read_file</code> (numbered lines, 400 at a time) <strong>without asking you</strong>:
+  nothing runs, and a path outside the folder, through <code>..</code>, an absolute
+  path or a symlink, is refused. Each read shows as a "Read
+  data/prices.csv · lines 1-4 of 4" line you can open.</li>
+<li><strong>Editing files, as a diff.</strong> <code>edit_file</code> replaces an exact piece of a
+  file and <code>write_file</code> creates or replaces one. Either shows a red/green
+  diff with <strong>Approve &amp; write</strong>, Deny and Reply instead; nothing is
+  written until you approve. An edit whose text isn't in the file, or
+  matches more than once, goes back to the model with the file's real
+  lines, without asking you. If the file changes after the edit was
+  proposed, approving refuses it rather than overwrite your change
+  (<a href="experiments.html#e30-read-write-and-edit-tools">E30</a>).</li>
 <li><strong>Clear results.</strong> Every result states success or failure with the
   exit code, and the output is shown in the chat.</li>
-<li><strong>Bounded retries.</strong> After 3 tool steps since your last message, the
-  model has to answer in text.</li>
+<li><strong>Bounded retries.</strong> After 3 steps that asked for your approval since
+  your last message, or 8 steps in all (reads and refused proposals
+  included), the model has to answer in text.</li>
 <li><strong>File names checked.</strong> A file the model names in its answer
   that isn't in the folder is listed under the reply ("Mentioned but not
   in the folder"). It may have been made up, or not created yet. Checked

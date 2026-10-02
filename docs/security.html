@@ -210,12 +210,32 @@ to make it safe to share with other people.</p>
 <p><code>X-Forwarded-For</code> is ignored on purpose. Without a trusted-proxy list,
 anyone could set it to get around the limit. Behind a reverse proxy, every
 client therefore shares the proxy's IP and its limit.</p>
+<h2 id="file-tools">File tools<a aria-label="Link to File tools" class="header-anchor" href="#file-tools">#</a></h2>
+<ul>
+<li><strong>Reads run without approval</strong> (<code>read_file</code>), a deliberate choice: nothing
+   executes, so the risk is only what the model gets to see, and that is
+   confined to the attached folder. Every path is resolved through
+   symlinks before the check, so <code>..</code>, absolute paths and a link
+   pointing outside are all refused. Binary files and files over 256 KB
+   aren't read.</li>
+<li><strong>Writes and edits always need approval</strong>, shown as a diff of exactly
+   what will be written. The new content is computed in memory when the
+   edit is proposed and written only on approve, to a temporary file
+   renamed into place, keeping the file's permissions. The same folder
+   check applies, and a new file's parent folder must already exist.</li>
+<li><strong>A stale edit is refused.</strong> The file's hash is stored with the
+   proposal; if the file changed before you approve, nothing is written
+   and the model is told to read it again.</li>
+<li>Unlike the shell's working directory, this is a real boundary for
+   these three tools. <code>run_shell</code> can still reach anything the
+   server's user can, which is why it stays approve-every-command.</li>
+</ul>
 <h2 id="shell-commands">Shell commands<a aria-label="Link to Shell commands" class="header-anchor" href="#shell-commands">#</a></h2>
 <p>Layers, in order:</p>
 <ol>
-<li><strong>Human approval.</strong> Every command is held as pending, and its exact
-   text is shown unchanged. Nothing runs without an explicit approve.
-   This is the real safety net.</li>
+<li><strong>Human approval.</strong> Every shell command is held as pending, and its
+   exact text is shown unchanged. Nothing runs without an explicit
+   approve. This is the real safety net.</li>
 <li><strong>Shield</strong> (<code>shield.go</code>). Blocked when proposed and again when run:
    <code>rm -rf</code> aimed at <code>/</code>, <code>~</code>, or the whole current directory (<code>.</code>, <code>*</code>), fork bombs, <code>sudo</code>, piping <code>curl</code>/<code>wget</code>
    into a shell, <code>mkfs</code>, <code>dd</code> to <code>/dev/*</code>, and reading <code>/etc/shadow</code> or
@@ -343,6 +363,7 @@ safety layers.</p>
       <li class="toc-item toc-level-2"><a href="#overview" class="toc-link" data-target="overview">Overview</a></li>
       <li class="toc-item toc-level-2"><a href="#accounts-and-sessions" class="toc-link" data-target="accounts-and-sessions">Accounts and sessions</a></li>
       <li class="toc-item toc-level-2"><a href="#rate-limits" class="toc-link" data-target="rate-limits">Rate limits</a></li>
+      <li class="toc-item toc-level-2"><a href="#file-tools" class="toc-link" data-target="file-tools">File tools</a></li>
       <li class="toc-item toc-level-2"><a href="#shell-commands" class="toc-link" data-target="shell-commands">Shell commands</a></li>
       <li class="toc-item toc-level-2"><a href="#network" class="toc-link" data-target="network">Network</a></li>
       <li class="toc-item toc-level-2"><a href="#memory" class="toc-link" data-target="memory">Memory</a></li>

@@ -13,6 +13,7 @@ STOCKROOM_TOKEN is not set.
 """
 
 import re
+from pathlib import Path
 
 
 def final(r):
@@ -87,6 +88,31 @@ def advises(*needles, forbid=()):
     return check
 
 
+def file_is(name, change=None, judge=None):
+    """After the run, the file must equal change(the fixture's original), or judge(content) must hold."""
+    fixture = Path(__file__).resolve().parent / "fixture" / name
+
+    def check(r):
+        if r["errors"]:
+            return False, f"request error on turn {r['errors'][0]}"
+        got = r.get("files", {}).get(name)
+        if got is None:
+            return False, f"{name} doesn't exist"
+        ok = judge(got) if judge else got.rstrip("\n") == change(fixture.read_text()).rstrip("\n")
+        return (True, "file correct") if ok else (False, f"{name} is {got[:120]!r}")
+
+    return check
+
+
+def doubles(content):
+    g = {}
+    try:
+        exec(content, g)
+        return g["double"](3) == 6 and g["parse_sku"](" a-007 ") == "A-7" and g["price_with_tax"](100) == 113.0
+    except Exception:
+        return False
+
+
 # Commands that fill the context with real tool output between a planted
 # fact and the question about it.
 FILLER = [
@@ -149,6 +175,14 @@ TASKS = [
     # is for. The log question needs line 357 of 400, past any head cut.
     {"id": "split-config", "category": "split", "turns": ["Three questions: what port does Stockroom listen on, what is max_connections in config.yaml, and who is on call this week?"], "check": answer(r"\b7070\b", r"\b25\b", r"Omar")},
     {"id": "split-code", "category": "split", "turns": ["What is MAX_RETRIES in main.py, what is TAX_RATE in utils.py, and which exit code does fail.py use when the token is missing?"], "check": answer(r"\b4\b", r"0?\.13\b|13\s?%", r"\b2\b")},
+    # Edits: scored on the file left on disk, with commands that stay inside the task's copy approved.
+    {"id": "edit-config", "category": "edit", "edits": True, "turns": ["Change max_connections to 50 in config.yaml."], "check": file_is("config.yaml", lambda s: s.replace("max_connections: 25", "max_connections: 50"))},
+    {"id": "edit-tax", "category": "edit", "edits": True, "turns": ["Set TAX_RATE to 0.15 in utils.py."], "check": file_is("utils.py", lambda s: s.replace("TAX_RATE = 0.13", "TAX_RATE = 0.15"))},
+    {"id": "edit-retries", "category": "edit", "edits": True, "turns": ["In main.py, raise MAX_RETRIES to 6."], "check": file_is("main.py", lambda s: s.replace("MAX_RETRIES = 4", "MAX_RETRIES = 6"))},
+    {"id": "edit-oncall", "category": "edit", "edits": True, "turns": ["Update notes.txt: Priya is on call this week, not Omar."], "check": file_is("notes.txt", lambda s: s.replace("Omar", "Priya"))},
+    {"id": "edit-price", "category": "edit", "edits": True, "turns": ["In data/prices.csv, change the price of B-220 to 5.00."], "check": file_is("data/prices.csv", lambda s: s.replace("B-220,4.50", "B-220,5.00"))},
+    {"id": "edit-add", "category": "edit", "edits": True, "turns": ["Add a function double(x) that returns x * 2 at the end of utils.py."], "check": file_is("utils.py", judge=doubles)},
+    {"id": "edit-create", "category": "edit", "edits": True, "turns": ["Create a file CHANGES.md containing the line: Raised max connections."], "check": file_is("CHANGES.md", judge=lambda c: "Raised max connections" in c)},
     {"id": "split-log", "category": "split", "turns": ["Two questions: what is the error code on the one ERROR line in large_log.txt, and what is the owner's email address in README.md?"], "check": answer(r"\b4471\b", r"dana@stockroom\.test")},
     {"id": "split-crowded", "category": "split", "turns": FILLER[:4] + ["What is TAX_RATE in utils.py, what port is in README.md, and what does check.py print?"], "check": answer(r"0?\.13\b|13\s?%", r"\b7070\b", r"\b42\b")},
 

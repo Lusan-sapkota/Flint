@@ -160,6 +160,12 @@
   building on a name it made up (<a href="experiments.html#e28-telling-the-model-its-last-answer-named-missing-files">E28</a>).</li>
 <li>The folder anchor lists the folder's real file paths, not just its top
   level, so the model names files that exist instead of guessing (<a href="experiments.html#e29-real-file-paths-in-the-anchor">E29</a>).</li>
+<li>File tools in folder chats: the model reads files in the attached
+  folder without asking, and edits or creates them through a diff you
+  approve before anything is written. Paths can't leave the folder, and an
+  edit to a file that changed since it was proposed is refused (<a href="experiments.html#e30-read-write-and-edit-tools">E30</a>).</li>
+<li>The step cap counts only steps that asked for your approval (3);
+  reads and refused proposals are bounded by a total of 8.</li>
 <li>The agent plan card has a small flint whose face shows the run's
   state: working, waiting for your approval, done, or stopped.</li>
 </ul>
@@ -421,7 +427,10 @@
   <nav class="toc-nav">
     <ul class="toc-list">
       <li class="toc-item toc-level-2"><a href="#overview" class="toc-link" data-target="overview">Overview</a></li>
+      <li class="toc-item toc-level-2"><a href="#unreleased" class="toc-link" data-target="unreleased">Unreleased</a></li>
+      <li class="toc-item toc-level-3"><a href="#added-unreleased" class="toc-link" data-target="added-unreleased">Added</a></li>
       <li class="toc-item toc-level-2"><a href="#021---2026-09-27" class="toc-link" data-target="021---2026-09-27">0.2.1 - 2026-09-27</a></li>
+      <li class="toc-item toc-level-3"><a href="#changed-021" class="toc-link" data-target="changed-021">Changed</a></li>
       <li class="toc-item toc-level-2"><a href="#020---2026-09-27" class="toc-link" data-target="020---2026-09-27">0.2.0 - 2026-09-27</a></li>
       <li class="toc-item toc-level-3"><a href="#added" class="toc-link" data-target="added">Added</a></li>
       <li class="toc-item toc-level-3"><a href="#changed" class="toc-link" data-target="changed">Changed</a></li>

@@ -192,9 +192,10 @@ document.addEventListener('alpine:init', () => {
   const MEMORY_SAVED_MARKER = '<<<MEMORY_SAVED>>>';
   const AGENT_PLAN_MARKER = '<<<AGENT_PLAN>>>';
   const AGENTS_MARKER = '<<<AGENTS>>>';
-  const MARKERS = [TOOL_CALL_MARKER, STATS_MARKER, THINK_MARKER, LOADING_MARKER, CONTEXT_MARKER, MEMORY_DRAFT_MARKER, SEARCHING_MARKER, SOURCES_MARKER, MEMORY_SAVED_MARKER, AGENT_PLAN_MARKER, AGENTS_MARKER];
+  const READ_MARKER = '<<<READ>>>';
+  const MARKERS = [TOOL_CALL_MARKER, STATS_MARKER, THINK_MARKER, LOADING_MARKER, CONTEXT_MARKER, MEMORY_DRAFT_MARKER, SEARCHING_MARKER, SOURCES_MARKER, MEMORY_SAVED_MARKER, AGENT_PLAN_MARKER, AGENTS_MARKER, READ_MARKER];
   // One JSON value per line, consumed in place while the stream continues.
-  const LINE_MARKERS = [CONTEXT_MARKER, THINK_MARKER, SEARCHING_MARKER, SOURCES_MARKER, MEMORY_SAVED_MARKER, AGENTS_MARKER];
+  const LINE_MARKERS = [CONTEXT_MARKER, THINK_MARKER, SEARCHING_MARKER, SOURCES_MARKER, MEMORY_SAVED_MARKER, AGENTS_MARKER, READ_MARKER];
   const COMMANDS = [
     { cmd: '@agent ', hint: "split a task over the folder's files into separate agents" },
     { cmd: '@web ', hint: 'search the web first (needs a Brave key in Settings)' },
@@ -1056,6 +1057,11 @@ document.addEventListener('alpine:init', () => {
               this.maxInput = value.maxInput;
               this.charsPerToken = value.charsPerToken;
               this.condensed = value.condensed;
+            } else if (lineMarker === READ_MARKER) {
+              if (bubble && bubble.content.trim() === '' && !bubble.thinking) this.timeline.splice(this.timeline.indexOf(bubble), 1);
+              bubble = null;
+              this.timeline.push({ kind: 'command', commandText: value.label, commandStatus: 'read', commandResult: value.result });
+              this.scrollToBottom();
             } else if (lineMarker === SEARCHING_MARKER) {
               this.searchingQuery = value.query;
             } else if (lineMarker === AGENTS_MARKER) {
@@ -1128,7 +1134,7 @@ document.addEventListener('alpine:init', () => {
           } else if (bubble) {
             bubble.missing = obj.missing;
           }
-          this.timeline.push({ kind: 'command', commandId: obj.id, commandText: obj.command, commandStatus: 'pending' });
+          this.timeline.push({ kind: 'command', commandId: obj.id, commandText: obj.command, commandStatus: 'pending', commandDiff: obj.diff });
         } catch (e) {
           appendVisible('\n' + pending);
         }
@@ -1193,6 +1199,25 @@ document.addEventListener('alpine:init', () => {
       this.send();
     },
 
+    readLabel(item) {
+      const lines = (item.commandResult || '').match(/^\[read [^:]*: (lines [^\]]+)\]/);
+      return 'Read ' + item.commandText.replace(/^read_file /, '') + (lines ? ' · ' + lines[1] : '');
+    },
+
+    isEdit(item) {
+      return /^(edit_file|write_file) /.test(item.commandText || '');
+    },
+
+    // An applied edit's result is "[exit code: 0] wrote path" followed by its diff.
+    editDiff(item) {
+      if (item.commandDiff) return item.commandDiff;
+      return item.commandStatus === 'success' ? (item.commandResult || '').split('\n').slice(1).join('\n') : '';
+    },
+
+    diffLines(diff) {
+      return diff.split('\n').map((text) => ({ text, cls: /^(\+\+\+|---)/.test(text) ? 'meta' : { '+': 'add', '-': 'del', '@': 'hunk' }[text[0]] || '' }));
+    },
+
     statusLabel(status) {
       switch (status) {
         case 'success':
@@ -1209,6 +1234,8 @@ document.addEventListener('alpine:init', () => {
           return 'Awaiting your approval';
         case 'resolving':
           return 'Running…';
+        case 'read':
+          return 'Read';
         case 'cancelled':
           return 'Cancelled';
         default:

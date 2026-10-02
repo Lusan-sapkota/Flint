@@ -1674,6 +1674,57 @@ different files; see <a href="benchmark.html">benchmark.md</a>), run as a normal
   no-tree 26/40. No category got worse. <code>list-data</code> still
   used a command in both arms.</li>
 </ul>
+<h2 id="e30-read-write-and-edit-tools">E30: Read, write and edit tools<a aria-label="Link to E30: Read, write and edit tools" class="header-anchor" href="#e30-read-write-and-edit-tools">#</a></h2>
+<p>Before, the model's only tool was <code>run_shell</code>: every file read was a
+  <code>cat</code> you had to approve, and an edit was a <code>sed -i</code> or heredoc you had
+  to decode. Built: <code>read_file</code> (runs without approval, confined to the
+  folder), and <code>edit_file</code> / <code>write_file</code>, shown as a diff and written
+  only when approved. Ablatable as <code>filetools</code>.</p>
+<p><strong>Format test first</strong>, straight to Ollama: qwen2.5-3b-instruct with all four
+  tools offered, given a file as numbered <code>read_file</code> output and asked for
+  one of six edits, 5 runs each. A run passes only if the edit leaves the
+  file exactly right.</p>
+<table>
+<thead><tr><th>edit_file takes</th><th>all six</th><th>change a value (4 tasks)</th><th>add a function</th></tr></thead>
+<tbody>
+<tr><td>line range + new text</td><td>14/30</td><td>11/20</td><td>3/5 (lenient)</td></tr>
+<tr><td>old_text + new_text</td><td>19/30</td><td>19/20</td><td>0/5</td></tr>
+<tr><td>old_text + new_text, empty old_text appends</td><td>20/30</td><td>19/20</td><td>1/5 (lenient)</td></tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Line ranges lost indentation:</strong> <code>max_connections: 50</code> without its two
+  leading spaces, which breaks the YAML silently, and stray trailing
+  newlines. Text replacement never did, so it was kept.</li>
+<li><strong>Adding code is weak in both.</strong> The model anchored on an existing line
+  and replaced it (<code>price_with_tax(price)</code> became the new function),
+  and never used the empty <code>old_text</code>. The diff card is what catches this.</li>
+<li><strong>Typo task: 0/5 in both.</strong> It didn't see <code>inventroy</code> and "fixed"
+  something else. A perception failure, not a format one.</li>
+</ul>
+<p><strong>Live, three fixes</strong>, each from a failure seen in a real chat:</p>
+<ul>
+<li>Asked to change a price in <code>data/prices.csv</code> (not in the manifest), it
+  guessed the old line (<code>B-220,4.00</code>) twice. Both edits were refused
+  without asking you, which is right, but then the 3-step cap ran out
+  and it gave up. Now a refused edit returns the file's real lines, and the
+  cap counts only steps that asked you (reads and refused proposals are
+  bounded by a total of 8). After the fix, 3 of 3 runs reached the correct
+  diff.</li>
+<li>It once asked to read from line 1000000000000000; an out-of-range start
+  now reads from the top instead of failing.</li>
+<li>A decided edit lost its diff on reload; every edit card now keeps it.</li>
+</ul>
+<p><strong>Benchmark, partial</strong> (7 edit tasks, commands inside the task's copy
+  approved; stopped after 15 runs to spare the machine): with the file
+  tools, 6/15 files came out exactly right. Change <code>TAX_RATE</code> 3/3,
+  <code>MAX_RETRIES</code> 2/3, <code>max_connections</code> 1/3 (twice left untouched),
+  on-call 0/3 (wrote the request in literally: "Priya is on call this
+  week, not Omar."), the price 0/3 (replaced <code>B-220</code> itself:
+  <code>5.00,4.50</code>). Every wrong edit was plain on its diff; the benchmark
+  approves them anyway. <strong>Not measured yet:</strong> the same tasks through
+  shell only (<code>no-filetools</code>), and whether offering four tools changes
+  the other categories.</p>
 <h2 id="open-questions">Open questions<a aria-label="Link to Open questions" class="header-anchor" href="#open-questions">#</a></h2>
 <ul>
 <li><strong>qwen3.5 thinking with no answer.</strong> Once in E22 it streamed a long
@@ -1759,6 +1810,10 @@ different files; see <a href="benchmark.html">benchmark.md</a>), run as a normal
       <li class="toc-item toc-level-3"><a href="#baseline-before-any-agent-code" class="toc-link" data-target="baseline-before-any-agent-code">Baseline, before any agent code</a></li>
       <li class="toc-item toc-level-3"><a href="#while-building-the-agents" class="toc-link" data-target="while-building-the-agents">While building the agents</a></li>
       <li class="toc-item toc-level-2"><a href="#e26-an-agent-with-no-files-searched-for-a-file-name" class="toc-link" data-target="e26-an-agent-with-no-files-searched-for-a-file-name">E26: An agent with no files searched for a file name</a></li>
+      <li class="toc-item toc-level-2"><a href="#e27-file-names-in-an-answer-checked-against-the-folder" class="toc-link" data-target="e27-file-names-in-an-answer-checked-against-the-folder">E27: File names in an answer, checked against the folder</a></li>
+      <li class="toc-item toc-level-2"><a href="#e28-telling-the-model-its-last-answer-named-missing-files" class="toc-link" data-target="e28-telling-the-model-its-last-answer-named-missing-files">E28: Telling the model its last answer named missing files</a></li>
+      <li class="toc-item toc-level-2"><a href="#e29-real-file-paths-in-the-anchor" class="toc-link" data-target="e29-real-file-paths-in-the-anchor">E29: Real file paths in the anchor</a></li>
+      <li class="toc-item toc-level-2"><a href="#e30-read-write-and-edit-tools" class="toc-link" data-target="e30-read-write-and-edit-tools">E30: Read, write and edit tools</a></li>
       <li class="toc-item toc-level-2"><a href="#open-questions" class="toc-link" data-target="open-questions">Open questions</a></li>
     </ul>
   </nav>

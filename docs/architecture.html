@@ -204,6 +204,8 @@ why there's no bundled RAG or embedding stack.</p>
   ablate.go         FLINT_ABLATE: switch scaffolding off for the benchmark
   ollama.go         Ollama client: chat (streaming and not), models, embeddings
   tools.go          the run_shell tool definition and reasoning nudge
+  fileops.go        read_file, write_file, edit_file: folder check, diff, apply on approve
+  grounding.go      file names in replies checked against the folder; the anchor's file list
   shield.go         hard block list for catastrophic commands
   preconditions.go  cheap checks before a command is offered for approval
   folder.go         folder manifest and per-turn anchor header
@@ -385,8 +387,12 @@ client consumes:</p>
 <td>what an approved or denied command produced, for display</td>
 </tr>
 <tr>
-<td><code>&lt;&lt;&lt;TOOL_CALL&gt;&gt;&gt;{"id":..,"command":..,"missing":[..]}</code></td>
-<td>a pending command awaiting approval; ends the stream. <code>missing</code> lists file names in the text before it that aren't in the folder</td>
+<td><code>&lt;&lt;&lt;TOOL_CALL&gt;&gt;&gt;{"id":..,"command":..,"diff":..,"missing":[..]}</code></td>
+<td>a pending command or file edit awaiting approval; ends the stream. <code>diff</code> is set for an edit; <code>missing</code> lists file names in the text before it that aren't in the folder</td>
+</tr>
+<tr>
+<td><code>&lt;&lt;&lt;READ&gt;&gt;&gt;{"label":..,"result":..}</code></td>
+<td>a file the model read without approval; the turn continues after it</td>
 </tr>
 <tr>
 <td><code>&lt;&lt;&lt;STATS&gt;&gt;&gt;{"tokensPerSec":N,"missing":[..]}</code></td>
@@ -443,9 +449,11 @@ honestly claim:</p>
   verifier, so every tool result states success or failure explicitly
   (<code>[exit code: N]</code> or <code>[FAILED, exit code: N]</code>; a silent failure used to
   look like success; empty output says <code>(no output)</code>, and a grep
-  with no match suggests a shorter word), and after 3 tool calls in a row the model has to
-  answer in text. A small retry budget beats one greedy attempt without
-  a bigger model, while each retry still costs you an approval.</li>
+  with no match suggests a shorter word), and after 3 steps that needed your approval (or 8 in all) the model
+  has to answer in text. A small retry budget beats one greedy attempt
+  without a bigger model, while each approved retry still costs you a
+  decision; reads and refused proposals cost you nothing, so only the
+  total bounds them (E30).</li>
 <li><strong>The shield</strong> takes the idea of shielding (Alshiekh et al.): block
   unsafe actions before they run. Unlike that work it's a pattern list,
   not a proof. A shell is Turing-complete, so it's a floor under human

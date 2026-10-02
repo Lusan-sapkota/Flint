@@ -1763,6 +1763,55 @@ details.flint-thinking > summary:focus {
   color: var(--flint-danger);
 }
 
+.flint-diff {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0;
+  background: #141416;
+  border-radius: 0.4rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  max-height: 24rem;
+  overflow: auto;
+}
+
+.flint-diff span {
+  display: block;
+  padding: 0 0.75rem;
+  white-space: pre;
+}
+
+.flint-diff .add {
+  background: rgb(124 179 129 / 0.16);
+  color: #a9d8ad;
+}
+
+.flint-diff .del {
+  background: rgb(224 101 90 / 0.16);
+  color: #f0a39b;
+}
+
+.flint-diff .hunk,
+.flint-diff .meta {
+  color: var(--flint-text-dim);
+}
+
+.flint-read {
+  align-self: flex-start;
+  font-size: 0.85rem;
+  color: var(--flint-text-dim);
+}
+
+.flint-read summary {
+  cursor: pointer;
+}
+
+.flint-read pre {
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  max-height: 20rem;
+  overflow: auto;
+}
+
 .flint-inputbar {
   border-top: 1px solid var(--flint-border);
   padding: 0.75rem 1.25rem 1rem;

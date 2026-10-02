@@ -31,13 +31,20 @@ func TestConsecutiveToolCycles(t *testing.T) {
 		{Role: "tool", Content: "[FAILED, exit code: 1]\nanother error", ToolCallID: strPtr("call1")},
 	}
 
-	if got := consecutiveToolCycles(messages); got != 2 {
-		t.Fatalf("expected 2 consecutive tool cycles, got %d", got)
+	if approvals, total := consecutiveToolCycles(messages); approvals != 2 || total != 2 {
+		t.Fatalf("expected 2 approved cycles of 2, got %d of %d", approvals, total)
+	}
+
+	messages = append(messages,
+		makeToolCallMessage(t, "read_file a.go"), Message{Role: "tool", Content: "[read a.go: lines 1-3 of 3]"},
+		makeToolCallMessage(t, "edit_file a.go"), Message{Role: "tool", Content: "[PRECONDITION FAILED: old_text was not found]"})
+	if approvals, total := consecutiveToolCycles(messages); approvals != 2 || total != 4 {
+		t.Fatalf("reads and refused proposals shouldn't count as approvals: got %d of %d", approvals, total)
 	}
 
 	messages = append(messages, Message{Role: "user", Content: "try a different approach"})
-	if got := consecutiveToolCycles(messages); got != 0 {
-		t.Fatalf("expected count to reset to 0 after a new user message, got %d", got)
+	if approvals, total := consecutiveToolCycles(messages); approvals != 0 || total != 0 {
+		t.Fatalf("expected counts to reset after a new user message, got %d of %d", approvals, total)
 	}
 }
 

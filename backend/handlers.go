@@ -889,6 +889,9 @@ func (s *Server) searchWeb(ctx context.Context, user *User, query string) ([]Sea
 
 // The result always states success or failure first: empty output after a nonzero exit looked like success.
 func (s *Server) executeCommand(ctx context.Context, cmd *Command) (resultText, displayStatus string) {
+	if cmd.Edit != nil {
+		return s.applyEdit(cmd)
+	}
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
@@ -980,7 +983,7 @@ func (s *Server) resolveCommandAndContinue(w http.ResponseWriter, r *http.Reques
 		if err := resolveCommand(s.db, cmd.ID, "denied", "", nil); err != nil {
 			log.Printf("warning: failed to resolve command: %v", err)
 		}
-	} else if blocked, reason := checkCommandShield(cmd.Command); blocked {
+	} else if blocked, reason := checkCommandShield(cmd.Command); blocked && cmd.Edit == nil {
 		resultText = shieldBlockedMessage(reason)
 		displayStatus = "blocked"
 		if err := resolveCommand(s.db, cmd.ID, "blocked", resultText, nil); err != nil {
@@ -1040,8 +1043,12 @@ func (s *Server) streamAssistantTurn(w http.ResponseWriter, r *http.Request, use
 }
 
 func (s *Server) turnSetup(user *User, convo *ConversationWithMessages, numCtx int) (tools []OllamaTool, suffix string, toolsTokens, budget int) {
-	if convo.AttachedFolder != nil && *convo.AttachedFolder != "" && consecutiveToolCycles(convo.Messages) < maxToolAttemptsPerTurn {
+	approvals, cycles := consecutiveToolCycles(convo.Messages)
+	if convo.AttachedFolder != nil && *convo.AttachedFolder != "" && approvals < maxToolAttemptsPerTurn && cycles < maxToolCyclesPerTurn {
 		tools = []OllamaTool{runShellTool}
+		if !ablated["filetools"] {
+			tools = append(tools, readFileTool, writeFileTool, editFileTool)
+		}
 		if !ablated["nudge"] && !forbidsCommands(convo.Messages) {
 			suffix = toolReasoningPrompt
 		}
@@ -1181,6 +1188,52 @@ func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Reque
 			Command string `json:"command"`
 		}
 		_ = json.Unmarshal(tc.Function.Arguments, &args)
+		folder := *convo.AttachedFolder
+
+		continueTurn := func(toolResult string) {
+			if err := insertToolResultMessage(s.db, convo.ID, tc.ID, toolResult); err != nil {
+				log.Printf("warning: failed to save tool result: %v", err)
+			}
+			refreshed, err := getConversation(s.db, convo.ID, user.ID)
+			if err != nil {
+				log.Printf("warning: failed to refresh conversation: %v", err)
+				return
+			}
+			s.streamAssistantTurn(w, r, user, refreshed)
+		}
+
+		switch tc.Function.Name {
+		case "read_file":
+			out := readFileResult(folder, tc.Function.Arguments)
+			line, _ := json.Marshal(map[string]string{"label": toolCallLabel(tc), "result": out})
+			fmt.Fprintf(w, "\n<<<READ>>>%s\n", line)
+			flush()
+			continueTurn(out)
+			return
+		case "write_file", "edit_file":
+			edit, err := planEdit(folder, tc.Function.Name, tc.Function.Arguments)
+			if err != nil {
+				fmt.Fprintf(w, "\n[Edit not proposed: %v]\n\n", err)
+				continueTurn(fmt.Sprintf("[PRECONDITION FAILED: %v]\nNothing was written. Fix the arguments and try again, or ask the user.", err))
+				return
+			}
+			editJSON, _ := json.Marshal(edit)
+			editStr := string(editJSON)
+			cmdID := tc.ID
+			if cmdID == "" {
+				cmdID = uuid.NewString()
+			}
+			label := tc.Function.Name + " " + edit.Display
+			if _, err := createCommandWithEdit(s.db, cmdID, convo.ID, tc.ID, label, folder, &editStr); err != nil {
+				log.Printf("warning: failed to save pending edit: %v", err)
+			}
+			if err := touchConversation(s.db, convo.ID); err != nil {
+				log.Printf("warning: failed to touch conversation: %v", err)
+			}
+			marker, _ := json.Marshal(map[string]any{"id": cmdID, "command": label, "diff": edit.Diff, "missing": missingPaths(folder)(result.Content)})
+			fmt.Fprintf(w, "\n<<<TOOL_CALL>>>%s\n", marker)
+			return
+		}
 
 		if blocked, reason := checkCommandShield(args.Command); blocked {
 			if err := insertToolResultMessage(s.db, convo.ID, tc.ID, shieldBlockedMessage(reason)); err != nil {

@@ -22,6 +22,7 @@ const (
 	protectedWindow        = 6
 	decayHalfLife          = 4.0
 	maxToolAttemptsPerTurn = 3
+	maxToolCyclesPerTurn   = 8
 )
 
 // Always set: without num_ctx Ollama reloads the model at its server default.
@@ -63,17 +64,32 @@ func clampRatio(r float64) float64 {
 	return math.Min(4, math.Max(0.5, r))
 }
 
-func consecutiveToolCycles(messages []Message) int {
-	count := 0
+// The approval cap counts only steps that asked the user; reads and refused proposals cost
+// them nothing (E30), so those are bounded by the total cap alone.
+func consecutiveToolCycles(messages []Message) (approvals, total int) {
 	for i := len(messages) - 1; i >= 0; i-- {
-		if messages[i].Role == "user" {
+		m := messages[i]
+		if m.Role == "user" {
 			break
 		}
-		if messages[i].Role == "assistant" && messages[i].ToolCalls != nil {
-			count++
+		if m.Role != "tool" {
+			continue
+		}
+		total++
+		if !isAutoToolResult(m.Content) {
+			approvals++
 		}
 	}
-	return count
+	return approvals, total
+}
+
+func isAutoToolResult(result string) bool {
+	for _, p := range []string{"[read ", "[FAILED to read", "[PRECONDITION FAILED", "[BLOCKED by safety shield"} {
+		if strings.HasPrefix(result, p) {
+			return true
+		}
+	}
+	return false
 }
 
 func estimateTokens(s string) int {
@@ -102,7 +118,7 @@ var phasePatterns = []struct {
 	name string
 	re   *regexp.Regexp
 }{
-	{"exploring", regexp.MustCompile(`(?i)^\s*(ls|cat|head|tail|grep|find|tree)\b`)},
+	{"exploring", regexp.MustCompile(`(?i)^\s*(ls|cat|head|tail|grep|find|tree|read_file)\b`)},
 	{"testing", regexp.MustCompile(`(?i)\b(go test|npm test|pytest|jest|go vet)\b`)},
 	{"vcs", regexp.MustCompile(`(?i)^\s*git\b`)},
 	{"building", regexp.MustCompile(`(?i)\b(go build|npm run build|make)\b`)},
@@ -122,10 +138,20 @@ func extractToolCommand(toolCallsJSON string) string {
 	if err := json.Unmarshal([]byte(toolCallsJSON), &calls); err != nil || len(calls) == 0 {
 		return ""
 	}
+	return toolCallLabel(calls[0])
+}
+
+// A shell call is shown as its literal command, never rewritten; file tools as "read_file path".
+func toolCallLabel(tc OllamaToolCall) string {
 	var args struct {
 		Command string `json:"command"`
+		Path    string `json:"path"`
 	}
-	_ = json.Unmarshal(calls[0].Function.Arguments, &args)
+	_ = json.Unmarshal(tc.Function.Arguments, &args)
+	switch tc.Function.Name {
+	case "read_file", "write_file", "edit_file":
+		return tc.Function.Name + " " + args.Path
+	}
 	return args.Command
 }
 

@@ -210,6 +210,11 @@ service called Stockroom, whose answers are known in advance:</p>
 <td>every part of a question spanning several files is answered: two from the folder context, one needing line 357 of the 400-line log, one asked after four turns of tool output. The baseline for <code>@agent</code></td>
 </tr>
 <tr>
+<td>edit</td>
+<td>7</td>
+<td>the file left on disk is exactly right: four value changes, one in a subfolder that has to be read first, adding a function, creating a file</td>
+</tr>
+<tr>
 <td>long context</td>
 <td>4</td>
 <td>a fact from the first message, and one from mid-chat, survive 8-10 turns of real tool output; a chat recovers from one oversized command output; a 13-turn chat doesn't overflow</td>
@@ -222,7 +227,10 @@ service called Stockroom, whose answers are known in advance:</p>
 <code>check.py</code> or <code>fail.py</code>. Anything else is denied, including anything with
 <code>;</code>, <code>&amp;&amp;</code>, redirects or <code>$(…)</code>. A task with <code>deny_first</code> has its first
 proposed command denied whatever it is, so every run tests recovering from
-a denial. The fixture is copied to a fresh temporary
+a denial. Edit tasks also approve file edits, and any command that
+doesn't reach outside the task's own copy (no <code>~</code>, <code>..</code> or other
+absolute path), so editing through the shell is scored fairly against
+the file tools. The fixture is copied to a fresh temporary
 folder for every task.</p>
 <h2 id="configurations">Configurations<a aria-label="Link to Configurations" class="header-anchor" href="#configurations">#</a></h2>
 <p>Each configuration switches off some scaffolding through <code>FLINT_ABLATE</code>
@@ -266,6 +274,10 @@ folder for every task.</p>
 <tr>
 <td><code>no-tree</code></td>
 <td>the folder's file paths in the anchor, leaving only its top level (E29); not part of <code>bare</code></td>
+</tr>
+<tr>
+<td><code>no-filetools</code></td>
+<td><code>read_file</code>, <code>write_file</code> and <code>edit_file</code>, leaving <code>run_shell</code> only (E30); not part of <code>bare</code></td>
 </tr>
 </tbody>
 </table></div>

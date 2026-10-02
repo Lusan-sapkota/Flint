@@ -380,14 +380,25 @@
             </details>
           </template>
 
-          <template x-if="item.kind === 'command'">
+          <template x-if="item.kind === 'command' && item.commandStatus === 'read'">
+            <details class="flint-read">
+              <summary x-text="readLabel(item)"></summary>
+              <pre x-text="item.commandResult"></pre>
+            </details>
+          </template>
+
+          <template x-if="item.kind === 'command' && item.commandStatus !== 'read'">
             <div class="flint-command-card">
               <header>
-                {{template "icon-terminal"}}
-                <span x-text="item.agentLabel ? item.agentLabel + ' wants to run' : 'Shell command'"></span>
+                <span x-show="isEdit(item)">{{template "icon-edit"}}</span>
+                <span x-show="!isEdit(item)">{{template "icon-terminal"}}</span>
+                <span x-text="item.agentLabel ? item.agentLabel + ' wants to run' : isEdit(item) ? (item.commandText.startsWith('write_file') ? 'Write file' : 'Edit file') : 'Shell command'"></span>
                 <span class="flint-command-status" x-text="statusLabel(item.commandStatus)"></span>
               </header>
-              <code class="flint-command-text" x-text="item.commandText"></code>
+              <code class="flint-command-text" x-show="!isEdit(item)" x-text="item.commandText"></code>
+              <template x-if="isEdit(item) && editDiff(item)">
+                <pre class="flint-diff"><template x-for="(l, i) in diffLines(editDiff(item))" :key="i"><span :class="l.cls" x-text="l.text + '\n'"></span></template></pre>
+              </template>
 
               <template x-if="item.agentRunId && item.commandStatus === 'pending'">
                 <div>
@@ -405,7 +416,7 @@
 
               <template x-if="!item.agentRunId && item.commandStatus === 'pending'">
                 <div class="flint-command-actions">
-                  <button type="button" @click="approve(item)" :disabled="streaming">Approve &amp; run</button>
+                  <button type="button" @click="approve(item)" :disabled="streaming" x-text="isEdit(item) ? 'Approve & write' : 'Approve & run'"></button>
                   <button type="button" class="secondary" @click="deny(item)" :disabled="streaming">Deny</button>
                   <button type="button" class="secondary" @click="replyingTo = !replyingTo; if (replyingTo) $nextTick(() => $refs.input.focus())" :disabled="streaming"
                           x-text="replyingTo ? 'Cancel reply' : 'Reply instead'" title="Don't run it; tell the model what to do instead"></button>
@@ -416,7 +427,7 @@
                 <p class="flint-command-result">Running…</p>
               </template>
 
-              <template x-if="item.commandResult">
+              <template x-if="item.commandResult && !(isEdit(item) && item.commandStatus === 'success')">
                 <pre class="flint-command-result" :class="{ 'flint-failed': item.commandStatus === 'failed' || item.commandStatus === 'blocked' }" x-text="item.commandResult"></pre>
               </template>
             </div>

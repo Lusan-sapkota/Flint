@@ -46,6 +46,7 @@ CONFIGS = {
     "no-fit": "fit",
     "no-preconditions": "preconditions",
     "no-tree": "tree",
+    "no-filetools": "filetools",
     "bare": "nudge,anchor,summaries,fit,preconditions",
 }
 
@@ -83,7 +84,12 @@ class Client:
             return f"[error: HTTP {e.code} {e.read().decode()}]"
 
 
-def run_turn(client, cid, text, turn, record, deny_first=False):
+def stays_inside(command, workdir):
+    """Edit tasks approve any command that can't reach outside the task's own copy."""
+    return not re.search(r"(^|[\s'\"=])(~|\.\.|/(?!" + re.escape(workdir.lstrip("/")) + r"))", command)
+
+
+def run_turn(client, cid, text, turn, record, deny_first=False, approve_inside=None):
     """Send one message, drive its tool loop to the end, return the reply."""
     out = client.req(f"/api/conversations/{cid}/messages", {"content": text})
     transcript = out
@@ -93,7 +99,10 @@ def run_turn(client, cid, text, turn, record, deny_first=False):
         if not m:
             break
         call = json.loads(m.group(1))
-        verdict = "approve" if looks_safe(call["command"]) else "deny"
+        safe = looks_safe(call["command"]) or re.match(r"(edit_file|write_file) ", call["command"])
+        if approve_inside:
+            safe = safe or stays_inside(call["command"], approve_inside)
+        verdict = "approve" if safe else "deny"
         if deny_first and not record["commands"]:
             verdict = "deny"
         record["commands"].append({"turn": turn, "command": call["command"], "verdict": verdict})
@@ -120,9 +129,11 @@ def run_task(client, model, task):
         client.req(f"/api/conversations/{cid}/attach", {"folder": workdir})
     start = time.time()
     for i, text in enumerate(task["turns"]):
-        run_turn(client, cid, text, i, record, task.get("deny_first", False))
+        run_turn(client, cid, text, i, record, task.get("deny_first", False), workdir if task.get("edits") else None)
         time.sleep(1)
     record["seconds"] = round(time.time() - start, 1)
+    if workdir:
+        record["files"] = {str(p.relative_to(workdir)): p.read_text(errors="replace") for p in Path(workdir).rglob("*") if p.is_file() and p.stat().st_size < 65536}
     ok, why = task["check"](record)
     record["pass"], record["why"] = ok, why
     if workdir:

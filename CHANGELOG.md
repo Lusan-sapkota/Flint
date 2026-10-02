@@ -18,6 +18,12 @@ Notable changes in each release. The measurements behind a change are in
   building on a name it made up (E28).
 - The folder anchor lists the folder's real file paths, not just its top
   level, so the model names files that exist instead of guessing (E29).
+- File tools in folder chats: the model reads files in the attached
+  folder without asking, and edits or creates them through a diff you
+  approve before anything is written. Paths can't leave the folder, and an
+  edit to a file that changed since it was proposed is refused (E30).
+- The step cap counts only steps that asked for your approval (3);
+  reads and refused proposals are bounded by a total of 8.
 - The agent plan card has a small flint whose face shows the run's
   state: working, waiting for your approval, done, or stopped.
 

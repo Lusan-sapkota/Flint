@@ -603,6 +603,20 @@ window.FLINT_SEARCH_INDEX = [
   },
   {
     "page": "Experiments",
+    "url": "experiments.html#e30-read-write-and-edit-tools",
+    "title": "E30: Read, write and edit tools",
+    "group": "Evidence",
+    "snippet": "read_file without approval, edits as an approved diff; old_text/new_text beat line ranges 19/30 to 14/30."
+  },
+  {
+    "page": "Security",
+    "url": "security.html#file-tools",
+    "title": "File tools",
+    "group": "Using Flint",
+    "snippet": "Reads run without approval, confined to the folder; writes and edits need approval as a diff, and a stale edit is refused."
+  },
+  {
+    "page": "Experiments",
     "url": "experiments.html#baseline-before-any-agent-code",
     "title": "Baseline, before any agent code",
     "group": "Evidence",

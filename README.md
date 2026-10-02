@@ -104,10 +104,12 @@ stacks. ([architecture](docs/architecture.html#orchestration-layer))
   background layered summaries that keep your own words verbatim, and
   `@compact` to condense on demand.
   ([context management](docs/context-management.html))
-- **Shell tools you stay in control of.** Attach a folder and the model can
-  propose commands through Ollama's native tool calling. Every command
-  waits for your approval, a shield blocks catastrophic ones outright, and
-  commands that can't work are caught before they reach you.
+- **Shell and file tools you stay in control of.** Attach a folder and the
+  model can propose commands through Ollama's native tool calling. Every
+  command waits for your approval, a shield blocks catastrophic ones
+  outright, and commands that can't work are caught before they reach
+  you. It reads files in the folder on its own, and every edit is shown
+  as a diff that's written only when you approve it.
   ([security](docs/security.html))
 - **Agents for questions that span a folder.** `@agent <task>` splits a
   task into subtasks, each run by its own agent with a clean context

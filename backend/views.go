@@ -77,12 +77,14 @@ type timelineItem struct {
 	CommandText   string           `json:"commandText,omitempty"`
 	CommandStatus string           `json:"commandStatus,omitempty"`
 	CommandResult string           `json:"commandResult,omitempty"`
-	TokensPerSec  float64          `json:"tokensPerSec,omitempty"`
-	Missing       []string         `json:"missing,omitempty"`
-	Thinking      string           `json:"thinking,omitempty"`
-	Query         string           `json:"query,omitempty"`
-	Sources       []sourceLink     `json:"sources,omitempty"`
-	Run           *AgentRun        `json:"run,omitempty"`
+	CommandDiff   string           `json:"commandDiff,omitempty"`
+	toolCallID    string
+	TokensPerSec  float64      `json:"tokensPerSec,omitempty"`
+	Missing       []string     `json:"missing,omitempty"`
+	Thinking      string       `json:"thinking,omitempty"`
+	Query         string       `json:"query,omitempty"`
+	Sources       []sourceLink `json:"sources,omitempty"`
+	Run           *AgentRun    `json:"run,omitempty"`
 	recall        bool
 }
 
@@ -97,6 +99,8 @@ func classifyCommandResult(result string) string {
 	switch {
 	case strings.HasPrefix(result, "[exit code: 0]"):
 		return "success"
+	case strings.HasPrefix(result, "[read "):
+		return "read"
 	case strings.HasPrefix(result, "[FAILED"):
 		return "failed"
 	case strings.HasPrefix(result, "[BLOCKED by safety shield"):
@@ -197,7 +201,7 @@ func buildTimeline(messages []Message, pending *Command, saved []Memory, runs []
 				continue
 			}
 			tc := calls[0]
-			item := timelineItem{Kind: "command", CommandText: extractToolCommand(*m.ToolCalls)}
+			item := timelineItem{Kind: "command", CommandText: extractToolCommand(*m.ToolCalls), toolCallID: tc.ID}
 			if result, ok := toolResults[tc.ID]; ok {
 				item.CommandStatus = classifyCommandResult(result)
 				if item.CommandStatus != "denied" {
@@ -328,6 +332,15 @@ func (s *Server) handleChatPage(w http.ResponseWriter, r *http.Request, user *Us
 			runs[i].MaxCommands = agentCommandsFor(user)
 		}
 		timeline = buildTimeline(full.Messages, pending, saved, runs)
+		// An edit keeps showing what was proposed after it's decided, approved or denied.
+		if diffs, err := editDiffs(s.db, full.ID); err == nil {
+			for i := range timeline {
+				if e, ok := diffs[timeline[i].toolCallID]; ok {
+					timeline[i].CommandDiff = e.Diff
+					timeline[i].CommandText = strings.SplitN(timeline[i].CommandText, " ", 2)[0] + " " + e.Display
+				}
+			}
+		}
 		// Rechecked against the folder as it is now, so a file created since clears its note.
 		if folder := folderOf(full.Conversation); folder != nil {
 			check := missingPaths(*folder)

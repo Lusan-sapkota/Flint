@@ -155,7 +155,12 @@ replacing the messages they cover, drop and cut to fit, chunk boundaries,
 merge candidates and verbatim user notes. <code>memory_test.go</code> covers
 <code>@memory</code> parsing, per-account scoping, any-word search, the index
 following edits, and the memory budget. <code>summary_test.go</code> also covers the forced chunk
-behind <code>@compact</code>.</p>
+behind <code>@compact</code>. <code>fileops_test.go</code> covers the file tools: paths that
+must stay inside the folder (<code>..</code>, absolute, through a symlink), every
+way an edit is refused, the diff, and an approved edit refusing a file
+that changed since. <code>grounding_test.go</code> covers file names in replies,
+the anchor's file list and its cut, and the note's suggested paths;
+<code>maxinput_test.go</code> covers the message size limit.</p>
 <h2 id="rendering">Rendering<a aria-label="Link to Rendering" class="header-anchor" href="#rendering">#</a></h2>
 <p>Markdown, math and the no-remote-content rule run in the browser, so
 there's no Go test for them. They were checked by rendering these inputs

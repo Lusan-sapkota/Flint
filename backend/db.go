@@ -115,6 +115,7 @@ type Command struct {
 	ExitCode       *int    `json:"exit_code,omitempty"`
 	CreatedAt      int64   `json:"created_at"`
 	DecidedAt      *int64  `json:"decided_at,omitempty"`
+	Edit           *string `json:"-"`
 }
 
 const schema = `
@@ -311,6 +312,8 @@ func migrate(db *sql.DB) error {
 		`ALTER TABLE users ADD COLUMN agent_commands INTEGER`,
 		// Agent commands are approved via their run, never the chat route, and aren't the chat's pending command.
 		`ALTER TABLE commands ADD COLUMN agent_id TEXT REFERENCES agents(id) ON DELETE CASCADE`,
+		// A planned file edit (JSON); a row with one is an edit, not a shell command.
+		`ALTER TABLE commands ADD COLUMN edit TEXT`,
 		// Lets the chat show a finished run's task once, as the run, not twice.
 		`ALTER TABLE agent_runs ADD COLUMN message_id INTEGER REFERENCES messages(id) ON DELETE SET NULL`,
 	} {
@@ -947,11 +950,15 @@ func setConversationModel(db *sql.DB, id, model string) error {
 }
 
 func createCommand(db *sql.DB, id, conversationID, toolCallID, command, cwd string) (Command, error) {
+	return createCommandWithEdit(db, id, conversationID, toolCallID, command, cwd, nil)
+}
+
+func createCommandWithEdit(db *sql.DB, id, conversationID, toolCallID, command, cwd string, edit *string) (Command, error) {
 	now := time.Now().UnixMilli()
-	c := Command{ID: id, ConversationID: conversationID, ToolCallID: toolCallID, Command: command, Cwd: cwd, Status: "pending", CreatedAt: now}
+	c := Command{ID: id, ConversationID: conversationID, ToolCallID: toolCallID, Command: command, Cwd: cwd, Status: "pending", CreatedAt: now, Edit: edit}
 	_, err := db.Exec(
-		`INSERT INTO commands (id, conversation_id, tool_call_id, command, cwd, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		c.ID, c.ConversationID, c.ToolCallID, c.Command, c.Cwd, c.Status, c.CreatedAt,
+		`INSERT INTO commands (id, conversation_id, tool_call_id, command, cwd, status, created_at, edit) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		c.ID, c.ConversationID, c.ToolCallID, c.Command, c.Cwd, c.Status, c.CreatedAt, c.Edit,
 	)
 	return c, err
 }
@@ -959,9 +966,9 @@ func createCommand(db *sql.DB, id, conversationID, toolCallID, command, cwd stri
 func getCommand(db *sql.DB, id, conversationID string) (*Command, error) {
 	var c Command
 	err := db.QueryRow(
-		`SELECT id, conversation_id, tool_call_id, command, cwd, status, output, exit_code, created_at, decided_at
+		`SELECT id, conversation_id, tool_call_id, command, cwd, status, output, exit_code, created_at, decided_at, edit
 		 FROM commands WHERE id = ? AND conversation_id = ? AND agent_id IS NULL`, id, conversationID,
-	).Scan(&c.ID, &c.ConversationID, &c.ToolCallID, &c.Command, &c.Cwd, &c.Status, &c.Output, &c.ExitCode, &c.CreatedAt, &c.DecidedAt)
+	).Scan(&c.ID, &c.ConversationID, &c.ToolCallID, &c.Command, &c.Cwd, &c.Status, &c.Output, &c.ExitCode, &c.CreatedAt, &c.DecidedAt, &c.Edit)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -974,9 +981,9 @@ func getCommand(db *sql.DB, id, conversationID string) (*Command, error) {
 func getPendingCommand(db *sql.DB, conversationID string) (*Command, error) {
 	var c Command
 	err := db.QueryRow(
-		`SELECT id, conversation_id, tool_call_id, command, cwd, status, output, exit_code, created_at, decided_at
+		`SELECT id, conversation_id, tool_call_id, command, cwd, status, output, exit_code, created_at, decided_at, edit
 		 FROM commands WHERE conversation_id = ? AND status = 'pending' AND agent_id IS NULL ORDER BY created_at DESC LIMIT 1`, conversationID,
-	).Scan(&c.ID, &c.ConversationID, &c.ToolCallID, &c.Command, &c.Cwd, &c.Status, &c.Output, &c.ExitCode, &c.CreatedAt, &c.DecidedAt)
+	).Scan(&c.ID, &c.ConversationID, &c.ToolCallID, &c.Command, &c.Cwd, &c.Status, &c.Output, &c.ExitCode, &c.CreatedAt, &c.DecidedAt, &c.Edit)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -984,6 +991,27 @@ func getPendingCommand(db *sql.DB, conversationID string) (*Command, error) {
 		return nil, err
 	}
 	return &c, nil
+}
+
+func editDiffs(db *sql.DB, conversationID string) (map[string]plannedEdit, error) {
+	rows, err := db.Query(`SELECT tool_call_id, edit FROM commands WHERE conversation_id = ? AND edit IS NOT NULL`, conversationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]plannedEdit{}
+	for rows.Next() {
+		var id, edit string
+		if err := rows.Scan(&id, &edit); err != nil {
+			return nil, err
+		}
+		var e plannedEdit
+		if json.Unmarshal([]byte(edit), &e) == nil {
+			e.Content = ""
+			out[id] = e
+		}
+	}
+	return out, rows.Err()
 }
 
 func resolveCommand(db *sql.DB, id, status, output string, exitCode *int) error {
