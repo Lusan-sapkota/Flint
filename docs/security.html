@@ -232,7 +232,9 @@ client therefore shares the proxy's IP and its limit.</p>
    check applies, and a new file's parent folder must already exist.</li>
 <li><strong>A stale edit is refused.</strong> The file's hash is stored with the
    proposal; if the file changed before you approve, nothing is written
-   and the model is told to read it again.</li>
+   and the model is told to read it again. An edit you corrected in the
+   card gets the same check: your lines replace only the region the model
+   proposed to change, and the rest of the file must still be as it was.</li>
 <li>Unlike the shell's working directory, this is a real boundary for
    these three tools. <code>run_shell</code> can still reach anything the
    server's user can, which is why it stays approve-every-command.</li>

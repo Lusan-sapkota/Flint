@@ -613,7 +613,14 @@ window.FLINT_SEARCH_INDEX = [
     "url": "security.html#file-tools",
     "title": "File tools",
     "group": "Using Flint",
-    "snippet": "Reads run without approval, confined to the folder; writes and edits need approval as a diff, and a stale edit is refused."
+    "snippet": "Reads run without approval with a local model, confined to the folder; writes and edits need approval as a diff, and a stale edit is refused."
+  },
+  {
+    "page": "Features",
+    "url": "features.html#why-edits-are-one-file-at-a-time",
+    "title": "Why edits are one file at a time",
+    "group": "Using Flint",
+    "snippet": "Why there's no multi-file review card or hunk-by-hunk accept yet, and what Edit on the diff card does instead."
   },
   {
     "page": "Experiments",

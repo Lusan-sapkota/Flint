@@ -314,6 +314,12 @@
   proposed, approving refuses it rather than overwrite your change
   (<a href="experiments.html#e30-read-write-and-edit-tools">E30</a>).
   <img alt="An edit_file proposal shown as a red/green diff of config.yaml, max_connections 25 to 50, with Approve &amp; write, Deny and Reply instead" src="images/write-tool.png"/></li>
+<li><strong>Edit before writing.</strong> When the model gets an edit mostly right,
+  <strong>Edit</strong> on the diff card opens its new lines in a text box. Fix what's
+  wrong and <strong>Write my version</strong>: your lines are written in place of
+  the model's, the card shows the diff that was actually written, and the
+  model is told exactly which lines you wrote, so its picture of the
+  file stays right. Show diff goes back to the proposal unchanged.</li>
 <li><strong>Clear results.</strong> Every result states success or failure with the
   exit code, and the output is shown in the chat.</li>
 <li><strong>Bounded retries.</strong> After 3 steps that asked for your approval since
@@ -330,6 +336,26 @@
   to the model's reply point, so it names files that exist instead of
   guessing (<a href="experiments.html#e29-real-file-paths-in-the-anchor">E29</a>).</li>
 </ul>
+<h3 id="why-edits-are-one-file-at-a-time">Why edits are one file at a time<a aria-label="Link to Why edits are one file at a time" class="header-anchor" href="#why-edits-are-one-file-at-a-time">#</a></h3>
+<p><strong>Why isn't there one review card for a change across several files, or
+hunk-by-hunk accept like <code>git add -p</code>?</strong></p>
+<p>Because with a 3-4B local model the review isn't the bottleneck,
+getting each edit right is. In testing, 6 of 15 single-file edits came out
+exactly right (<a href="experiments.html#e30-read-write-and-edit-tools">E30</a>); a change across several files needs every
+one of them right, so it succeeds less often, and a nicer card doesn't
+change that. Holding edits back to review together also means the model
+plans its second edit against files that haven't changed yet, which takes
+a virtual view of the folder for the rest of the turn: real weight for an
+unproven gain. Hunk-by-hunk accept doesn't apply either: <code>edit_file</code>
+replaces one exact piece of text, so its diff is a single hunk, and
+accepting part of a rewrite can leave code that doesn't run, with the
+model unsure what's on disk.</p>
+<p>What exists instead is <strong>Edit</strong> on the diff card: fix the part the model
+got wrong yourself, and the model is told exactly what was written.
+Multi-file review will be considered for cloud models and agents, which
+are capable enough to make coordinated changes worth reviewing as one; it
+would be measured first with benchmark tasks that change two files at
+once.</p>
 <h2 id="web-search-web">Web search (<code>@web</code>)<a aria-label="Link to Web search (@web)" class="header-anchor" href="#web-search-web">#</a></h2>
 <ul>
 <li>Start a message with <code>@web &lt;query&gt;</code> to search the web through the Brave
@@ -624,6 +650,7 @@ a shared link opens the same one.</p>
       <li class="toc-item toc-level-2"><a href="#conversations" class="toc-link" data-target="conversations">Conversations</a></li>
       <li class="toc-item toc-level-2"><a href="#attachments" class="toc-link" data-target="attachments">Attachments</a></li>
       <li class="toc-item toc-level-2"><a href="#folder-attach-and-the-shell-tool" class="toc-link" data-target="folder-attach-and-the-shell-tool">Folder attach and the shell tool</a></li>
+      <li class="toc-item toc-level-3"><a href="#why-edits-are-one-file-at-a-time" class="toc-link" data-target="why-edits-are-one-file-at-a-time">Why edits are one file at a time</a></li>
       <li class="toc-item toc-level-2"><a href="#web-search-web" class="toc-link" data-target="web-search-web">Web search (@web)</a></li>
       <li class="toc-item toc-level-2"><a href="#memory-memory" class="toc-link" data-target="memory-memory">Memory (@memory)</a></li>
       <li class="toc-item toc-level-2"><a href="#agents-agent" class="toc-link" data-target="agents-agent">Agents (@agent)</a></li>

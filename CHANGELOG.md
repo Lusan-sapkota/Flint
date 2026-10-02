@@ -3,6 +3,14 @@
 Notable changes in each release. The measurements behind a change are in
 [experiments](experiments.md).
 
+## [Unreleased]
+
+### Added
+
+- Edit before writing: Edit on a diff card opens the model's new lines
+  for you to correct, and Write my version writes yours instead. The model
+  is told exactly what was written.
+
 ## [0.3.0] - 2026-10-02
 
 ### Added

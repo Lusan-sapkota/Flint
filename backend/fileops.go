@@ -153,6 +153,11 @@ type plannedEdit struct {
 	Content string `json:"content"`
 	Base    string `json:"base"`
 	Diff    string `json:"diff"`
+	// The replaced region: lines kept above and below it, and its new lines, which the user may edit before approving.
+	Pre      int    `json:"pre"`
+	Suf      int    `json:"suf"`
+	Editable string `json:"editable"`
+	Adjusted string `json:"adjusted,omitempty"`
 	// Set instead for a cloud model's read, which waits for approval.
 	Read json.RawMessage `json:"read,omitempty"`
 }
@@ -208,26 +213,56 @@ func planEdit(folder, tool string, raw json.RawMessage) (plannedEdit, error) {
 		return plannedEdit{}, fmt.Errorf("this edit makes no change to %s", a.Path)
 	}
 	display := displayPath(folder, path)
-	return plannedEdit{Path: path, Display: display, Content: after, Base: base, Diff: lineDiff(display, before, after)}, nil
+	oldLines, newLines := splitLines(before), splitLines(after)
+	pre, suf := diffBounds(oldLines, newLines)
+	return plannedEdit{Path: path, Display: display, Content: after, Base: base, Diff: lineDiff(display, before, after),
+		Pre: pre, Suf: suf, Editable: strings.Join(newLines[pre:len(newLines)-suf], "\n")}, nil
+}
+
+// The user's version of the edited lines replaces the model's; the lines around them stay as they are on disk.
+func adjustEdit(e *plannedEdit, replacement string) error {
+	if replacement == e.Editable {
+		return nil
+	}
+	current := ""
+	if data, err := os.ReadFile(e.Path); err == nil {
+		current = string(data)
+	}
+	if hashOf(current) != e.Base && !(e.Base == "" && current == "") {
+		return fmt.Errorf("%s changed since this edit was proposed", e.Display)
+	}
+	a := splitLines(current)
+	lines := append(append(append([]string{}, a[:e.Pre]...), splitLines(replacement)...), a[len(a)-e.Suf:]...)
+	after := strings.Join(lines, "\n")
+	if strings.HasSuffix(e.Content, "\n") && after != "" {
+		after += "\n"
+	}
+	e.Content, e.Diff, e.Adjusted = after, lineDiff(e.Display, current, after), replacement
+	return nil
+}
+
+func splitLines(s string) []string {
+	if s == "" {
+		return nil
+	}
+	return strings.Split(strings.TrimSuffix(s, "\n"), "\n")
+}
+
+// Lines the two versions share at the start and at the end.
+func diffBounds(a, b []string) (pre, suf int) {
+	for pre < len(a) && pre < len(b) && a[pre] == b[pre] {
+		pre++
+	}
+	for suf < len(a)-pre && suf < len(b)-pre && a[len(a)-1-suf] == b[len(b)-1-suf] {
+		suf++
+	}
+	return pre, suf
 }
 
 // ponytail: one hunk between the common first and last lines; a real LCS diff if scattered whole-file rewrites need it.
 func lineDiff(name, before, after string) string {
-	split := func(s string) []string {
-		if s == "" {
-			return nil
-		}
-		return strings.Split(strings.TrimSuffix(s, "\n"), "\n")
-	}
-	a, b := split(before), split(after)
-	pre := 0
-	for pre < len(a) && pre < len(b) && a[pre] == b[pre] {
-		pre++
-	}
-	suf := 0
-	for suf < len(a)-pre && suf < len(b)-pre && a[len(a)-1-suf] == b[len(b)-1-suf] {
-		suf++
-	}
+	a, b := splitLines(before), splitLines(after)
+	pre, suf := diffBounds(a, b)
 	const context = 3
 	from, toA, toB := max(pre-context, 0), min(len(a)-suf+context, len(a)), min(len(b)-suf+context, len(b))
 	var d strings.Builder
@@ -308,7 +343,11 @@ func (s *Server) applyEdit(cmd *Command) (resultText, displayStatus string) {
 			removed++
 		}
 	}
-	return fmt.Sprintf("[exit code: 0] wrote %s (%d %s added, %d removed)", e.Display, added, plural(added, "line"), removed), "success"
+	out := fmt.Sprintf("[exit code: 0] wrote %s (%d %s added, %d removed)", e.Display, added, plural(added, "line"), removed)
+	if e.Adjusted != "" {
+		out += "\nThe user changed your proposed text before approving. In place of your new_text, these lines were written:\n" + e.Adjusted
+	}
+	return out, "success"
 }
 
 func plural(n int, word string) string {

@@ -643,8 +643,15 @@ document.addEventListener('alpine:init', () => {
       this.refreshTitle();
     },
 
+    // An edit's lines can be corrected in the card first; only a real change is sent.
     async approve(cmd) {
-      await this.decide(cmd, 'approve');
+      const adjusted = cmd.editing && cmd.editText !== cmd.commandEditable;
+      await this.decide(cmd, 'approve', adjusted ? { replacement: cmd.editText } : undefined);
+    },
+
+    startEdit(cmd) {
+      cmd.editText = cmd.commandEditable || '';
+      cmd.editing = true;
     },
 
     // A drafted memory is only saved once the user approves it here, since
@@ -923,7 +930,7 @@ document.addEventListener('alpine:init', () => {
       await this.decide(cmd, 'deny');
     },
 
-    async decide(cmd, action) {
+    async decide(cmd, action, body) {
       this.replyingTo = false;
       this.streaming = true;
       this.abortController = new AbortController();
@@ -931,11 +938,14 @@ document.addEventListener('alpine:init', () => {
       try {
         const res = await fetch(`/api/conversations/${this.conversationId}/commands/${cmd.commandId}/${action}${this.thinkQuery}`, {
           method: 'POST',
+          headers: body ? { 'Content-Type': 'application/json' } : undefined,
+          body: body ? JSON.stringify(body) : undefined,
           signal: this.abortController.signal,
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          cmd.commandStatus = 'unknown';
+          // 409: the file changed under an adjusted edit; nothing was written, so it's still pending.
+          cmd.commandStatus = res.status === 409 ? 'pending' : 'unknown';
           this.timeline.push({ kind: 'system', content: `Error: ${data.error || res.statusText}` });
           return;
         }
@@ -990,6 +1000,8 @@ document.addEventListener('alpine:init', () => {
             try {
               const obj = JSON.parse(line.slice(TOOL_RESULT_MARKER.length));
               targetCmd.commandStatus = obj.status;
+              if (obj.diff) targetCmd.commandDiff = obj.diff;
+              targetCmd.editing = false;
               targetCmd.commandResult = obj.output;
             } catch (e) {
               targetCmd.commandStatus = 'unknown';
@@ -1134,7 +1146,7 @@ document.addEventListener('alpine:init', () => {
           } else if (bubble) {
             bubble.missing = obj.missing;
           }
-          this.timeline.push({ kind: 'command', commandId: obj.id, commandText: obj.command, commandStatus: 'pending', commandDiff: obj.diff });
+          this.timeline.push({ kind: 'command', commandId: obj.id, commandText: obj.command, commandStatus: 'pending', commandDiff: obj.diff, commandEditable: obj.editable });
         } catch (e) {
           appendVisible('\n' + pending);
         }

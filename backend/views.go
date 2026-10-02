@@ -78,6 +78,7 @@ type timelineItem struct {
 	CommandStatus string           `json:"commandStatus,omitempty"`
 	CommandResult string           `json:"commandResult,omitempty"`
 	CommandDiff   string           `json:"commandDiff,omitempty"`
+	CommandEdit   string           `json:"commandEditable,omitempty"`
 	toolCallID    string
 	TokensPerSec  float64      `json:"tokensPerSec,omitempty"`
 	Missing       []string     `json:"missing,omitempty"`
@@ -337,6 +338,7 @@ func (s *Server) handleChatPage(w http.ResponseWriter, r *http.Request, user *Us
 			for i := range timeline {
 				if e, ok := diffs[timeline[i].toolCallID]; ok && e.Display != "" {
 					timeline[i].CommandDiff = e.Diff
+					timeline[i].CommandEdit = e.Editable
 					timeline[i].CommandText = strings.SplitN(timeline[i].CommandText, " ", 2)[0] + " " + e.Display
 				}
 			}

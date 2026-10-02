@@ -1728,6 +1728,17 @@ different files; see <a href="benchmark.html">benchmark.md</a>), run as a normal
   added, 1 removed)"; the card shows the diff, and the model wrote the
   change itself.</li>
 </ul>
+<p><strong>Edit before writing</strong>, added after 0.3.0: the diff card's Edit
+  opens the proposal's new lines for you to correct; your lines replace
+  only that region, and the model is told what was written. Checked in
+  the browser: <code>max_connections: 50</code> proposed, corrected to 60, written,
+  the card showing the 25 → 60 diff, and the model's reply acknowledging
+  60. Seen in the same session: asked to change B-220's price, the model
+  proposed <code>old_text: "4.50\nB-220"</code> (the line's parts reversed) six
+  times in a row, each refusal showing it the real line, until the
+  8-step cap ended the turn. The caps held, but the model fixated; a
+  refusal that points at the one line containing every fragment of
+  <code>old_text</code> is a possible next fix, not yet tried.</p>
 <p><strong>Benchmark, partial</strong> (7 edit tasks, commands inside the task's copy
   approved; stopped after 15 runs to spare the machine): with the file
   tools, 6/15 files came out exactly right. Change <code>TAX_RATE</code> 3/3,

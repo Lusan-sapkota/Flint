@@ -1014,6 +1014,11 @@ func editDiffs(db *sql.DB, conversationID string) (map[string]plannedEdit, error
 	return out, rows.Err()
 }
 
+func setCommandEdit(db *sql.DB, id, edit string) error {
+	_, err := db.Exec(`UPDATE commands SET edit = ? WHERE id = ?`, edit, id)
+	return err
+}
+
 func resolveCommand(db *sql.DB, id, status, output string, exitCode *int) error {
 	_, err := db.Exec(
 		`UPDATE commands SET status = ?, output = ?, exit_code = ?, decided_at = ? WHERE id = ?`,

@@ -970,6 +970,26 @@ func (s *Server) resolveCommandAndContinue(w http.ResponseWriter, r *http.Reques
 	// The user's next message says what to do instead, so no retry hint and no model turn here.
 	replyInstead := !approve && r.URL.Query().Get("reply") == "1"
 
+	var body struct {
+		Replacement *string `json:"replacement"`
+	}
+	_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, maxEditFileSize)).Decode(&body)
+	if approve && body.Replacement != nil && cmd.Edit != nil {
+		var e plannedEdit
+		if json.Unmarshal([]byte(*cmd.Edit), &e) == nil && e.Read == nil {
+			if err := adjustEdit(&e, *body.Replacement); err != nil {
+				writeError(w, http.StatusConflict, err.Error())
+				return
+			}
+			adjusted, _ := json.Marshal(e)
+			edit := string(adjusted)
+			cmd.Edit = &edit
+			if err := setCommandEdit(s.db, cmd.ID, edit); err != nil {
+				log.Printf("warning: failed to save adjusted edit: %v", err)
+			}
+		}
+	}
+
 	var resultText, displayStatus string
 	if replyInstead {
 		resultText = "User denied this command and wrote what to do instead in their next message. Follow that message rather than retrying this command."
@@ -1016,7 +1036,14 @@ func (s *Server) resolveCommandAndContinue(w http.ResponseWriter, r *http.Reques
 	if displayStatus == "denied" {
 		shown = ""
 	}
-	resultMarker, _ := json.Marshal(map[string]string{"status": displayStatus, "output": shown})
+	marker := map[string]string{"status": displayStatus, "output": shown}
+	if cmd.Edit != nil {
+		var e plannedEdit
+		if json.Unmarshal([]byte(*cmd.Edit), &e) == nil && e.Adjusted != "" {
+			marker["diff"] = e.Diff
+		}
+	}
+	resultMarker, _ := json.Marshal(marker)
 	fmt.Fprintf(w, "<<<TOOL_RESULT>>>%s\n", resultMarker)
 	if flusher, ok := w.(http.Flusher); ok {
 		flusher.Flush()
@@ -1264,7 +1291,7 @@ func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Reque
 			if err := touchConversation(s.db, convo.ID); err != nil {
 				log.Printf("warning: failed to touch conversation: %v", err)
 			}
-			marker, _ := json.Marshal(map[string]any{"id": cmdID, "command": label, "diff": edit.Diff, "missing": missingPaths(folder)(result.Content)})
+			marker, _ := json.Marshal(map[string]any{"id": cmdID, "command": label, "diff": edit.Diff, "editable": edit.Editable, "missing": missingPaths(folder)(result.Content)})
 			fmt.Fprintf(w, "\n<<<TOOL_CALL>>>%s\n", marker)
 			return
 		}

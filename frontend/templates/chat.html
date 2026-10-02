@@ -397,7 +397,12 @@
                 <span class="flint-command-status" x-text="statusLabel(item.commandStatus)"></span>
               </header>
               <code class="flint-command-text" x-show="!isEdit(item)" x-text="item.commandText"></code>
-              <template x-if="isEdit(item) && item.commandDiff">
+              <template x-if="isEdit(item) && item.editing && item.commandStatus === 'pending'">
+                <label class="flint-edit-own">Your version of the new lines
+                  <textarea x-model="item.editText" rows="6" spellcheck="false"></textarea>
+                </label>
+              </template>
+              <template x-if="isEdit(item) && item.commandDiff && !(item.editing && item.commandStatus === 'pending')">
                 <pre class="flint-diff"><template x-for="(l, i) in diffLines(item.commandDiff)" :key="i"><span :class="l.cls" x-text="l.text + '\n'"></span></template></pre>
               </template>
 
@@ -417,7 +422,9 @@
 
               <template x-if="!item.agentRunId && item.commandStatus === 'pending'">
                 <div class="flint-command-actions">
-                  <button type="button" @click="approve(item)" :disabled="streaming" x-text="isEdit(item) ? 'Approve & write' : isRead(item) ? 'Approve & read' : 'Approve & run'"></button>
+                  <button type="button" @click="approve(item)" :disabled="streaming" x-text="isEdit(item) ? (item.editing && item.editText !== item.commandEditable ? 'Write my version' : 'Approve & write') : isRead(item) ? 'Approve & read' : 'Approve & run'"></button>
+                  <button type="button" class="secondary" x-show="isEdit(item)" @click="item.editing ? item.editing = false : startEdit(item)" :disabled="streaming"
+                          x-text="item.editing ? 'Show diff' : 'Edit'" title="Correct the model's lines yourself, then write them"></button>
                   <button type="button" class="secondary" @click="deny(item)" :disabled="streaming">Deny</button>
                   <button type="button" class="secondary" @click="replyingTo = !replyingTo; if (replyingTo) $nextTick(() => $refs.input.focus())" :disabled="streaming"
                           x-text="replyingTo ? 'Cancel reply' : 'Reply instead'" title="Don't run it; tell the model what to do instead"></button>

@@ -216,3 +216,52 @@ func TestCloudModelReadsWaitForApproval(t *testing.T) {
 		t.Error("the cloud read should be a pending command")
 	}
 }
+
+func TestUserAdjustedEdit(t *testing.T) {
+	db, err := openDB(filepath.Join(t.TempDir(), "t.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	s := &Server{db: db}
+	root := t.TempDir()
+	path := filepath.Join(root, "c.yaml")
+	os.WriteFile(path, []byte("db:\n  max: 25\n  min: 25\n"), 0o644)
+	raw, _ := json.Marshal(map[string]string{"path": "c.yaml", "old_text": "  max: 25", "new_text": "  max: 50"})
+	e, err := planEdit(root, "edit_file", raw)
+	if err != nil || e.Editable != "  max: 50" {
+		t.Fatalf("editable %q, %v", e.Editable, err)
+	}
+
+	same := e
+	if adjustEdit(&same, "  max: 50"); same.Adjusted != "" || same.Content != e.Content {
+		t.Error("an unchanged replacement isn't an adjustment")
+	}
+	if err := adjustEdit(&e, "  max: 60\n  extra: 1"); err != nil {
+		t.Fatal(err)
+	}
+	if e.Content != "db:\n  max: 60\n  extra: 1\n  min: 25\n" || !strings.Contains(e.Diff, "+  extra: 1") {
+		t.Fatalf("content %q diff %q", e.Content, e.Diff)
+	}
+	editJSON, _ := json.Marshal(e)
+	edit := string(editJSON)
+	out, status := s.applyEdit(&Command{ID: "c1", Edit: &edit})
+	if status != "success" || !strings.Contains(out, "The user changed your proposed text") || !strings.HasSuffix(out, "  max: 60\n  extra: 1") {
+		t.Errorf("got %s %q", status, out)
+	}
+	if data, _ := os.ReadFile(path); string(data) != "db:\n  max: 60\n  extra: 1\n  min: 25\n" {
+		t.Errorf("file is %q", data)
+	}
+
+	raw, _ = json.Marshal(map[string]string{"path": "new.txt", "content": "hi\n"})
+	n, _ := planEdit(root, "write_file", raw)
+	if err := adjustEdit(&n, "hello\nthere"); err != nil || n.Content != "hello\nthere\n" {
+		t.Errorf("new file: %q, %v", n.Content, err)
+	}
+
+	stale, _ := planEdit(root, "edit_file", json.RawMessage(`{"path":"c.yaml","old_text":"  min: 25","new_text":"  min: 5"}`))
+	os.WriteFile(path, []byte("changed\n"), 0o644)
+	if err := adjustEdit(&stale, "  min: 1"); err == nil || !strings.Contains(err.Error(), "changed since") {
+		t.Errorf("a changed file must refuse the adjustment, got %v", err)
+	}
+}

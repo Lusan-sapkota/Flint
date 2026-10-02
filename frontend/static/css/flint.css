@@ -1795,6 +1795,21 @@ details.flint-thinking > summary:focus {
   color: var(--flint-text-dim);
 }
 
+.flint-edit-own {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--flint-text-dim);
+}
+
+.flint-edit-own textarea {
+  margin: 0.3rem 0 0;
+  font-family: var(--pico-font-family-monospace, monospace);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  white-space: pre;
+}
+
 .flint-read {
   align-self: flex-start;
   font-size: 0.85rem;
