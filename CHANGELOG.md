@@ -11,6 +11,13 @@ Notable changes in each release. The measurements behind a change are in
   for you to correct, and Write my version writes yours instead. The model
   is told exactly what was written.
 
+### Changed
+
+- An edit whose old text isn't in the file is pointed at the one line
+  that contains every part of it, and told to send that whole line, then
+  the whole changed line. A small model had otherwise repeated a garbled
+  version of the line until the step cap ended the turn (E30).
+
 ## [0.3.0] - 2026-10-02
 
 ### Added

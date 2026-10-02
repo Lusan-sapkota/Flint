@@ -47,6 +47,7 @@ CONFIGS = {
     "no-preconditions": "preconditions",
     "no-tree": "tree",
     "no-filetools": "filetools",
+    "no-edithint": "edithint",
     "bare": "nudge,anchor,summaries,fit,preconditions",
 }
 

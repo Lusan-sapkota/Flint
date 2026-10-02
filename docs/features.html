@@ -310,7 +310,8 @@
   diff with <strong>Approve &amp; write</strong>, Deny and Reply instead; nothing is
   written until you approve. An edit whose text isn't in the file, or
   matches more than once, goes back to the model with the file's real
-  lines, without asking you. If the file changes after the edit was
+  lines, without asking you, and when one line holds every part of what
+  it typed, it's pointed at that line. If the file changes after the edit was
   proposed, approving refuses it rather than overwrite your change
   (<a href="experiments.html#e30-read-write-and-edit-tools">E30</a>).
   <img alt="An edit_file proposal shown as a red/green diff of config.yaml, max_connections 25 to 50, with Approve &amp; write, Deny and Reply instead" src="images/write-tool.png"/></li>

@@ -1736,9 +1736,27 @@ different files; see <a href="benchmark.html">benchmark.md</a>), run as a normal
   60. Seen in the same session: asked to change B-220's price, the model
   proposed <code>old_text: "4.50\nB-220"</code> (the line's parts reversed) six
   times in a row, each refusal showing it the real line, until the
-  8-step cap ended the turn. The caps held, but the model fixated; a
-  refusal that points at the one line containing every fragment of
-  <code>old_text</code> is a possible next fix, not yet tried.</p>
+  8-step cap ended the turn. The caps held, but the model fixated.</p>
+<p><strong>Pointing at the line.</strong> When <code>old_text</code> isn't found and exactly one
+  line contains every part of it, the refusal now names that line
+  (ablatable as <code>edithint</code>). The <code>edit-price</code> task, 4 runs each:</p>
+<table>
+<thead><tr><th>refusal</th><th>file right</th></tr></thead>
+<tbody>
+<tr><td>the file's lines only</td><td>2/4</td></tr>
+<tr><td>+ "Line 3 contains every part of it: <code>B-220,4.50</code>. Use that exact text as old_text."</td><td>0/4</td></tr>
+<tr><td>+ "... Use that whole line as old_text, and as new_text the whole line with your change made."</td><td>3/4</td></tr>
+</tbody>
+</table>
+<ul>
+<li><strong>The first wording fixed old_text and exposed new_text:</strong> the
+  model then sent <code>B-220,4.50</code> → <code>5.00</code>, replacing the whole line with
+  the price. Saying what new_text should be too fixed that.</li>
+<li><strong>The one failure left</strong> isn't this path: <code>old_text: "B-220"</code> exists,
+  so it was applied as asked and replaced the SKU (<code>5.00,4.50</code>). That's
+  a wrong edit the diff shows and Edit can correct.</li>
+<li>Four runs per arm: a direction, not a measurement.</li>
+</ul>
 <p><strong>Benchmark, partial</strong> (7 edit tasks, commands inside the task's copy
   approved; stopped after 15 runs to spare the machine): with the file
   tools, 6/15 files came out exactly right. Change <code>TAX_RATE</code> 3/3,

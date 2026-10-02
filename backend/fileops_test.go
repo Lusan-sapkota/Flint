@@ -265,3 +265,21 @@ func TestUserAdjustedEdit(t *testing.T) {
 		t.Errorf("a changed file must refuse the adjustment, got %v", err)
 	}
 }
+
+func TestMissedOldTextPointsAtTheLine(t *testing.T) {
+	root := t.TempDir()
+	os.WriteFile(filepath.Join(root, "p.csv"), []byte("sku,price\nA-100,19.99\nB-220,4.50\nC-310,4.50\n"), 0o644)
+	try := func(old string) string {
+		raw, _ := json.Marshal(map[string]string{"path": "p.csv", "old_text": old, "new_text": "x"})
+		_, err := planEdit(root, "edit_file", raw)
+		return err.Error()
+	}
+	if got := try("4.50\nB-220"); !strings.Contains(got, `Line 3 contains every part of it: "B-220,4.50". Use that whole line as old_text, and as new_text the whole line with your change made.`) {
+		t.Errorf("want a pointer to line 3, got %q", got)
+	}
+	for _, old := range []string{"4.50 ", "Z-999,1"} {
+		if got := try(old); strings.Contains(got, "contains every part") {
+			t.Errorf("%q matches several lines or none: no pointer expected, got %q", old, got)
+		}
+	}
+}

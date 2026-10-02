@@ -202,7 +202,11 @@ func planEdit(folder, tool string, raw json.RawMessage) (plannedEdit, error) {
 			after = strings.TrimRight(before, "\n") + "\n" + strings.Trim(a.NewText, "\n") + "\n"
 		case n == 0:
 			// The real lines save the model a separate read: unread, it guessed the old value (E30).
-			return plannedEdit{}, fmt.Errorf("old_text was not found in %s. Copy it exactly from these lines, without the line numbers:\n%s", displayPath(folder, path), numberedLines(displayPath(folder, path), before, 1, 200))
+			msg := fmt.Sprintf("old_text was not found in %s.", displayPath(folder, path))
+			if line, text, ok := lineWithAll(before, old); ok && !ablated["edithint"] {
+				msg += fmt.Sprintf(" Line %d contains every part of it: %q. Use that whole line as old_text, and as new_text the whole line with your change made.", line, text)
+			}
+			return plannedEdit{}, fmt.Errorf("%s Copy it exactly from these lines, without the line numbers:\n%s", msg, numberedLines(displayPath(folder, path), before, 1, 200))
 		case n > 1:
 			return plannedEdit{}, fmt.Errorf("old_text appears %d times in %s. Include a nearby line so it matches exactly once", n, a.Path)
 		default:
@@ -239,6 +243,33 @@ func adjustEdit(e *plannedEdit, replacement string) error {
 	}
 	e.Content, e.Diff, e.Adjusted = after, lineDiff(e.Display, current, after), replacement
 	return nil
+}
+
+// The one line holding every fragment of a missed old_text. Shown only the file, qwen2.5-3b proposed
+// "4.50\nB-220" for the line "B-220,4.50" six times in a row (E30).
+func lineWithAll(content, old string) (line int, text string, ok bool) {
+	var parts []string
+	for _, p := range strings.Split(old, "\n") {
+		if p = strings.TrimSpace(p); p != "" {
+			parts = append(parts, p)
+		}
+	}
+	if len(parts) == 0 {
+		return 0, "", false
+	}
+	for i, l := range splitLines(content) {
+		all := true
+		for _, p := range parts {
+			all = all && strings.Contains(l, p)
+		}
+		if all {
+			if ok {
+				return 0, "", false
+			}
+			line, text, ok = i+1, l, true
+		}
+	}
+	return line, text, ok
 }
 
 func splitLines(s string) []string {
