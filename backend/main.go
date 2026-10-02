@@ -124,6 +124,8 @@ func main() {
 	mux.HandleFunc("POST /api/conversations/{id}/messages", srv.requireAuth(srv.handlePostMessage))
 	mux.HandleFunc("PUT /api/conversations/{id}/messages/last", srv.requireAuth(srv.handleEditLastMessage))
 	mux.HandleFunc("POST /api/conversations/{id}/commands/{cmdId}/approve", srv.requireAuth(srv.handleApproveCommand))
+	mux.HandleFunc("GET /api/conversations/{id}/review", srv.requireAuth(srv.handleGetReview))
+	mux.HandleFunc("POST /api/conversations/{id}/review", srv.requireAuth(srv.handleDecideReview))
 	mux.HandleFunc("POST /api/conversations/{id}/commands/{cmdId}/deny", srv.requireAuth(srv.handleDenyCommand))
 
 	static := http.StripPrefix("/static/", http.FileServer(http.Dir("../frontend/static")))

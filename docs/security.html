@@ -234,7 +234,17 @@ client therefore shares the proxy's IP and its limit.</p>
    proposal; if the file changed before you approve, nothing is written
    and the model is told to read it again. An edit you corrected in the
    card gets the same check: your lines replace only the region the model
-   proposed to change, and the rest of the file must still be as it was.</li>
+   proposed to change, and the rest of the file must still be as it was.
+   So does a partial accept: only the changes you checked are applied, onto
+   the file as it was proposed against.</li>
+<li><strong>A cloud model's edits are staged, never written unreviewed.</strong> They're
+   kept in the database until you decide the review after its reply; its
+   reads in the same turn see them, the disk doesn't. Each file is
+   hash-checked against the disk as it was when its first edit was
+   staged, so a file you changed meanwhile is refused, not overwritten.
+   While edits are staged, a shell command the model proposes isn't run
+   (it would act on the old files), and a new message or a folder change
+   waits until the review is decided.</li>
 <li>Unlike the shell's working directory, this is a real boundary for
    these three tools. <code>run_shell</code> can still reach anything the
    server's user can, which is why it stays approve-every-command.</li>

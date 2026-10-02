@@ -84,7 +84,7 @@ func consecutiveToolCycles(messages []Message) (approvals, total int) {
 }
 
 func isAutoToolResult(result string) bool {
-	for _, p := range []string{"[read ", "[FAILED to read", "[PRECONDITION FAILED", "[BLOCKED by safety shield"} {
+	for _, p := range []string{"[read ", "[FAILED to read", "[PRECONDITION FAILED", "[BLOCKED by safety shield", "[staged ", "[NOT RUN"} {
 		if strings.HasPrefix(result, p) {
 			return true
 		}

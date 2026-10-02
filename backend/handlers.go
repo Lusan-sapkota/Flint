@@ -551,7 +551,7 @@ func (s *Server) handleAttachFolder(w http.ResponseWriter, r *http.Request) {
 
 	if convo.AttachedFolder != nil {
 		// A pending command run in a new folder would not be what the user read.
-		if pending, err := getPendingCommand(s.db, id); err != nil || pending != nil {
+		if pending, err := getPendingCommand(s.db, id); err != nil || pending != nil || len(stagedContents(s.db, id)) > 0 {
 			writeError(w, http.StatusConflict, "approve or deny the pending command before changing the folder")
 			return
 		}
@@ -610,6 +610,11 @@ func (s *Server) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer s.lockConversation(id)()
+	// The model's next turn would plan against files the user hasn't decided on yet.
+	if len(stagedContents(s.db, id)) > 0 {
+		writeError(w, http.StatusConflict, "write or discard the staged edits before sending a new message")
+		return
+	}
 	s.runUserTurn(w, r, user, id, body.Content, body.Attachments, nil)
 }
 
@@ -972,12 +977,19 @@ func (s *Server) resolveCommandAndContinue(w http.ResponseWriter, r *http.Reques
 
 	var body struct {
 		Replacement *string `json:"replacement"`
+		Hunks       []int   `json:"hunks"`
 	}
 	_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, maxEditFileSize)).Decode(&body)
-	if approve && body.Replacement != nil && cmd.Edit != nil {
+	if approve && (body.Replacement != nil || body.Hunks != nil) && cmd.Edit != nil {
 		var e plannedEdit
 		if json.Unmarshal([]byte(*cmd.Edit), &e) == nil && e.Read == nil {
-			if err := adjustEdit(&e, *body.Replacement); err != nil {
+			var err error
+			if body.Replacement != nil {
+				err = adjustEdit(&e, *body.Replacement)
+			} else {
+				err = keepHunks(&e, body.Hunks)
+			}
+			if err != nil {
 				writeError(w, http.StatusConflict, err.Error())
 				return
 			}
@@ -1039,7 +1051,7 @@ func (s *Server) resolveCommandAndContinue(w http.ResponseWriter, r *http.Reques
 	marker := map[string]string{"status": displayStatus, "output": shown}
 	if cmd.Edit != nil {
 		var e plannedEdit
-		if json.Unmarshal([]byte(*cmd.Edit), &e) == nil && e.Adjusted != "" {
+		if json.Unmarshal([]byte(*cmd.Edit), &e) == nil && (e.Adjusted != "" || e.Partial != "") {
 			marker["diff"] = e.Diff
 		}
 	}
@@ -1074,7 +1086,11 @@ func (s *Server) turnSetup(user *User, convo *ConversationWithMessages, numCtx i
 	if convo.AttachedFolder != nil && *convo.AttachedFolder != "" && approvals < maxToolAttemptsPerTurn && cycles < maxToolCyclesPerTurn {
 		tools = []OllamaTool{runShellTool}
 		if !ablated["filetools"] {
-			tools = append(tools, readFileTool, writeFileTool, editFileTool)
+			edit := editFileTool
+			if s.ollama.modelInfo(s.ollamaURLFor(user), convo.Model).RemoteHost != "" && !ablated["multiedit"] {
+				edit = cloudEditFileTool
+			}
+			tools = append(tools, readFileTool, writeFileTool, edit)
 		}
 		if !ablated["nudge"] && !forbidsCommands(convo.Messages) {
 			suffix = toolReasoningPrompt
@@ -1266,7 +1282,12 @@ func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Reque
 			continueTurn(out)
 			return
 		case "write_file", "edit_file":
-			edit, err := planEdit(folder, tc.Function.Name, tc.Function.Arguments)
+			staging := s.stagesEdits(user, convo.Model)
+			var staged map[string]string
+			if staging {
+				staged = stagedContents(s.db, convo.ID)
+			}
+			edit, err := planEditOver(folder, tc.Function.Name, tc.Function.Arguments, staged)
 			var blocked shieldError
 			if errors.As(err, &blocked) {
 				fmt.Fprintf(w, "\n[Blocked a proposed command: %s]\n\n", blocked.reason)
@@ -1285,6 +1306,16 @@ func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Reque
 				cmdID = uuid.NewString()
 			}
 			label := tc.Function.Name + " " + edit.Display
+			if staging {
+				if _, err := createStagedEdit(s.db, cmdID, convo.ID, tc.ID, label, folder, editStr); err != nil {
+					log.Printf("warning: failed to save staged edit: %v", err)
+				}
+				marker, _ := json.Marshal(map[string]any{"command": label, "diff": edit.Diff})
+				fmt.Fprintf(w, "\n<<<STAGED>>>%s\n", marker)
+				flush()
+				continueTurn(strings.TrimSpace(fmt.Sprintf("[staged %s (%s). Not written yet: the user reviews all of this turn's edits together after your reply, and your later reads and edits in this turn see it. When your edits are done, reply with a short summary of them.]\n%s", label, diffCounts(edit.Diff), edit.Leftover)))
+				return
+			}
 			if _, err := createCommandWithEdit(s.db, cmdID, convo.ID, tc.ID, label, folder, &editStr); err != nil {
 				log.Printf("warning: failed to save pending edit: %v", err)
 			}
@@ -1293,6 +1324,13 @@ func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Reque
 			}
 			marker, _ := json.Marshal(map[string]any{"id": cmdID, "command": label, "diff": edit.Diff, "editable": edit.Editable, "missing": missingPaths(folder)(result.Content)})
 			fmt.Fprintf(w, "\n<<<TOOL_CALL>>>%s\n", marker)
+			return
+		}
+
+		// The disk doesn't have the staged edits yet, so a command now would test the old files.
+		if s.stagesEdits(user, convo.Model) && len(stagedContents(s.db, convo.ID)) > 0 {
+			fmt.Fprint(w, "\n[Not run: this turn's edits are staged for review]\n\n")
+			continueTurn("[NOT RUN: your edits in this turn are staged, not on disk yet, so this command would see the old files. Finish your edits and reply; the user reviews them, and you can run it in a later turn.]")
 			return
 		}
 

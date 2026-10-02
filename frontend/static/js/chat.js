@@ -193,9 +193,10 @@ document.addEventListener('alpine:init', () => {
   const AGENT_PLAN_MARKER = '<<<AGENT_PLAN>>>';
   const AGENTS_MARKER = '<<<AGENTS>>>';
   const READ_MARKER = '<<<READ>>>';
-  const MARKERS = [TOOL_CALL_MARKER, STATS_MARKER, THINK_MARKER, LOADING_MARKER, CONTEXT_MARKER, MEMORY_DRAFT_MARKER, SEARCHING_MARKER, SOURCES_MARKER, MEMORY_SAVED_MARKER, AGENT_PLAN_MARKER, AGENTS_MARKER, READ_MARKER];
+  const STAGED_MARKER = '<<<STAGED>>>';
+  const MARKERS = [TOOL_CALL_MARKER, STATS_MARKER, THINK_MARKER, LOADING_MARKER, CONTEXT_MARKER, MEMORY_DRAFT_MARKER, SEARCHING_MARKER, SOURCES_MARKER, MEMORY_SAVED_MARKER, AGENT_PLAN_MARKER, AGENTS_MARKER, READ_MARKER, STAGED_MARKER];
   // One JSON value per line, consumed in place while the stream continues.
-  const LINE_MARKERS = [CONTEXT_MARKER, THINK_MARKER, SEARCHING_MARKER, SOURCES_MARKER, MEMORY_SAVED_MARKER, AGENTS_MARKER, READ_MARKER];
+  const LINE_MARKERS = [CONTEXT_MARKER, THINK_MARKER, SEARCHING_MARKER, SOURCES_MARKER, MEMORY_SAVED_MARKER, AGENTS_MARKER, READ_MARKER, STAGED_MARKER];
   const COMMANDS = [
     { cmd: '@agent ', hint: "split a task over the folder's files into separate agents" },
     { cmd: '@web ', hint: 'search the web first (needs a Brave key in Settings)' },
@@ -244,6 +245,7 @@ document.addEventListener('alpine:init', () => {
     condensed: config.condensed,
     thinkOn: localStorage.getItem('flint-think') !== '0',
     editingIndex: null,
+    review: null,
     editText: '',
     browser: { path: '', parent: '', dirs: [], error: '', loading: false },
     folderBusy: false,
@@ -262,6 +264,50 @@ document.addEventListener('alpine:init', () => {
 
     init() {
       this.scrollToBottom();
+      this.checkReview();
+    },
+
+    // A cloud model's edits are staged during its turn and reviewed here together, after its reply.
+    async checkReview() {
+      if (!this.conversationId || !this.timeline.some((i) => i.commandStatus === 'staged')) return;
+      try {
+        const res = await fetch(`/api/conversations/${this.conversationId}/review`);
+        const data = await res.json();
+        this.review = data.files && data.files.length ? { files: data.files, busy: false, error: '' } : null;
+        this.scrollToBottom();
+      } catch (e) {
+        this.review = null;
+      }
+    },
+
+    async decideReview(write) {
+      const review = this.review;
+      review.busy = true;
+      review.error = '';
+      const keep = {};
+      for (const f of review.files) {
+        const skipped = f.skipped || [];
+        if (skipped.length) keep[f.path] = [...Array(this.hunkCount(f.diff)).keys()].filter((i) => !skipped.includes(i));
+      }
+      try {
+        const res = await fetch(`/api/conversations/${this.conversationId}/review`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ write, keep }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || res.statusText);
+        const shown = { executed: 'success', denied: 'denied', error: 'failed' };
+        for (const f of data.files) {
+          for (const item of this.timeline) {
+            if (item.commandStatus === 'staged' && item.commandText.replace(/^\S+ /, '') === f.path) item.commandStatus = shown[f.status] || 'unknown';
+          }
+        }
+        this.review = null;
+      } catch (e) {
+        review.error = e.message;
+        review.busy = false;
+      }
     },
 
     get pendingCommand() {
@@ -612,6 +658,7 @@ document.addEventListener('alpine:init', () => {
         }
         await this.consumeStream(res.body, { expectResultMarker: false });
         this.refreshTitle();
+        this.checkReview();
       } catch (e) {
         if (e.name === 'AbortError') {
           this.finishStopped();
@@ -646,7 +693,25 @@ document.addEventListener('alpine:init', () => {
     // An edit's lines can be corrected in the card first; only a real change is sent.
     async approve(cmd) {
       const adjusted = cmd.editing && cmd.editText !== cmd.commandEditable;
-      await this.decide(cmd, 'approve', adjusted ? { replacement: cmd.editText } : undefined);
+      const skipped = cmd.skipped || [];
+      const kept = skipped.length ? [...Array(this.hunkCount(cmd.commandDiff)).keys()].filter((i) => !skipped.includes(i)) : null;
+      await this.decide(cmd, 'approve', adjusted ? { replacement: cmd.editText } : kept ? { hunks: kept } : undefined);
+    },
+
+    // Unchecking a hunk leaves it out when the edit is written.
+    toggleHunk(cmd, i) {
+      const skipped = cmd.skipped || [];
+      cmd.skipped = skipped.includes(i) ? skipped.filter((x) => x !== i) : [...skipped, i];
+    },
+
+    hunkCount(diff) {
+      return (diff || '').split('\n').filter((l) => l.startsWith('@@')).length;
+    },
+
+    writeLabel(item) {
+      if (item.editing && item.editText !== item.commandEditable) return 'Write my version';
+      const n = this.hunkCount(item.commandDiff), skipped = (item.skipped || []).length;
+      return skipped ? `Write ${n - skipped} of ${n} changes` : 'Approve & write';
     },
 
     startEdit(cmd) {
@@ -950,6 +1015,7 @@ document.addEventListener('alpine:init', () => {
           return;
         }
         await this.consumeStream(res.body, { expectResultMarker: true, targetCmd: cmd });
+        this.checkReview();
       } catch (e) {
         if (e.name === 'AbortError') {
           if (cmd.commandStatus === 'resolving') cmd.commandStatus = 'unknown';
@@ -1069,6 +1135,11 @@ document.addEventListener('alpine:init', () => {
               this.maxInput = value.maxInput;
               this.charsPerToken = value.charsPerToken;
               this.condensed = value.condensed;
+            } else if (lineMarker === STAGED_MARKER) {
+              if (bubble && bubble.content.trim() === '' && !bubble.thinking) this.timeline.splice(this.timeline.indexOf(bubble), 1);
+              bubble = null;
+              this.timeline.push({ kind: 'command', commandText: value.command, commandStatus: 'staged', commandDiff: value.diff });
+              this.scrollToBottom();
             } else if (lineMarker === READ_MARKER) {
               if (bubble && bubble.content.trim() === '' && !bubble.thinking) this.timeline.splice(this.timeline.indexOf(bubble), 1);
               bubble = null;
@@ -1225,7 +1296,12 @@ document.addEventListener('alpine:init', () => {
     },
 
     diffLines(diff) {
-      return diff.split('\n').map((text) => ({ text, cls: /^(\+\+\+|---)/.test(text) ? 'meta' : { '+': 'add', '-': 'del', '@': 'hunk' }[text[0]] || '' }));
+      let hunk = -1;
+      return diff.split('\n').map((text) => {
+        const cls = /^(\+\+\+|---)/.test(text) ? 'meta' : { '+': 'add', '-': 'del', '@': 'hunk' }[text[0]] || '';
+        if (cls === 'hunk') hunk++;
+        return { text, cls, hunk };
+      });
     },
 
     statusLabel(status) {
@@ -1244,6 +1320,10 @@ document.addEventListener('alpine:init', () => {
           return 'Awaiting your approval';
         case 'resolving':
           return 'Running…';
+        case 'staged':
+          return 'Staged for review';
+        case 'not_run':
+          return 'Not run';
         case 'read':
           return 'Read';
         case 'cancelled':

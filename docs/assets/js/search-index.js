@@ -616,18 +616,25 @@ window.FLINT_SEARCH_INDEX = [
     "snippet": "gpt-oss:120b cloud: single-file edits 14/14, two-file 4/6; the approval cap doesn't hold for cloud reads or uninvited tool calls."
   },
   {
+    "page": "Experiments",
+    "url": "experiments.html#e32-multi-file-edits-for-cloud-models",
+    "title": "E32: Multi-file edits for cloud models",
+    "group": "Evidence",
+    "snippet": "Staged review, multi-edit, per-hunk accept; a leftover-name note fixed the rename (6/6 vs 7/12); staging halves approvals."
+  },
+  {
+    "page": "Features",
+    "url": "features.html#reviewing-a-cloud-models-edits",
+    "title": "Reviewing a cloud model's edits",
+    "group": "Using Flint",
+    "snippet": "A cloud model's edits are staged and reviewed together after its reply: Write all, Discard all, or uncheck single changes."
+  },
+  {
     "page": "Security",
     "url": "security.html#file-tools",
     "title": "File tools",
     "group": "Using Flint",
     "snippet": "Reads run without approval with a local model, confined to the folder; writes and edits need approval as a diff, and a stale edit is refused."
-  },
-  {
-    "page": "Features",
-    "url": "features.html#why-edits-are-one-file-at-a-time",
-    "title": "Why edits are one file at a time",
-    "group": "Using Flint",
-    "snippet": "Why there's no multi-file review card or hunk-by-hunk accept yet, and what Edit on the diff card does instead."
   },
   {
     "page": "Experiments",

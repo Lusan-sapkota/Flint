@@ -1827,6 +1827,60 @@ different files; see <a href="benchmark.html">benchmark.md</a>), run as a normal
   any better than today's cards. A tool that edits several places in one
   call would address it directly. Two runs per task: a direction, not a
   measurement.</p>
+<h2 id="e32-multi-file-edits-for-cloud-models">E32: Multi-file edits for cloud models<a aria-label="Link to E32: Multi-file edits for cloud models" class="header-anchor" href="#e32-multi-file-edits-for-cloud-models">#</a></h2>
+<p>Built after E31, for cloud models only (a local model keeps the E30
+  schema and one card per edit), each ablatable:</p>
+<ul>
+<li><strong><code>multiedit</code>:</strong> <code>edit_file</code> takes <code>edits</code>, a list of
+  old_text/new_text pairs applied in order. Diffs became a real line diff
+  (LCS on the changed middle) with one hunk per change, as <code>diff -u</code>
+  groups them; before, one block ran from the first change to the last.</li>
+<li><strong><code>staging</code>:</strong> a turn's edits are staged, not proposed one by
+  one. Later reads and edits in the turn see them; after the reply, one
+  review card shows each file's combined diff, with Write all / Discard
+  all. A shell command while edits are staged isn't run (it would see the
+  old files). Each staged result is rewritten with the outcome, so the
+  next turn knows what reached the disk.</li>
+<li><strong><code>leftover</code></strong>, added when the first two didn't fix E31's miss: an
+  edit that removes a name the file still uses says so in its result,
+  with the lines ("Your edit removed names that main.py still uses:
+  parse_sku (line 7)").</li>
+<li>Every diff card, local ones too, got a checkbox per hunk; only the
+  checked hunks are written, and the model is told which weren't.</li>
+</ul>
+<p><code>gpt-oss:120b-cloud</code>, the three two-file tasks, 3 runs each
+  (<code>no-cloudedits</code> is E31's behaviour):</p>
+<table>
+<thead><tr><th></th><th>full</th><th>no-leftover</th><th>no-staging</th><th>no-cloudedits</th></tr></thead>
+<tbody>
+<tr><td><code>multi-rename</code></td><td>3/3</td><td>1/3</td><td>3/3</td><td>3/3</td></tr>
+<tr><td><code>multi-config</code></td><td>3/3</td><td>3/3</td><td>3/3</td><td>3/3</td></tr>
+<tr><td><code>multi-port</code></td><td>3/3</td><td>3/3</td><td>3/3</td><td>3/3</td></tr>
+<tr><td>approvals per run</td><td>3.1</td><td>3.2</td><td>5.8</td><td>5.9</td></tr>
+</tbody>
+</table>
+<ul>
+<li><strong>The rename is about the note, not the card.</strong> Pooling every
+  <code>multi-rename</code> run so far: with the leftover note 6/6; without it
+  7/12 (E31's 0/2, then 2/2 and 3/3 with one card per edit, 1/2 with
+  <code>edits</code>, 1/3 staged). Each miss was the same: import renamed,
+  <code>parse_sku(order["sku"])</code> left, "all references updated".</li>
+<li><strong><code>edits</code> was rarely used:</strong> 5 of 36 runs passed it, and it never
+  was what fixed a miss; the model mostly sent <code>"edits": []</code> next to
+  old_text/new_text. Kept, since it's cheap and lets one edit carry every
+  call site when the model does use it.</li>
+<li><strong>Staging halves the approvals</strong> (3.1 against 5.9 per run: the cloud
+  reads plus one review, instead of a card per edit) at the same pass
+  rate. That, not accuracy, is what it buys. All 7 single-file edit tasks
+  also passed staged (7/7).</li>
+<li><strong>Checked in the browser</strong> against a real build: a rename staged as
+  two cards marked "Staged for review", one review card for
+  <code>utils.py</code> and <code>main.py</code>, Write all wrote both (no
+  <code>parse_sku</code> left), the cards became Succeeded, and after a reload
+  no review reopened.</li>
+<li>Three runs per arm, one model: the leftover note's effect is large
+  enough to trust the direction, not its size.</li>
+</ul>
 <h2 id="open-questions">Open questions<a aria-label="Link to Open questions" class="header-anchor" href="#open-questions">#</a></h2>
 <ul>
 <li><strong>qwen3.5 thinking with no answer.</strong> Once in E22 it streamed a long
@@ -1917,6 +1971,7 @@ different files; see <a href="benchmark.html">benchmark.md</a>), run as a normal
       <li class="toc-item toc-level-2"><a href="#e29-real-file-paths-in-the-anchor" class="toc-link" data-target="e29-real-file-paths-in-the-anchor">E29: Real file paths in the anchor</a></li>
       <li class="toc-item toc-level-2"><a href="#e30-read-write-and-edit-tools" class="toc-link" data-target="e30-read-write-and-edit-tools">E30: Read, write and edit tools</a></li>
       <li class="toc-item toc-level-2"><a href="#e31-two-file-edits-on-a-cloud-model" class="toc-link" data-target="e31-two-file-edits-on-a-cloud-model">E31: Two-file edits on a cloud model</a></li>
+      <li class="toc-item toc-level-2"><a href="#e32-multi-file-edits-for-cloud-models" class="toc-link" data-target="e32-multi-file-edits-for-cloud-models">E32: Multi-file edits for cloud models</a></li>
       <li class="toc-item toc-level-2"><a href="#open-questions" class="toc-link" data-target="open-questions">Open questions</a></li>
     </ul>
   </nav>

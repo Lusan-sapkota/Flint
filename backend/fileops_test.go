@@ -283,3 +283,65 @@ func TestMissedOldTextPointsAtTheLine(t *testing.T) {
 		}
 	}
 }
+
+func TestMultiEditAndHunks(t *testing.T) {
+	root := t.TempDir()
+	src := "from utils import parse_sku\n\nA = 1\nB = 2\nC = 3\nD = 4\nE = 5\nF = 6\nG = 7\n\ndef f(o):\n    return parse_sku(o)\n"
+	os.WriteFile(filepath.Join(root, "main.py"), []byte(src), 0o644)
+	args, _ := json.Marshal(map[string]any{"path": "main.py", "edits": []map[string]string{
+		{"old_text": "import parse_sku", "new_text": "import parse_code"},
+		{"old_text": "return parse_sku(o)", "new_text": "return parse_code(o)"},
+	}})
+	e, err := planEdit(root, "edit_file", args)
+	if err != nil || e.Content != strings.ReplaceAll(src, "parse_sku", "parse_code") {
+		t.Fatalf("got %q, %v", e.Content, err)
+	}
+	if len(e.Hunks) != 2 || strings.Count(e.Diff, "\n@@ ") != 2 {
+		t.Fatalf("want two hunks, got %d:\n%s", len(e.Hunks), e.Diff)
+	}
+	if !strings.Contains(e.Diff, "@@ -9,4 +9,4 @@\n G = 7\n \n def f(o):\n-    return parse_sku(o)\n+    return parse_code(o)") {
+		t.Errorf("second hunk header or body wrong:\n%s", e.Diff)
+	}
+	kept := strings.Join(applyHunks(splitLines(src), e.Hunks, []bool{false, true}), "\n") + "\n"
+	if kept != strings.Replace(src, "return parse_sku", "return parse_code", 1) {
+		t.Errorf("only the second hunk should be written, got %q", kept)
+	}
+
+	// A later edit sees the earlier one; an edit that misses names its place in the list.
+	args, _ = json.Marshal(map[string]any{"path": "main.py", "edits": []map[string]string{
+		{"old_text": "A = 1", "new_text": "A = 10"}, {"old_text": "A = 1\n", "new_text": "x"},
+	}})
+	if _, err := planEdit(root, "edit_file", args); err == nil || !strings.Contains(err.Error(), "edits[1].old_text was not found") {
+		t.Errorf("want edits[1] not found, got %v", err)
+	}
+}
+
+func TestKeepHunks(t *testing.T) {
+	root := t.TempDir()
+	src := "a = 1\nx\nx\nx\nx\nx\nx\nx\nb = 2\n"
+	os.WriteFile(filepath.Join(root, "f.py"), []byte(src), 0o644)
+	args, _ := json.Marshal(map[string]any{"path": "f.py", "edits": []map[string]string{{"old_text": "a = 1", "new_text": "a = 10"}, {"old_text": "b = 2", "new_text": "b = 20"}}})
+	e, err := planEdit(root, "edit_file", args)
+	if err != nil || len(e.Hunks) != 2 {
+		t.Fatalf("want two hunks: %v %v", e.Hunks, err)
+	}
+	if err := keepHunks(&e, []int{1}); err != nil {
+		t.Fatal(err)
+	}
+	if e.Content != strings.Replace(src, "b = 2", "b = 20", 1) || !strings.Contains(e.Partial, "change 1 (old lines 1-1)") || len(e.Hunks) != 1 {
+		t.Errorf("got %q, %q", e.Content, e.Partial)
+	}
+	if err := keepHunks(&e, []int{5}); err != nil {
+		t.Errorf("keeping everything there is should be a no-op, got %v", err)
+	}
+}
+
+func TestLeftoverNote(t *testing.T) {
+	after := "from utils import parse_code\n\ndef f(o):\n    return parse_sku(o)\n"
+	if got := leftoverNote("main.py", "from utils import parse_sku", "from utils import parse_code", after); !strings.Contains(got, "parse_sku (line 4)") {
+		t.Errorf("got %q", got)
+	}
+	if got := leftoverNote("c.yaml", "  max: 25", "  max: 50", "db:\n  max: 50\n"); got != "" {
+		t.Errorf("a value change leaves nothing behind, got %q", got)
+	}
+}

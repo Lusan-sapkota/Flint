@@ -110,6 +110,10 @@ func classifyCommandResult(result string) string {
 		return "precondition_failed"
 	case strings.HasPrefix(result, "User denied"):
 		return "denied"
+	case strings.HasPrefix(result, "[staged "):
+		return "staged"
+	case strings.HasPrefix(result, "[NOT RUN"):
+		return "not_run"
 	default:
 		return "unknown"
 	}

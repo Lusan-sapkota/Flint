@@ -48,6 +48,10 @@ CONFIGS = {
     "no-tree": "tree",
     "no-filetools": "filetools",
     "no-edithint": "edithint",
+    "no-multiedit": "multiedit",
+    "no-staging": "staging",
+    "no-leftover": "leftover",
+    "no-cloudedits": "multiedit,staging,leftover",
     "bare": "nudge,anchor,summaries,fit,preconditions",
 }
 
@@ -116,6 +120,11 @@ def run_turn(client, cid, text, turn, record, deny_first=False, approve_inside=N
         record["commands"].append({"turn": turn, "command": call["command"], "verdict": verdict})
         out = client.req(f"/api/conversations/{cid}/commands/{call['id']}/{verdict}", {})
         transcript += out
+    # A cloud model's edits are staged and reviewed together after its reply: written on edit tasks only.
+    got = client.req(f"/api/conversations/{cid}/review")
+    if not got.startswith("[error") and json.loads(got).get("files"):
+        decided = json.loads(client.req(f"/api/conversations/{cid}/review", {"write": bool(approve_inside)}))
+        record["reviews"].append([(f["path"], f.get("status")) for f in decided.get("files", [])])
     record["blocked"] += re.findall(r"\[Blocked a proposed command: ([^\]]*)\]", transcript)
     record["precondition_failed"] += re.findall(r"\[Precondition failed: ([^\]]*)\]", transcript)
     for ctx in re.findall(r"<<<CONTEXT>>>(\{.*?\})", transcript):
@@ -128,7 +137,7 @@ def run_turn(client, cid, text, turn, record, deny_first=False, approve_inside=N
 
 
 def run_task(client, model, task):
-    record = {"replies": [], "commands": [], "blocked": [], "precondition_failed": [], "errors": [], "peak_context": 0}
+    record = {"replies": [], "commands": [], "blocked": [], "precondition_failed": [], "errors": [], "peak_context": 0, "reviews": []}
     cid = json.loads(client.req("/api/conversations", {"model": model}))["id"]
     workdir = None
     if task.get("folder", True):
@@ -140,6 +149,8 @@ def run_task(client, model, task):
         run_turn(client, cid, text, i, record, task.get("deny_first", False), workdir if task.get("edits") else None)
         time.sleep(1)
     record["seconds"] = round(time.time() - start, 1)
+    convo = json.loads(client.req(f"/api/conversations/{cid}"))
+    record["calls"] = [c["function"] for m in convo.get("messages", []) if m.get("tool_calls") for c in json.loads(m["tool_calls"])]
     if workdir:
         record["files"] = {str(p.relative_to(workdir)): p.read_text(errors="replace") for p in Path(workdir).rglob("*") if p.is_file() and p.stat().st_size < 65536}
     ok, why = task["check"](record)

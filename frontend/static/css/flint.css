@@ -1774,7 +1774,7 @@ details.flint-thinking > summary:focus {
   overflow: auto;
 }
 
-.flint-diff span {
+.flint-diff > span {
   display: block;
   padding: 0 0.75rem;
   white-space: pre;
@@ -1793,6 +1793,18 @@ details.flint-thinking > summary:focus {
 .flint-diff .hunk,
 .flint-diff .meta {
   color: var(--flint-text-dim);
+}
+
+/* An unchecked hunk stays visible, dimmed, so you can see what won't be written. */
+.flint-diff .skipped {
+  opacity: 0.4;
+}
+
+.flint-diff input[type="checkbox"] {
+  margin: 0 0.5rem 0 0;
+  width: 0.9rem;
+  height: 0.9rem;
+  vertical-align: -0.1rem;
 }
 
 .flint-edit-own {
@@ -3096,4 +3108,14 @@ button.flint-danger-solid:hover {
   .flint-field-row {
     grid-template-columns: 1fr;
   }
+}
+
+.flint-review-path {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+}
+
+.flint-review-path .flint-failed {
+  margin-left: 0.5rem;
+  color: #f0a39b;
 }

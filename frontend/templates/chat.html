@@ -403,7 +403,7 @@
                 </label>
               </template>
               <template x-if="isEdit(item) && item.commandDiff && !(item.editing && item.commandStatus === 'pending')">
-                <pre class="flint-diff"><template x-for="(l, i) in diffLines(item.commandDiff)" :key="i"><span :class="l.cls" x-text="l.text + '\n'"></span></template></pre>
+                <pre class="flint-diff"><template x-for="(l, i) in diffLines(item.commandDiff)" :key="i"><span :class="[l.cls, (item.skipped || []).includes(l.hunk) ? 'skipped' : '']"><template x-if="l.cls === 'hunk' && item.commandStatus === 'pending' && hunkCount(item.commandDiff) > 1"><input type="checkbox" :checked="!(item.skipped || []).includes(l.hunk)" @change="toggleHunk(item, l.hunk)" :aria-label="'Write change ' + (l.hunk + 1)"></template><span x-text="l.text + '\n'"></span></span></template></pre>
               </template>
 
               <template x-if="item.agentRunId && item.commandStatus === 'pending'">
@@ -422,7 +422,7 @@
 
               <template x-if="!item.agentRunId && item.commandStatus === 'pending'">
                 <div class="flint-command-actions">
-                  <button type="button" @click="approve(item)" :disabled="streaming" x-text="isEdit(item) ? (item.editing && item.editText !== item.commandEditable ? 'Write my version' : 'Approve & write') : isRead(item) ? 'Approve & read' : 'Approve & run'"></button>
+                  <button type="button" @click="approve(item)" x-text="isEdit(item) ? writeLabel(item) : isRead(item) ? 'Approve & read' : 'Approve & run'" :disabled="streaming || (isEdit(item) && !item.editing && (item.skipped || []).length >= hunkCount(item.commandDiff) && hunkCount(item.commandDiff) > 0)"></button>
                   <button type="button" class="secondary" x-show="isEdit(item)" @click="item.editing ? item.editing = false : startEdit(item)" :disabled="streaming"
                           x-text="item.editing ? 'Show diff' : 'Edit'" title="Correct the model's lines yourself, then write them"></button>
                   <button type="button" class="secondary" @click="deny(item)" :disabled="streaming">Deny</button>
@@ -440,6 +440,26 @@
               </template>
             </div>
           </template>
+        </div>
+      </template>
+      <template x-if="review && !streaming">
+        <div class="flint-command-card flint-review" role="region" aria-label="Review staged edits">
+          <header>
+            <span>{{template "icon-edit"}}</span>
+            <span x-text="'Review edits to ' + review.files.length + (review.files.length === 1 ? ' file' : ' files')"></span>
+            <span class="flint-command-status">Nothing written yet</span>
+          </header>
+          <template x-for="f in review.files" :key="f.path">
+            <div>
+              <p class="flint-review-path"><code x-text="f.path"></code> <span class="flint-failed" x-show="f.error" x-text="f.error"></span></p>
+              <pre class="flint-diff"><template x-for="(l, i) in diffLines(f.diff)" :key="i"><span :class="[l.cls, (f.skipped || []).includes(l.hunk) ? 'skipped' : '']"><template x-if="l.cls === 'hunk' && hunkCount(f.diff) > 1"><input type="checkbox" :checked="!(f.skipped || []).includes(l.hunk)" @change="toggleHunk(f, l.hunk)" :aria-label="'Write change ' + (l.hunk + 1) + ' in ' + f.path"></template><span x-text="l.text + '\n'"></span></span></template></pre>
+            </div>
+          </template>
+          <p class="flint-command-result flint-failed" x-show="review.error" x-text="review.error"></p>
+          <div class="flint-command-actions">
+            <button type="button" @click="decideReview(true)" :disabled="review.busy">Write all</button>
+            <button type="button" class="secondary" @click="decideReview(false)" :disabled="review.busy">Discard all</button>
+          </div>
         </div>
       </template>
       {{/* :hidden, not x-show: x-show defers showing to a setTimeout, so when an

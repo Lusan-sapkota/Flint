@@ -228,7 +228,8 @@ service called Stockroom, whose answers are known in advance:</p>
 <code>;</code>, <code>&amp;&amp;</code>, redirects or <code>$(…)</code>. A task with <code>deny_first</code> has its first
 proposed command denied whatever it is, so every run tests recovering from
 a denial. Pending <code>read_file</code> cards (a cloud model's reads) are
-approved. Edit tasks also approve file edits, and any command that
+approved, and a cloud model's staged edits are written after each turn on
+edit tasks and discarded on all others. Edit tasks also approve file edits, and any command that
 doesn't reach outside the task's own copy (no <code>~</code>, <code>..</code> or
 absolute path into a real top-level directory, so a sed address like
 <code>'/max_connections/a'</code> isn't mistaken for one), so editing through
@@ -284,6 +285,22 @@ folder for every task.</p>
 <tr>
 <td><code>no-filetools</code></td>
 <td><code>read_file</code>, <code>write_file</code> and <code>edit_file</code>, leaving <code>run_shell</code> only (E30); not part of <code>bare</code></td>
+</tr>
+<tr>
+<td><code>no-multiedit</code></td>
+<td>a cloud model's <code>edits</code> list in <code>edit_file</code> (E32)</td>
+</tr>
+<tr>
+<td><code>no-staging</code></td>
+<td>staging a cloud model's edits for one review after its reply, leaving one approval card per edit (E32)</td>
+</tr>
+<tr>
+<td><code>no-leftover</code></td>
+<td>the note that an edit removed a name the file still uses (E32)</td>
+</tr>
+<tr>
+<td><code>no-cloudedits</code></td>
+<td>all three above: edits as in E31</td>
 </tr>
 </tbody>
 </table></div>

@@ -954,8 +954,44 @@ func createCommand(db *sql.DB, id, conversationID, toolCallID, command, cwd stri
 }
 
 func createCommandWithEdit(db *sql.DB, id, conversationID, toolCallID, command, cwd string, edit *string) (Command, error) {
+	return insertCommand(db, id, conversationID, toolCallID, command, cwd, "pending", edit)
+}
+
+// A cloud model's edit held for the end-of-turn review instead of its own approval.
+func createStagedEdit(db *sql.DB, id, conversationID, toolCallID, command, cwd, edit string) (Command, error) {
+	return insertCommand(db, id, conversationID, toolCallID, command, cwd, "staged", &edit)
+}
+
+func stagedEdits(db *sql.DB, conversationID string) ([]Command, error) {
+	rows, err := db.Query(
+		`SELECT id, conversation_id, tool_call_id, command, cwd, status, output, exit_code, created_at, decided_at, edit
+		 FROM commands WHERE conversation_id = ? AND status = 'staged' ORDER BY created_at, rowid`, conversationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Command
+	for rows.Next() {
+		var c Command
+		if err := rows.Scan(&c.ID, &c.ConversationID, &c.ToolCallID, &c.Command, &c.Cwd, &c.Status, &c.Output, &c.ExitCode, &c.CreatedAt, &c.DecidedAt, &c.Edit); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
+// A staged edit's result is rewritten once it's reviewed, so the model's next turn knows what reached the disk.
+// Matched on its own text too: a model that sends no tool call IDs leaves them all empty.
+func setStagedResult(db *sql.DB, conversationID, toolCallID, label, content string) error {
+	like := "[staged " + strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(label) + " (%"
+	_, err := db.Exec(`UPDATE messages SET content = ? WHERE conversation_id = ? AND role = 'tool' AND tool_call_id = ? AND content LIKE ? ESCAPE '\'`, content, conversationID, toolCallID, like)
+	return err
+}
+
+func insertCommand(db *sql.DB, id, conversationID, toolCallID, command, cwd, status string, edit *string) (Command, error) {
 	now := time.Now().UnixMilli()
-	c := Command{ID: id, ConversationID: conversationID, ToolCallID: toolCallID, Command: command, Cwd: cwd, Status: "pending", CreatedAt: now, Edit: edit}
+	c := Command{ID: id, ConversationID: conversationID, ToolCallID: toolCallID, Command: command, Cwd: cwd, Status: status, CreatedAt: now, Edit: edit}
 	_, err := db.Exec(
 		`INSERT INTO commands (id, conversation_id, tool_call_id, command, cwd, status, created_at, edit) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		c.ID, c.ConversationID, c.ToolCallID, c.Command, c.Cwd, c.Status, c.CreatedAt, c.Edit,

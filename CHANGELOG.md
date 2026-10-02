@@ -10,8 +10,23 @@ Notable changes in each release. The measurements behind a change are in
 - Edit before writing: Edit on a diff card opens the model's new lines
   for you to correct, and Write my version writes yours instead. The model
   is told exactly what was written.
+- Hunk-by-hunk accept: a diff with more than one change has a checkbox on
+  each, and only the checked changes are written. The model is told which
+  ones weren't.
+- Cloud models: one review for a turn's edits. Their edits are staged, not
+  written, and the next read or edit in the same turn sees them; after the
+  reply, one card shows every changed file, with Write all and Discard all.
+  A shell command while edits are staged isn't run, since it would see the
+  old files, and a new message waits until the review is decided (E32).
+- Cloud models can change several places in a file in one `edit_file`
+  call (`edits`).
 
 ### Changed
+
+- Diffs show each change as its own hunk instead of one block from the
+  first change to the last.
+- An edit that removes a name the file still uses says on which lines,
+  so a rename doesn't stop at the import (E32).
 
 - An edit whose old text isn't in the file is pointed at the one line
   that contains every part of it, and told to send that whole line, then
