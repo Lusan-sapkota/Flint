@@ -918,6 +918,13 @@ details.flint-thinking > summary:focus {
   font-variant-numeric: tabular-nums;
 }
 
+.flint-msg-missing {
+  font-size: 0.8rem;
+  color: var(--flint-accent);
+  margin: 0.25rem 0 0;
+  cursor: help;
+}
+
 .flint-msg-actions-user {
   justify-content: flex-end;
 }

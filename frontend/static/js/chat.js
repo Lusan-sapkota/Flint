@@ -1106,7 +1106,10 @@ document.addEventListener('alpine:init', () => {
       } else if (markerFound && pending.startsWith(STATS_MARKER)) {
         try {
           const obj = JSON.parse(pending.slice(STATS_MARKER.length).trim());
-          if (bubble) bubble.tokensPerSec = obj.tokensPerSec;
+          if (bubble) {
+            bubble.tokensPerSec = obj.tokensPerSec;
+            bubble.missing = obj.missing;
+          }
         } catch (e) {
           // stats are cosmetic - a malformed line just means none are shown
         }
@@ -1116,6 +1119,8 @@ document.addEventListener('alpine:init', () => {
           const obj = JSON.parse(jsonPart);
           if (bubble && bubble.content.trim() === '' && !bubble.thinking) {
             this.timeline.splice(this.timeline.indexOf(bubble), 1);
+          } else if (bubble) {
+            bubble.missing = obj.missing;
           }
           this.timeline.push({ kind: 'command', commandId: obj.id, commandText: obj.command, commandStatus: 'pending' });
         } catch (e) {

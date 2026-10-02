@@ -582,6 +582,13 @@ window.FLINT_SEARCH_INDEX = [
   },
   {
     "page": "Experiments",
+    "url": "experiments.html#e27-file-names-in-an-answer-checked-against-the-folder",
+    "title": "E27: File names in an answer, checked against the folder",
+    "group": "Evidence",
+    "snippet": "File names in a folder-chat answer that aren't in the folder are listed under the reply; 9 of 9 flags were invented paths."
+  },
+  {
+    "page": "Experiments",
     "url": "experiments.html#baseline-before-any-agent-code",
     "title": "Baseline, before any agent code",
     "group": "Evidence",

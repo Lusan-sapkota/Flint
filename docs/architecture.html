@@ -385,12 +385,12 @@ client consumes:</p>
 <td>what an approved or denied command produced, for display</td>
 </tr>
 <tr>
-<td><code>&lt;&lt;&lt;TOOL_CALL&gt;&gt;&gt;{"id":..,"command":..}</code></td>
-<td>a pending command awaiting approval; ends the stream</td>
+<td><code>&lt;&lt;&lt;TOOL_CALL&gt;&gt;&gt;{"id":..,"command":..,"missing":[..]}</code></td>
+<td>a pending command awaiting approval; ends the stream. <code>missing</code> lists file names in the text before it that aren't in the folder</td>
 </tr>
 <tr>
-<td><code>&lt;&lt;&lt;STATS&gt;&gt;&gt;{"tokensPerSec":N}</code></td>
-<td>generation speed; ends a final text reply</td>
+<td><code>&lt;&lt;&lt;STATS&gt;&gt;&gt;{"tokensPerSec":N,"missing":[..]}</code></td>
+<td>generation speed and, in a folder chat, file names in the reply that aren't in the folder; ends a final text reply</td>
 </tr>
 <tr>
 <td><code>&lt;&lt;&lt;MEMORY_SAVED&gt;&gt;&gt;{"content":..}</code></td>

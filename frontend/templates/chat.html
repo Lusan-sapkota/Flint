@@ -242,6 +242,12 @@
               </template>
             </div>
           </template>
+          <template x-if="item.kind === 'assistant' && item.missing?.length && !isStreamingBubble(item)">
+            <p class="flint-msg-missing" title="Flint looked for these in the attached folder and didn't find them. The model may have made them up, or means a file that doesn't exist yet.">
+              Mentioned but not in the folder:
+              <template x-for="(p, i) in item.missing" :key="p"><span><code x-text="p"></code><span x-show="i < item.missing.length - 1">, </span></span></template>
+            </p>
+          </template>
 
           <template x-if="item.kind === 'sources'">
             <details class="flint-sources">

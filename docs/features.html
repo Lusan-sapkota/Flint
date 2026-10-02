@@ -302,6 +302,10 @@
   exit code, and the output is shown in the chat.</li>
 <li><strong>Bounded retries.</strong> After 3 tool steps since your last message, the
   model has to answer in text.</li>
+<li><strong>File names checked.</strong> A file the model names in its answer
+  that isn't in the folder is listed under the reply ("Mentioned but not
+  in the folder"). It may have been made up, or not created yet. Checked
+  again on each page load, so creating the file clears it (<a href="experiments.html#e27-file-names-in-an-answer-checked-against-the-folder">E27</a>).</li>
 <li><strong>Live folder listing.</strong> Each turn, a fresh listing of the folder's top
   level goes next to the model's reply point, so it knows what exists.</li>
 </ul>

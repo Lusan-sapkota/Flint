@@ -12,6 +12,9 @@ Notable changes in each release. The measurements behind a change are in
   what compaction can't remove, so older history doesn't shrink it. The
   composer shows the limit as you type, and warns when a message will push
   older messages out of verbatim context.
+- In a folder chat, file names the model mentions that aren't in the
+  folder are listed under its reply, so an invented path stands out
+  (E27).
 
 ## [0.2.1] - 2026-09-27
 

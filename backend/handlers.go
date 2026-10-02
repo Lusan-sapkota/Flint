@@ -1221,7 +1221,7 @@ func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Reque
 			log.Printf("warning: failed to touch conversation: %v", err)
 		}
 
-		marker, _ := json.Marshal(map[string]string{"id": cmdID, "command": args.Command})
+		marker, _ := json.Marshal(map[string]any{"id": cmdID, "command": args.Command, "missing": missingPaths(*convo.AttachedFolder)(result.Content)})
 		fmt.Fprintf(w, "\n<<<TOOL_CALL>>>%s\n", marker)
 		return
 	}
@@ -1230,8 +1230,12 @@ func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Reque
 		if err := insertAssistantMessage(s.db, convo.ID, result.Content, result.Thinking, result.TokensPerSec); err != nil {
 			log.Printf("warning: failed to save assistant message: %v", err)
 		}
-		if result.TokensPerSec > 0 {
-			stats, _ := json.Marshal(map[string]float64{"tokensPerSec": math.Round(result.TokensPerSec*10) / 10})
+		var missing []string
+		if folder := folderOf(convo.Conversation); folder != nil {
+			missing = missingPaths(*folder)(result.Content)
+		}
+		if result.TokensPerSec > 0 || missing != nil {
+			stats, _ := json.Marshal(map[string]any{"tokensPerSec": math.Round(result.TokensPerSec*10) / 10, "missing": missing})
 			fmt.Fprintf(w, "\n<<<STATS>>>%s\n", stats)
 		}
 		s.summarizeInBackground(user, convo.ID)

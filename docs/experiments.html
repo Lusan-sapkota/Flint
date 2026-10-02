@@ -1568,6 +1568,38 @@ different files; see <a href="benchmark.html">benchmark.md</a>), run as a normal
 <li>qwen2.5:1.5b called no tool in any run, with or without the change;
   its result stays the "nothing to answer from" fallback from E25.</li>
 </ul>
+<h2 id="e27-file-names-in-an-answer-checked-against-the-folder">E27: File names in an answer, checked against the folder<a aria-label="Link to E27: File names in an answer, checked against the folder" class="header-anchor" href="#e27-file-names-in-an-answer-checked-against-the-folder">#</a></h2>
+<p>The shield and preconditions check commands, but nothing checked the
+  answer itself. Built: after a folder-chat reply, names with a file
+  extension (backticked or with a slash, not inside code blocks) are
+  checked against the folder, by exact path or as the tail of a path in
+  it. Ones not found are listed under the reply. The model never sees
+  the list.</p>
+<p>Test: qwen2.5-3b-instruct, 8 questions that invite naming files,
+  7 of them "without running commands".</p>
+<table>
+<thead><tr><th>folder</th><th>questions</th><th>names flagged</th><th>flagged but real</th></tr></thead>
+<tbody>
+<tr><td>the fixture (every file in the manifest)</td><td>3</td><td>0</td><td>0</td></tr>
+<tr><td>Flint's repo root (subfolders not in the manifest)</td><td>5</td><td>9</td><td>0</td></tr>
+</tbody>
+</table>
+<ul>
+<li><strong>With the whole folder in view</strong>, the model named only real files
+  (around 20 mentions), and nothing was flagged.</li>
+<li><strong>With the code in subfolders</strong>, it invented paths in 3 of 5 answers:
+  <code>backend/run_shell.go</code>, <code>frontend/index.js</code>,
+  <code>backend/schema.sql</code>, <code>migrations/001_create_users_table.sql</code>.
+  All 9 flags were invented names. Two came in text before a tool call,
+  so the list also travels on the tool-call marker.</li>
+<li><strong>Not flagged, by design:</strong> names without an extension
+  (<code>backend/migrations/</code>), and member names like
+  <code>console.log</code> or <code>process.env</code> unless written with a
+  slash. The unit test holds these cases.</li>
+<li><strong>Not tried yet:</strong> putting the list in the next request's
+  anchor header so the model corrects itself. Measure first if it's
+  built.</li>
+</ul>
 <h2 id="open-questions">Open questions<a aria-label="Link to Open questions" class="header-anchor" href="#open-questions">#</a></h2>
 <ul>
 <li><strong>qwen3.5 thinking with no answer.</strong> Once in E22 it streamed a long

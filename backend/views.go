@@ -78,6 +78,7 @@ type timelineItem struct {
 	CommandStatus string           `json:"commandStatus,omitempty"`
 	CommandResult string           `json:"commandResult,omitempty"`
 	TokensPerSec  float64          `json:"tokensPerSec,omitempty"`
+	Missing       []string         `json:"missing,omitempty"`
 	Thinking      string           `json:"thinking,omitempty"`
 	Query         string           `json:"query,omitempty"`
 	Sources       []sourceLink     `json:"sources,omitempty"`
@@ -327,6 +328,15 @@ func (s *Server) handleChatPage(w http.ResponseWriter, r *http.Request, user *Us
 			runs[i].MaxCommands = agentCommandsFor(user)
 		}
 		timeline = buildTimeline(full.Messages, pending, saved, runs)
+		// Rechecked against the folder as it is now, so a file created since clears its note.
+		if folder := folderOf(full.Conversation); folder != nil {
+			check := missingPaths(*folder)
+			for i := range timeline {
+				if timeline[i].Kind == "assistant" {
+					timeline[i].Missing = check(timeline[i].Content)
+				}
+			}
+		}
 
 		data.Title = full.Title
 	} else {
