@@ -32,7 +32,7 @@
         <a href="index.html" class="brand-link">
           <img src="images/logo.png" alt="Flint logo" width="30" height="30" class="brand-logo">
           <span class="brand-name">Flint</span>
-          <span class="version-pill">v0.2.1</span>
+          <span class="version-pill">v0.3.0</span>
         </a>
       </div>
 
@@ -185,7 +185,7 @@ why there's no bundled RAG or embedding stack.</p>
 <h2 id="resource-footprint">Resource footprint &amp; philosophy<a aria-label="Link to Resource footprint & philosophy" class="header-anchor" href="#resource-footprint">#</a></h2>
 <p>Flint is designed for personal hardware—such as a laptop with 8–16 GB of RAM and a 6 GB GPU running 3–4B models. Every architectural choice reflects this constraint:</p>
 <ul>
-<li><strong>23 MB container vs. multi-GB stacks:</strong> Popular local LLM web UIs (such as Open WebUI or LibreChat) bundle Python runtimes, PyTorch, LangChain, vector databases (ChromaDB), and Redis. Their Docker images frequently exceed 2–4 GB and consume 1–2 GB of system RAM just idling before a single model is loaded.</li>
+<li><strong>24 MB container (about 11 MB to download) vs. multi-GB stacks:</strong> Popular local LLM web UIs (such as Open WebUI or LibreChat) bundle Python runtimes, PyTorch, LangChain, vector databases (ChromaDB), and Redis. Their Docker images frequently exceed 2–4 GB and consume 1–2 GB of system RAM just idling before a single model is loaded.</li>
 <li><strong>Pure Go &amp; SQLite:</strong> Flint compiles to a single static binary with no external dependencies (using pure-Go SQLite without cgo) and a 23.5 MB Alpine Docker image. It idles at ~15 MB of RAM, leaving every possible megabyte of CPU and GPU memory available for Ollama and model weights.</li>
 <li><strong>Zero build step &amp; zero CDN dependencies:</strong> The frontend uses vendored htmx, Alpine.js, and Pico.css with zero build tools (no Node.js, no webpack) and zero external network calls.</li>
 </ul>
