@@ -154,8 +154,10 @@ approval, memory across chats, and web search only when you ask. Ollama
 cloud models work too, under the same rules, tagged as cloud, and each
 account can set its own context window for local and for cloud models.</p>
 <p><strong>New in 0.3.0:</strong> the model can read, edit and create files in
-your attached folder. It reads on its own, inside the folder only; every
-edit is shown as a red/green diff and written only when you approve it.
+your attached folder. It reads on its own, inside the folder only and never
+a secret the shield blocks (with a cloud model, only after you approve
+each read); every edit is shown as a red/green diff and written only when
+you approve it.
 The folder's real file paths now sit next to where the model writes, so
 it names files that exist instead of guessing, and any file it mentions
 that isn't there is flagged under its reply.

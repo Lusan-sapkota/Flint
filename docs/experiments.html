@@ -1714,6 +1714,14 @@ different files; see <a href="benchmark.html">benchmark.md</a>), run as a normal
 <li>It once asked to read from line 1000000000000000; an out-of-range start
   now reads from the top instead of failing.</li>
 <li>A decided edit lost its diff on reload; every edit card now keeps it.</li>
+<li>Found in review, not in a chat: <code>read_file</code> skipped the shield, so
+  with the home folder attached it could read <code>~/.ssh/id_*</code> unasked. All
+  three file tools now check the real path, after symlinks and <code>..</code>
+  are resolved, against the shield's secret-file rule, so a link can't
+  dodge it; and with a cloud model a read becomes a pending card that runs
+  only when approved. Its tests showed the rule itself never matched
+  <code>id_ed25519</code> (letters only before a word boundary), in the shell
+  shield too; fixed.</li>
 <li>Given the applied diff back as its tool result, the model pasted it
   into its reply, where markdown turned the <code>-</code>/<code>+</code> lines into a
   bulleted list. The result now says only "wrote config.yaml (1 line

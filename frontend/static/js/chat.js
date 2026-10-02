@@ -1204,6 +1204,10 @@ document.addEventListener('alpine:init', () => {
       return 'Read ' + item.commandText.replace(/^read_file /, '') + (lines ? ' · ' + lines[1] : '');
     },
 
+    isRead(item) {
+      return /^read_file /.test(item.commandText || '');
+    },
+
     isEdit(item) {
       return /^(edit_file|write_file) /.test(item.commandText || '');
     },

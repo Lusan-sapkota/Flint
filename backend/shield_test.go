@@ -20,6 +20,8 @@ func TestCheckCommandShield_BlocksKnownDangerousPatterns(t *testing.T) {
 		"mkfs.ext4 /dev/sda1",
 		"dd if=/dev/zero of=/dev/sda",
 		"cat ~/.ssh/id_rsa",
+		"cat ~/.ssh/id_ed25519",
+		"head -c 100 /home/me/.ssh/id_ecdsa",
 		"cat /etc/shadow",
 	}
 	for _, cmd := range cases {

@@ -335,7 +335,7 @@ func (s *Server) handleChatPage(w http.ResponseWriter, r *http.Request, user *Us
 		// An edit keeps showing what was proposed after it's decided, approved or denied.
 		if diffs, err := editDiffs(s.db, full.ID); err == nil {
 			for i := range timeline {
-				if e, ok := diffs[timeline[i].toolCallID]; ok {
+				if e, ok := diffs[timeline[i].toolCallID]; ok && e.Display != "" {
 					timeline[i].CommandDiff = e.Diff
 					timeline[i].CommandText = strings.SplitN(timeline[i].CommandText, " ", 2)[0] + " " + e.Display
 				}

@@ -68,6 +68,9 @@ func resolveInFolder(folder, p string) (string, error) {
 	if rel, err := filepath.Rel(root, real); err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 		return "", fmt.Errorf("%s is outside the attached folder", p)
 	}
+	if err := checkPathShield(real); err != nil {
+		return "", err
+	}
 	return real, nil
 }
 
@@ -114,6 +117,10 @@ func readFileResult(folder string, raw json.RawMessage) string {
 			return numberedLines(displayPath(folder, path), content, a.StartLine, a.EndLine)
 		}
 	}
+	var blocked shieldError
+	if errors.As(err, &blocked) {
+		return shieldBlockedMessage(blocked.reason)
+	}
 	return fmt.Sprintf("[FAILED to read: %v]", err)
 }
 
@@ -146,6 +153,8 @@ type plannedEdit struct {
 	Content string `json:"content"`
 	Base    string `json:"base"`
 	Diff    string `json:"diff"`
+	// Set instead for a cloud model's read, which waits for approval.
+	Read json.RawMessage `json:"read,omitempty"`
 }
 
 func hashOf(s string) string {
@@ -255,6 +264,14 @@ func (s *Server) applyEdit(cmd *Command) (resultText, displayStatus string) {
 	}
 	if err := json.Unmarshal([]byte(*cmd.Edit), &e); err != nil {
 		return fail(err)
+	}
+	if e.Read != nil {
+		out := readFileResult(cmd.Cwd, e.Read)
+		code := 0
+		if err := resolveCommand(s.db, cmd.ID, "executed", out, &code); err != nil {
+			log.Printf("warning: failed to resolve read: %v", err)
+		}
+		return out, "read"
 	}
 	current := ""
 	if data, err := os.ReadFile(e.Path); err == nil {

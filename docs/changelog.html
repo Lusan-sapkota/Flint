@@ -146,14 +146,16 @@
             <h1 id="overview">Changelog</h1>
 <p>Notable changes in each release. The measurements behind a change are in
 <a href="experiments.html">experiments</a>.</p>
-<h2 id="030---unreleased">0.3.0 - Unreleased<a aria-label="Link to 0.3.0 - Unreleased" class="header-anchor" href="#030---unreleased">#</a></h2>
+<h2 id="030---2026-10-02"><a href="https://github.com/Lusan-sapkota/Flint/compare/v0.2.1...v0.3.0">0.3.0</a> - 2026-10-02<a aria-label="Link to 0.3.0 - 2026-10-02" class="header-anchor" href="#030---2026-10-02">#</a></h2>
 <h3 id="added-030">Added<a aria-label="Link to Added" class="header-anchor" href="#added-030">#</a></h3>
 <ul>
 <li>File tools in folder chats. The model reads files in the attached
-  folder on its own, and edits or creates them through a red/green diff
-  you approve before anything is written. Paths can't leave the folder,
-  and an edit to a file that changed since it was proposed is refused
-  (<a href="experiments.html#e30-read-write-and-edit-tools">E30</a>).</li>
+  folder on its own (with a cloud model, only after you approve each
+  read, since the file goes to its host), and edits or creates them
+  through a red/green diff you approve before anything is written. Paths
+  can't leave the folder, the shield's secret-file rule is checked on the
+  real path after symlinks and <code>..</code> are resolved, and an edit to a file
+  that changed since it was proposed is refused (<a href="experiments.html#e30-read-write-and-edit-tools">E30</a>).</li>
 <li>The folder anchor lists the folder's real file paths, not just its top
   level, so the model names files that exist instead of guessing: the
   right file in 29 of 30 answers, up from 3 (<a href="experiments.html#e29-real-file-paths-in-the-anchor">E29</a>).</li>
@@ -174,6 +176,12 @@
 <li>The step cap counts only steps that asked for your approval (3); reads
   and refused proposals are bounded by a total of 8.</li>
 <li>A started agent plan card folds into one compact row.</li>
+</ul>
+<h3 id="fixed-030">Fixed<a aria-label="Link to Fixed" class="header-anchor" href="#fixed-030">#</a></h3>
+<ul>
+<li>The shield's SSH-key rule missed key names with digits, so
+  <code>cat ~/.ssh/id_ed25519</code>, today's default key type, was offered for
+  approval instead of being blocked.</li>
 </ul>
 <h2 id="021---2026-09-27"><a href="https://github.com/Lusan-sapkota/Flint/compare/v0.2.0...v0.2.1">0.2.1</a> - 2026-09-27<a aria-label="Link to 0.2.1 - 2026-09-27" class="header-anchor" href="#021---2026-09-27">#</a></h2>
 <h3 id="changed-021">Changed<a aria-label="Link to Changed" class="header-anchor" href="#changed-021">#</a></h3>
@@ -433,9 +441,10 @@
   <nav class="toc-nav">
     <ul class="toc-list">
       <li class="toc-item toc-level-2"><a href="#overview" class="toc-link" data-target="overview">Overview</a></li>
-      <li class="toc-item toc-level-2"><a href="#030---unreleased" class="toc-link" data-target="030---unreleased">0.3.0 - Unreleased</a></li>
+      <li class="toc-item toc-level-2"><a href="#030---2026-10-02" class="toc-link" data-target="030---2026-10-02">0.3.0 - 2026-10-02</a></li>
       <li class="toc-item toc-level-3"><a href="#added-030" class="toc-link" data-target="added-030">Added</a></li>
       <li class="toc-item toc-level-3"><a href="#changed-030" class="toc-link" data-target="changed-030">Changed</a></li>
+      <li class="toc-item toc-level-3"><a href="#fixed-030" class="toc-link" data-target="fixed-030">Fixed</a></li>
       <li class="toc-item toc-level-2"><a href="#021---2026-09-27" class="toc-link" data-target="021---2026-09-27">0.2.1 - 2026-09-27</a></li>
       <li class="toc-item toc-level-3"><a href="#changed-021" class="toc-link" data-target="changed-021">Changed</a></li>
       <li class="toc-item toc-level-2"><a href="#020---2026-09-27" class="toc-link" data-target="020---2026-09-27">0.2.0 - 2026-09-27</a></li>

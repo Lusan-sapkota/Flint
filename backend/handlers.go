@@ -1204,14 +1204,48 @@ func (s *Server) streamAssistantTurnAttempt(w http.ResponseWriter, r *http.Reque
 
 		switch tc.Function.Name {
 		case "read_file":
+			// A cloud model sends what it reads to its host, so there a read waits for approval like a command.
+			if s.ollama.modelInfo(s.ollamaURLFor(user), convo.Model).RemoteHost != "" {
+				var a struct {
+					Path string `json:"path"`
+				}
+				_ = json.Unmarshal(tc.Function.Arguments, &a)
+				if _, err := resolveInFolder(folder, a.Path); err != nil {
+					continueTurn(readFileResult(folder, tc.Function.Arguments))
+					return
+				}
+				read, _ := json.Marshal(plannedEdit{Read: tc.Function.Arguments})
+				readStr := string(read)
+				cmdID := tc.ID
+				if cmdID == "" {
+					cmdID = uuid.NewString()
+				}
+				label := toolCallLabel(tc)
+				if _, err := createCommandWithEdit(s.db, cmdID, convo.ID, tc.ID, label, folder, &readStr); err != nil {
+					log.Printf("warning: failed to save pending read: %v", err)
+				}
+				marker, _ := json.Marshal(map[string]any{"id": cmdID, "command": label, "missing": missingPaths(folder)(result.Content)})
+				fmt.Fprintf(w, "\n<<<TOOL_CALL>>>%s\n", marker)
+				return
+			}
 			out := readFileResult(folder, tc.Function.Arguments)
-			line, _ := json.Marshal(map[string]string{"label": toolCallLabel(tc), "result": out})
-			fmt.Fprintf(w, "\n<<<READ>>>%s\n", line)
-			flush()
+			if strings.HasPrefix(out, "[BLOCKED") {
+				fmt.Fprintf(w, "\n[Blocked a proposed command: %s]\n\n", secretFileReason)
+			} else {
+				line, _ := json.Marshal(map[string]string{"label": toolCallLabel(tc), "result": out})
+				fmt.Fprintf(w, "\n<<<READ>>>%s\n", line)
+				flush()
+			}
 			continueTurn(out)
 			return
 		case "write_file", "edit_file":
 			edit, err := planEdit(folder, tc.Function.Name, tc.Function.Arguments)
+			var blocked shieldError
+			if errors.As(err, &blocked) {
+				fmt.Fprintf(w, "\n[Blocked a proposed command: %s]\n\n", blocked.reason)
+				continueTurn(shieldBlockedMessage(blocked.reason))
+				return
+			}
 			if err != nil {
 				fmt.Fprintf(w, "\n[Edit not proposed: %v]\n\n", err)
 				continueTurn(fmt.Sprintf("[PRECONDITION FAILED: %v]\nNothing was written. Fix the arguments and try again, or ask the user.", err))

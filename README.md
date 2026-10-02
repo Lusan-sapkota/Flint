@@ -20,8 +20,10 @@ query text. Ollama cloud models (`:cloud`) run on ollama.com, so Flint tags
 them "cloud" and says so in the chat.
 
 **New in 0.3.0:** the model can read, edit and create files in your
-attached folder. It reads on its own, inside the folder only; every edit
-is shown as a red/green diff and written only when you approve it. The
+attached folder. It reads on its own, inside the folder only and never a
+secret the shield blocks (with a cloud model, only after you approve each
+read); every edit is shown as a red/green diff and written only when you
+approve it. The
 folder's real file paths sit next to where the model writes, so it names
 files that exist instead of guessing, and any file it mentions that isn't
 there is flagged under its reply.

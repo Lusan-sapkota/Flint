@@ -391,8 +391,9 @@
             <div class="flint-command-card">
               <header>
                 <span x-show="isEdit(item)">{{template "icon-edit"}}</span>
-                <span x-show="!isEdit(item)">{{template "icon-terminal"}}</span>
-                <span x-text="item.agentLabel ? item.agentLabel + ' wants to run' : isEdit(item) ? (item.commandText.startsWith('write_file') ? 'Write file' : 'Edit file') : 'Shell command'"></span>
+                <span x-show="isRead(item)">{{template "icon-file"}}</span>
+                <span x-show="!isEdit(item) && !isRead(item)">{{template "icon-terminal"}}</span>
+                <span x-text="item.agentLabel ? item.agentLabel + ' wants to run' : isEdit(item) ? (item.commandText.startsWith('write_file') ? 'Write file' : 'Edit file') : isRead(item) ? 'Read file (cloud model)' : 'Shell command'"></span>
                 <span class="flint-command-status" x-text="statusLabel(item.commandStatus)"></span>
               </header>
               <code class="flint-command-text" x-show="!isEdit(item)" x-text="item.commandText"></code>
@@ -416,7 +417,7 @@
 
               <template x-if="!item.agentRunId && item.commandStatus === 'pending'">
                 <div class="flint-command-actions">
-                  <button type="button" @click="approve(item)" :disabled="streaming" x-text="isEdit(item) ? 'Approve & write' : 'Approve & run'"></button>
+                  <button type="button" @click="approve(item)" :disabled="streaming" x-text="isEdit(item) ? 'Approve & write' : isRead(item) ? 'Approve & read' : 'Approve & run'"></button>
                   <button type="button" class="secondary" @click="deny(item)" :disabled="streaming">Deny</button>
                   <button type="button" class="secondary" @click="replyingTo = !replyingTo; if (replyingTo) $nextTick(() => $refs.input.focus())" :disabled="streaming"
                           x-text="replyingTo ? 'Cancel reply' : 'Reply instead'" title="Don't run it; tell the model what to do instead"></button>

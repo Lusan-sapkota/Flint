@@ -1,10 +1,16 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 )
 
@@ -118,5 +124,95 @@ func TestReadFileResult(t *testing.T) {
 		if got := readFileResult(root, raw(map[string]any{"path": p})); !strings.HasPrefix(got, "[FAILED to read: ") {
 			t.Errorf("%s: want a failure, got %q", p, got)
 		}
+	}
+}
+
+func TestFileToolsKeepTheShieldsSecretFileRule(t *testing.T) {
+	root := t.TempDir()
+	os.MkdirAll(filepath.Join(root, ".ssh"), 0o700)
+	os.WriteFile(filepath.Join(root, ".ssh", "id_ed25519"), []byte("KEY"), 0o600)
+	os.Symlink(filepath.Join(root, ".ssh", "id_ed25519"), filepath.Join(root, "notes.txt"))
+	raw := func(m map[string]string) json.RawMessage { b, _ := json.Marshal(m); return b }
+
+	for _, p := range []string{".ssh/id_ed25519", "notes.txt", "./sub/../.ssh/id_ed25519"} {
+		if got := readFileResult(root, raw(map[string]string{"path": p})); !strings.HasPrefix(got, "[BLOCKED by safety shield: accessing credential") || strings.Contains(got, "KEY") {
+			t.Errorf("read %s: want the shield's block, got %q", p, got)
+		}
+	}
+	for _, tc := range []struct{ tool, path string }{{"write_file", ".ssh/id_rsa"}, {"edit_file", ".ssh/id_ed25519"}, {"write_file", "notes.txt"}} {
+		_, err := planEdit(root, tc.tool, raw(map[string]string{"path": tc.path, "content": "x", "old_text": "KEY", "new_text": "x"}))
+		var blocked shieldError
+		if !errors.As(err, &blocked) {
+			t.Errorf("%s %s: want a shield error, got %v", tc.tool, tc.path, err)
+		}
+	}
+}
+
+func TestApprovedCloudReadReadsTheFile(t *testing.T) {
+	db, err := openDB(filepath.Join(t.TempDir(), "t.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	root := t.TempDir()
+	os.WriteFile(filepath.Join(root, "a.txt"), []byte("hello\n"), 0o644)
+	plan, _ := json.Marshal(plannedEdit{Read: json.RawMessage(`{"path":"a.txt"}`)})
+	edit := string(plan)
+	out, status := (&Server{db: db}).executeCommand(context.Background(), &Command{ID: "c1", Cwd: root, Edit: &edit})
+	if status != "read" || out != "[read a.txt: lines 1-1 of 1]\n   1\thello" {
+		t.Errorf("got %s %q", status, out)
+	}
+}
+
+func TestCloudModelReadsWaitForApproval(t *testing.T) {
+	db, err := openDB(filepath.Join(t.TempDir(), "t.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	folder := t.TempDir()
+	os.WriteFile(filepath.Join(folder, "a.txt"), []byte("SECRET-CONTENT\n"), 0o644)
+
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/tags":
+			json.NewEncoder(w).Encode(map[string]any{"models": []map[string]string{{"name": "local"}, {"name": "big:cloud", "remote_host": "https://ollama.com:443"}}})
+		case "/api/chat":
+			if calls.Add(1)%2 == 1 {
+				fmt.Fprintln(w, `{"message":{"role":"assistant","content":"","tool_calls":[{"function":{"name":"read_file","arguments":{"path":"a.txt"}}}]},"done":true}`)
+			} else {
+				fmt.Fprintln(w, `{"message":{"role":"assistant","content":"done"},"done":true}`)
+			}
+		default:
+			json.NewEncoder(w).Encode(map[string]any{})
+		}
+	}))
+	defer srv.Close()
+	s := &Server{db: db, ollama: NewOllamaClient(), defaultOllamaURL: srv.URL, attachmentsDir: t.TempDir()}
+	createUser(db, "alice", "Alice", "a@x.io", "h")
+	u, _ := getUserByID(db, "alice")
+
+	send := func(id, model string) string {
+		calls.Store(0)
+		createConversation(db, id, "alice", model)
+		setAttachedFolder(db, id, folder)
+		r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"content":"what is in a.txt?"}`))
+		r.SetPathValue("id", id)
+		r = r.WithContext(context.WithValue(r.Context(), userCtxKey, u))
+		w := httptest.NewRecorder()
+		s.handlePostMessage(w, r)
+		return w.Body.String()
+	}
+
+	if body := send("local1", "local"); !strings.Contains(body, "<<<READ>>>") || !strings.Contains(body, "SECRET-CONTENT") {
+		t.Errorf("a local model should read without asking: %q", body)
+	}
+	body := send("cloud1", "big:cloud")
+	if !strings.Contains(body, `<<<TOOL_CALL>>>`) || !strings.Contains(body, `"command":"read_file a.txt"`) || strings.Contains(body, "SECRET-CONTENT") {
+		t.Errorf("a cloud model's read should wait for approval without sending the file: %q", body)
+	}
+	if cmd, _ := getPendingCommand(db, "cloud1"); cmd == nil || cmd.Edit == nil {
+		t.Error("the cloud read should be a pending command")
 	}
 }

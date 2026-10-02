@@ -3,15 +3,17 @@
 Notable changes in each release. The measurements behind a change are in
 [experiments](experiments.md).
 
-## [0.3.0] - Unreleased
+## [0.3.0] - 2026-10-02
 
 ### Added
 
 - File tools in folder chats. The model reads files in the attached
-  folder on its own, and edits or creates them through a red/green diff
-  you approve before anything is written. Paths can't leave the folder,
-  and an edit to a file that changed since it was proposed is refused
-  (E30).
+  folder on its own (with a cloud model, only after you approve each
+  read, since the file goes to its host), and edits or creates them
+  through a red/green diff you approve before anything is written. Paths
+  can't leave the folder, the shield's secret-file rule is checked on the
+  real path after symlinks and `..` are resolved, and an edit to a file
+  that changed since it was proposed is refused (E30).
 - The folder anchor lists the folder's real file paths, not just its top
   level, so the model names files that exist instead of guessing: the
   right file in 29 of 30 answers, up from 3 (E29).
@@ -32,6 +34,12 @@ Notable changes in each release. The measurements behind a change are in
 - The step cap counts only steps that asked for your approval (3); reads
   and refused proposals are bounded by a total of 8.
 - A started agent plan card folds into one compact row.
+
+### Fixed
+
+- The shield's SSH-key rule missed key names with digits, so
+  `cat ~/.ssh/id_ed25519`, today's default key type, was offered for
+  approval instead of being blocked.
 
 ## [0.2.1] - 2026-09-27
 

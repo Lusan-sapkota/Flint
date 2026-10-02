@@ -212,12 +212,19 @@ anyone could set it to get around the limit. Behind a reverse proxy, every
 client therefore shares the proxy's IP and its limit.</p>
 <h2 id="file-tools">File tools<a aria-label="Link to File tools" class="header-anchor" href="#file-tools">#</a></h2>
 <ul>
-<li><strong>Reads run without approval</strong> (<code>read_file</code>), a deliberate choice: nothing
-   executes, so the risk is only what the model gets to see, and that is
-   confined to the attached folder. Every path is resolved through
+<li><strong>Reads run without approval with a local model</strong> (<code>read_file</code>), a
+   deliberate choice: nothing executes, so the risk is only what the model
+   gets to see, and that is confined to the attached folder. <strong>With a
+   cloud model, a read waits for your approval</strong> like a command, since
+   what it reads is sent to the model's host. Every path is resolved through
    symlinks before the check, so <code>..</code>, absolute paths and a link
    pointing outside are all refused. Binary files and files over 256 KB
    aren't read.</li>
+<li><strong>The shield applies to them too.</strong> The resolved path is checked
+   against the same secret-file rule as shell commands (SSH private keys,
+   <code>/etc/shadow</code>), so attaching your home folder doesn't let the model
+   read <code>~/.ssh/id_ed25519</code>, through a symlink or otherwise, and
+   none of the three tools can write there.</li>
 <li><strong>Writes and edits always need approval</strong>, shown as a diff of exactly
    what will be written. The new content is computed in memory when the
    edit is proposed and written only on approve, to a temporary file
@@ -239,7 +246,8 @@ client therefore shares the proxy's IP and its limit.</p>
 <li><strong>Shield</strong> (<code>shield.go</code>). Blocked when proposed and again when run:
    <code>rm -rf</code> aimed at <code>/</code>, <code>~</code>, or the whole current directory (<code>.</code>, <code>*</code>), fork bombs, <code>sudo</code>, piping <code>curl</code>/<code>wget</code>
    into a shell, <code>mkfs</code>, <code>dd</code> to <code>/dev/*</code>, and reading <code>/etc/shadow</code> or
-   SSH private keys. The model is told to ask you to run a genuinely
+   SSH private keys (any <code>~/.ssh/id_*</code>; before 0.3.0 the rule missed
+   names with digits, such as <code>id_ed25519</code>). The model is told to ask you to run a genuinely
    needed blocked command yourself, not to work around the block. This is
    a floor, not a guarantee: a Turing-complete shell can evade any pattern
    list.</li>

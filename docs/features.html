@@ -299,9 +299,11 @@
 <li><strong>Precondition check.</strong> A command whose program or read target doesn't
   exist goes back to the model without asking you.</li>
 <li><strong>Reading files.</strong> The model reads a file in the attached folder with
-  <code>read_file</code> (numbered lines, 400 at a time) <strong>without asking you</strong>:
-  nothing runs, and a path outside the folder, through <code>..</code>, an absolute
-  path or a symlink, is refused. Each read shows as a "Read
+  <code>read_file</code> (numbered lines, 400 at a time) <strong>without asking you</strong>
+  when it's a local model: nothing runs, and a path outside the folder,
+  through <code>..</code>, an absolute path or a symlink, is refused, as are SSH
+  keys and other secrets the shield blocks. With a cloud model, each read
+  waits for your approval, because the file goes to its host. Each read shows as a "Read
   data/prices.csv · lines 1-4 of 4" line you can open.</li>
 <li><strong>Editing files, as a diff.</strong> <code>edit_file</code> replaces an exact piece of a
   file and <code>write_file</code> creates or replaces one. Either shows a red/green

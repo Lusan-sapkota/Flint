@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
 	"regexp"
 )
 
@@ -16,7 +17,24 @@ var dangerousCommandPatterns = []struct {
 	{regexp.MustCompile(`(?i)(curl|wget)\b[^|]*\|\s*(sh|bash|zsh)\b`), "piping a network download directly into a shell"},
 	{regexp.MustCompile(`(?i)\bmkfs\b`), "filesystem formatting"},
 	{regexp.MustCompile(`(?i)\bdd\b[^|]*of=/dev/`), "raw write to a block device"},
-	{regexp.MustCompile(`(?i)(/etc/shadow|\.ssh/id_[a-z]+)\b`), "accessing credential or system secret files"},
+	{secretFile, secretFileReason},
+}
+
+// [a-z0-9]: with only letters before \b, "id_ed25519" (today's default key) never matched.
+var secretFile = regexp.MustCompile(`(?i)(/etc/shadow\b|\.ssh/id_[a-z0-9]+)`)
+
+const secretFileReason = "accessing credential or system secret files"
+
+type shieldError struct{ reason string }
+
+func (e shieldError) Error() string { return e.reason }
+
+// File tools check the resolved path, so a symlink or ".." can't reach a secret the shell shield would block.
+func checkPathShield(path string) error {
+	if secretFile.MatchString(filepath.ToSlash(path)) {
+		return shieldError{secretFileReason}
+	}
+	return nil
 }
 
 func checkCommandShield(command string) (blocked bool, reason string) {
