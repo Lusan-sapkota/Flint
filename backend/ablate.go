@@ -9,7 +9,7 @@ import (
 // Benchmark-only (FLINT_ABLATE); the shield is deliberately never ablatable.
 var ablated = map[string]bool{}
 
-var ablatable = []string{"nudge", "anchor", "summaries", "fit", "preconditions"}
+var ablatable = []string{"nudge", "anchor", "summaries", "fit", "preconditions", "grounding"}
 
 func loadAblations() {
 	for _, name := range strings.Split(os.Getenv("FLINT_ABLATE"), ",") {

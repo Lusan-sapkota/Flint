@@ -14,7 +14,8 @@ Notable changes in each release. The measurements behind a change are in
   older messages out of verbatim context.
 - In a folder chat, file names the model mentions that aren't in the
   folder are listed under its reply, so an invented path stands out
-  (E27).
+  (E27). The next request tells the model too, so it checks before
+  building on a name it made up (E28).
 
 ## [0.2.1] - 2026-09-27
 

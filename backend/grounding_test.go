@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -30,5 +31,23 @@ func TestMissingPaths(t *testing.T) {
 
 	if got := missingPaths(root)("Nothing to check here, just `os.Stat` and v1.2."); got != nil {
 		t.Errorf("want no candidates, got %q", got)
+	}
+}
+
+func TestGroundingNoteUsesLastAnswer(t *testing.T) {
+	root := t.TempDir()
+	os.WriteFile(filepath.Join(root, "main.go"), nil, 0o644)
+	msgs := []Message{
+		{Role: "assistant", Content: "See `old/gone.py`."},
+		{Role: "user", Content: "and?"},
+		{Role: "assistant", Content: "It's in `main.go` and `src/app.ts`."},
+		{Role: "tool", Content: "[exit code: 0]"},
+	}
+	if got := groundingNote(msgs, root); !strings.Contains(got, "`src/app.ts`") || strings.Contains(got, "gone.py") || strings.Contains(got, "main.go") {
+		t.Errorf("want only the last answer's missing name, got %q", got)
+	}
+	msgs[2].Content = "It's in `main.go`."
+	if got := groundingNote(msgs, root); got != "" {
+		t.Errorf("want no note when the last answer is grounded, got %q", got)
 	}
 }

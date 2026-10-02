@@ -121,3 +121,18 @@ func missingPaths(root string) func(reply string) []string {
 		return missing
 	}
 }
+
+func groundingNote(messages []Message, folder string) string {
+	for i := len(messages) - 1; i >= 0; i-- {
+		if messages[i].Role != "assistant" || strings.TrimSpace(messages[i].Content) == "" {
+			continue
+		}
+		missing := missingPaths(folder)(messages[i].Content)
+		if missing == nil {
+			return ""
+		}
+		return "[Not in the folder] Your last answer named files that don't exist in the attached folder: `" +
+			strings.Join(missing, "`, `") + "`. Don't present them as real: check with a command, or say you aren't sure."
+	}
+	return ""
+}

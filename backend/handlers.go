@@ -1045,6 +1045,9 @@ func (s *Server) turnSetup(user *User, convo *ConversationWithMessages, numCtx i
 		if !ablated["nudge"] && !forbidsCommands(convo.Messages) {
 			suffix = toolReasoningPrompt
 		}
+		if note := groundingNote(convo.Messages, *convo.AttachedFolder); note != "" && !ablated["grounding"] {
+			suffix = strings.TrimLeft(note+"\n\n"+suffix, "\n")
+		}
 		if anchor := buildAnchorHeader(*convo.AttachedFolder); anchor != "" && !ablated["anchor"] {
 			suffix = strings.TrimLeft(anchor+"\n\n"+suffix, "\n")
 		}

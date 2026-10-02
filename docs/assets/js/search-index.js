@@ -589,6 +589,13 @@ window.FLINT_SEARCH_INDEX = [
   },
   {
     "page": "Experiments",
+    "url": "experiments.html#e28-telling-the-model-its-last-answer-named-missing-files",
+    "title": "E28: Telling the model its last answer named missing files",
+    "group": "Evidence",
+    "snippet": "A note in the next request listing invented file names: building on an invented file fell from 4/7 to 0/8."
+  },
+  {
+    "page": "Experiments",
     "url": "experiments.html#baseline-before-any-agent-code",
     "title": "Baseline, before any agent code",
     "group": "Evidence",

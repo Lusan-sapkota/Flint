@@ -1573,8 +1573,8 @@ different files; see <a href="benchmark.html">benchmark.md</a>), run as a normal
   answer itself. Built: after a folder-chat reply, names with a file
   extension (backticked or with a slash, not inside code blocks) are
   checked against the folder, by exact path or as the tail of a path in
-  it. Ones not found are listed under the reply. The model never sees
-  the list.</p>
+  it. Ones not found are listed under the reply. Here the model never
+  saw the list; E28 tells it.</p>
 <p>Test: qwen2.5-3b-instruct, 8 questions that invite naming files,
   7 of them "without running commands".</p>
 <table>
@@ -1596,9 +1596,46 @@ different files; see <a href="benchmark.html">benchmark.md</a>), run as a normal
   (<code>backend/migrations/</code>), and member names like
   <code>console.log</code> or <code>process.env</code> unless written with a
   slash. The unit test holds these cases.</li>
-<li><strong>Not tried yet:</strong> putting the list in the next request's
-  anchor header so the model corrects itself. Measure first if it's
-  built.</li>
+<li><strong>Telling the model</strong> is E28.</li>
+</ul>
+<h2 id="e28-telling-the-model-its-last-answer-named-missing-files">E28: Telling the model its last answer named missing files<a aria-label="Link to E28: Telling the model its last answer named missing files" class="header-anchor" href="#e28-telling-the-model-its-last-answer-named-missing-files">#</a></h2>
+<p>E27 shows invented names to the user only. Tried: when the last answer
+  named files that aren't in the folder, the next request gets one line
+  next to the anchor, listing them and saying "Don't present them as
+  real: check with a command, or say you aren't sure." Ablatable as
+  <code>grounding</code>.</p>
+<p>Test: qwen2.5-3b-instruct, Flint's repo root attached. The two E27
+  questions that drew invented paths, then one follow-up: "show me
+  what's in the first file you named" (depends on the answer) or "in one
+  sentence, what is this project?" (unrelated, to catch side effects).
+  5 runs per question, follow-up and arm, shuffled. A run counts only if
+  the first answer named a missing file (28 of 40). Replies classified
+  by reading them; a keyword match proved unreliable.</p>
+<table>
+<thead><tr><th>follow-up</th><th>result</th><th>note off</th><th>note on</th></tr></thead>
+<tbody>
+<tr><td>dependent</td><td>treated an invented file as real</td><td>4/7</td><td>0/8</td></tr>
+<tr><td>dependent</td><td>checked first, or said it wasn't sure</td><td>1/7</td><td>5/8</td></tr>
+<tr><td>dependent</td><td>switched to a real file</td><td>1/7</td><td>2/8</td></tr>
+<tr><td>unrelated</td><td>answered the question</td><td>6/6</td><td>7/7</td></tr>
+<tr><td>unrelated</td><td>proposed a command anyway</td><td>4/6</td><td>1/7</td></tr>
+<tr><td>unrelated</td><td>brought up the missing files unasked</td><td>0/6</td><td>3/7</td></tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Without the note</strong> the model built on its own invention:
+  <code>cat backend/schema.sql</code>, or "the first file, likely
+  <code>backend/run_shell.go</code>" followed by <code>echo hello</code>.
+  Preconditions caught the <code>cat</code>s, but only after the model had
+  committed to the name.</li>
+<li><strong>With it</strong>, it hedged and checked ("I'm not sure if the
+  <code>chat.db</code> file is present ... I will run a command") or moved to
+  a file that exists.</li>
+<li><strong>Side effect:</strong> on an unrelated question it sometimes added a
+  sentence about verifying the missing files. No apologies in either arm.
+  Fewer commands were proposed with the note, so no extra approvals.</li>
+<li><strong>Kept</strong>, on by default. The numbers are small (7-8 runs per cell)
+  and one model. Re-measure if the wording changes.</li>
 </ul>
 <h2 id="open-questions">Open questions<a aria-label="Link to Open questions" class="header-anchor" href="#open-questions">#</a></h2>
 <ul>
